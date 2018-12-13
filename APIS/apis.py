@@ -41,7 +41,7 @@ from APIS.src.apis_layer_manager import ApisLayerManager
 
 import os.path
 from functools import partial
-#TEST BLUB
+
 class APIS:
     """QGIS Plugin Implementation."""
 

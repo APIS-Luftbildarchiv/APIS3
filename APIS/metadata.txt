@@ -1,0 +1,39 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=APIS
+qgisMinimumVersion=3.0
+description=APIS - Archaeological Prospection Information System - A QGIS Plugin
+version=3.0
+author=Johannes Liem (digitalcartography.org) and Aerial Archive of the University of Vienna
+email=johannes.liem@digitalcartography.org
+
+about=Heritage managers are in need of dynamic spatial inventories of archaeological and cultural heritage that provide them with multipurpose tools to interactively understand information about archaeological heritage within its landscape context. Specifically, linking site information with the respective non-invasive prospection data is of increasing importance as it allows for the assessment of inherent uncertainties related to the use and interpretation of remote sensing data by the educated and knowledgeable heritage manager. APIS, the archaeological prospection information system of the Aerial Archive of the University of Vienna, is specifically designed to meet these needs. It provides storage and easy access to all data concerning aerial photographs and archaeological sites through a single GIS-based application. Furthermore, APIS has been developed in an open source environment, which allows it to be freely distributed and modified. This combination in one single open source system facilitates an easy workflow for data management, interpretation, storage, and retrieval.
+
+tracker=https://github.com/APIS-Luftbildarchiv/APIS/issues
+repository=https://github.com/APIS-Luftbildarchiv/APIS
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=APIS, Aerial Archaeology
+
+homepage=https://github.com/APIS-Luftbildarchiv/APIS
+category=Database
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+

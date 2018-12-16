@@ -47,6 +47,7 @@ from APIS.src.apis_site_selection_list import APISSiteSelectionList
 from APIS.src.apis_utils import OpenFileOrFolder
 from APIS.src.apis_weather import APISWeather
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
+from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_exif2points import Exif2Points
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
@@ -71,6 +72,8 @@ class APISFilm(QDialog, FORM_CLASS):
         self.parent = parent
 
         self.setupUi(self)
+
+        self.printingOptionsDlg = None
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
@@ -501,7 +504,22 @@ class APISFilm(QDialog, FORM_CLASS):
             self.iface.addVectorLayer(layer, "flugstrecke {0} gps p".format(key), 'ogr')
 
     def exportDetailsPdf(self):
-        APISPrinterQueue([{'type': APISTemplatePrinter.FILM, 'idList': [self.uiCurrentFilmNumberEdit.text()]}], APISPrinterQueue.SINGLE, dbm=self.dbm, parent=self)
+        if self.printingOptionsDlg is None:
+            self.printingOptionsDlg = APISPrintingOptions(self)
+            self.printingOptionsDlg.uiPrintModeGrp.setVisible(False)
+            self.printingOptionsDlg.uiMergeModeGrp.setVisible(False)
+            self.printingOptionsDlg.adjustSize()
+
+        self.printingOptionsDlg.show()
+
+        if self.printingOptionsDlg.exec_():
+
+            APISPrinterQueue([{'type': APISTemplatePrinter.FILM, 'idList': [self.uiCurrentFilmNumberEdit.text()]}],
+                             APISPrinterQueue.SINGLE,
+                             openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
+                             openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
+                             dbm=self.dbm,
+                             parent=self)
 
     def openSearchFilmDialog(self):
         """Run method that performs all the real work"""

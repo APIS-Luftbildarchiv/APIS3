@@ -38,7 +38,7 @@ from qgis.gui import QgsRubberBand
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
 from APIS.src.apis_overpass_request import APISOverpassRequest
-from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder
+from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder, ApisLogger
 from APIS.src.apis_findspot import APISFindspot
 from APIS.src.apis_findspot_selection_list import APISFindspotSelectionList
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
@@ -490,6 +490,7 @@ class APISSite(QDialog, FORM_CLASS):
     def onComboBoxChanged(self, editor):
         pass
 
+    # TODO remove
     def apisLogger(self, action, fromTable, primaryKeysWhere):
         toTable = fromTable + u"_log"
         query = QSqlQuery(self.dbm.db)
@@ -672,7 +673,9 @@ class APISSite(QDialog, FORM_CLASS):
             self.geometryEditing = False
         else:
             # log only if not geometryEditing envolved, otherwise log in site_mapping_dialog.saveSiteEdits()
-            self.apisLogger(action, u"fundort", u"fundortnummer = '{0}' ".format(self.siteNumber))
+            # TODO remove
+            # self.apisLogger(action, u"fundort", u"fundortnummer = '{0}' ".format(self.siteNumber))
+            ApisLogger(self.dbm.db, action, "fundort", "fundortnummer = '{0}' ".format(self.siteNumber))
 
         self.mapper.setCurrentIndex(currIdx)
         self.endEditMode()
@@ -788,7 +791,10 @@ class APISSite(QDialog, FORM_CLASS):
                         repImageFile.remove()
 
                 # log eintragen
-                self.apisLogger(u"delete", u"fundort", u"fundortnummer = '{0}'".format(self.siteNumber))
+                # TODO remove
+                # self.apisLogger(u"delete", u"fundort", u"fundortnummer = '{0}'".format(self.siteNumber))
+                ApisLogger(self.dbm.db, "delete", "fundort", "fundortnummer = '{0}'".format(self.siteNumber))
+
                 # löschen
                 self.model.deleteRowFromTable(self.mapper.currentIndex())
 

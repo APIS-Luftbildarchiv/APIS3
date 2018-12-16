@@ -136,12 +136,15 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
                 shpFile = flightPathDirectory + "\\" + film + "_gps.shp"
                 dataSource = self.shpDriver.Open(shpFile, 0)  # 0 means read-only. 1 means writeable.
-                if dataSource is not None:
-                    chkBoxCameraGpsPoint.setText("verfügbar")
-                    chkBoxCameraGpsPoint.setEnabled(True)
-                    if dataSource.GetLayer().GetFeatureCount() > 1:
-                        chkBoxCameraGpsLine.setText("verfügbar")
-                        chkBoxCameraGpsLine.setEnabled(True)
+                if dataSource:
+                    ldefn = dataSource.GetLayer().GetLayerDefn()
+                    schema = [ldefn.GetFieldDefn(n).name for n in range(ldefn.GetFieldCount())]
+                    if "bildnr" in schema:
+                        chkBoxCameraGpsPoint.setText("verfügbar")
+                        chkBoxCameraGpsPoint.setEnabled(True)
+                        if dataSource.GetLayer().GetFeatureCount() > 1:
+                            chkBoxCameraGpsLine.setText("verfügbar")
+                            chkBoxCameraGpsLine.setEnabled(True)
 
             # Kartierung
             # Input Filmnummer, weise > je nacch weise andere Tabelle (CenterPoint) für Select (COUNT)

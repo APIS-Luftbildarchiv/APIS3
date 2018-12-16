@@ -34,7 +34,7 @@ from qgis.core import (QgsProject, QgsFeatureRequest, QgsGeometry, QgsCoordinate
                        QgsDistanceArea, QgsUnitTypes)
 
 from APIS.src.apis_map_tools import APISMapToolEmitPointAndSquare, APISMapToolEmitPolygonAndPoint
-from APIS.src.apis_utils import GetMeridianAndEpsgGK, SitesHaveFindspots, TransformGeometry, IsFilm
+from APIS.src.apis_utils import GetMeridianAndEpsgGK, SitesHaveFindspots, TransformGeometry, IsFilm, ApisLogger
 from APIS.src.apis_site import APISSite
 from APIS.src.apis_site_edit_findspot_conflict_handling import APISSiteEditFindspotConflictHandling
 
@@ -589,7 +589,9 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                 # log
                 if commitRes:
                     for log in logs:
-                        self.apisLogger(log[0], u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
+                        # TODO remove
+                        # self.apisLogger(log[0], u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
+                        ApisLogger(self.dbm.db, log[0], "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
 
     def onBeforeCommitChangesFindspotEditing(self):
         if not self.findspotLayer.isEditable():
@@ -1146,7 +1148,9 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                 #log
                 if commitRes:
                     for log in logs:
-                        self.apisLogger(log[0], u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
+                        # TODO remove
+                        # self.apisLogger(log[0], u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
+                        ApisLogger(self.dbm.db, log[0], "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
 
             self.siteLayer.updateFeature(feature)
             self.siteLayer.commitChanges()
@@ -1165,7 +1169,9 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
             dialog.reloadMapCanvas()
 
             # log
-            self.apisLogger(u"editAG", u"fundort", u"fundortnummer = '{0}' ".format(siteNumber))
+            # TODO remove
+            # self.apisLogger(u"editAG", u"fundort", u"fundortnummer = '{0}' ".format(siteNumber))
+            ApisLogger(self.dbm.db, "editAG", "fundort", "fundortnummer = '{0}' ".format(siteNumber))
 
         self.onCancelAnyEdits()
 
@@ -1184,6 +1190,7 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                 return False
         return True
 
+    # TODO remove
     def apisLogger(self, action, fromTable, primaryKeysWhere):
         toTable = fromTable + u"_log"
         query = QSqlQuery(self.dbm.db)

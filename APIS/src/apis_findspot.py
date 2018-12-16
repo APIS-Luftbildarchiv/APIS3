@@ -36,7 +36,7 @@ from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature)
 from APIS.src.apis_findingtype_detail import APISFindingTypeDetail
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_text_editor import APISTextEditor
-from APIS.src.apis_utils import OpenFileOrFolder
+from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger
 
 # QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
 # QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
@@ -242,7 +242,8 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         self.uiCadastralCommunityNumberEdit.setText(str(query.value(0)))
         self.uiCadastralCommunityEdit.setText(str(query.value(1)))
-        self.uiFieldNameEdit.setText(str(query.value(2) if query.value(2) == 'NULL' else '' ))
+        self.uiFieldNameEdit.setText(str('' if query.isNull(2) else query.value(2)))
+
 
         self.lineEditMaps = {
             "bearbeiter": {
@@ -717,17 +718,21 @@ class APISFindspot(QDialog, FORM_CLASS):
         siteNumber = currentRecord.value('fundortnummer')
         findspotNumberSource = currentRecord.value('fundstellenummer')
         findspotNumber = self.getNextFindspotNumber(siteNumber)
+        currentRecord.setValue('ogc_fid', None)
         currentRecord.setValue('fundstellenummer', findspotNumber)
         now = QDate.currentDate()
         currentRecord.setValue('datum_ersteintrag', now.toString("yyyy-MM-dd"))
         currentRecord.setValue('datum_aenderung', now.toString("yyyy-MM-dd"))
 
         import getpass
-        currentRecord.setValue('aktion','clone')
+        currentRecord.setValue('aktion', 'clone')
         currentRecord.setValue('aktionsdatum', now.toString("yyyy-MM-dd"))
         currentRecord.setValue('aktionsuser', getpass.getuser())
 
-        self.model.insertRowIntoTable(currentRecord)
+        res = self.model.insertRowIntoTable(currentRecord)
+        if not res:
+            QMessageBox.information(None, "SqlError", "{0}, {1}".format(self.model.lastError().text(), ))
+
         self.model.setFilter("fundortnummer='{0}' AND fundstellenummer={1}".format(siteNumber, findspotNumber))
         res = self.model.select()
         #self.mapper.setModel(self.model)
@@ -739,8 +744,10 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         self.findspotEditsSaved.emit(True)
 
-        #in log eintragen
-        self.apisLogger(u"clone", u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
+        # in log eintragen
+        # TODO remove
+        # self.apisLogger(u"clone", u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
+        ApisLogger(self.dbm.db, "clone", "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
         QMessageBox.information(None, u"Fundstelle Klonen", u"Die Fundstelle {0}.{1} wurde geklont und gespeichert: {0}.{2}".format(siteNumber, findspotNumberSource, findspotNumber))
         self.initalLoad = False
@@ -758,8 +765,9 @@ class APISFindspot(QDialog, FORM_CLASS):
         # save or not save
 
         if result == QMessageBox.Yes:
-            # TODO: in log eintragen
-            self.apisLogger(u"delete", u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
+            # TODO: remove
+            # self.apisLogger(u"delete", u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
+            ApisLogger(self.dbm.db, "delete", "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
             # löschen
             self.model.deleteRowFromTable(self.mapper.currentIndex())
@@ -1023,7 +1031,9 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.findspotEditsSaved.emit(True)
 
         #log
-        self.apisLogger(action, u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
+        # TODO remove
+        #self.apisLogger(action, u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
+        ApisLogger(self.dbm.db, action, "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
         self.mapper.setCurrentIndex(currIdx)
         self.endEditMode()
@@ -1164,10 +1174,15 @@ class FindspotDelegate(QSqlRelationalDelegate):
 
         elif editor.metaObject().className() == 'QComboBox':
             if index.column() == 3: #3 - sicherheit
-                if value == '':
+                #if value == '':
+                #    editor.setCurrentIndex(-1)
+                #else:
+                #    editor.setCurrentIndex(int(value) - 1)
+                try:
+                    editor.setCurrentIndex(int(value) - 1)
+                except ValueError:
                     editor.setCurrentIndex(-1)
-                else:
-                    editor.setCurrentIndex(int(value)-1)
+
             else:
                 editor.setEditText(value)
 

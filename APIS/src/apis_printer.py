@@ -13,7 +13,7 @@ from qgis.core import (Qgis, QgsMessageLog, QgsLayout, QgsProject, QgsLayoutExpo
                        QgsDataSourceUri, QgsFeature, QgsGeometry, QgsLayoutUtils, QgsLayoutItem, QgsLayoutSize,
                        QgsLayoutPoint, QgsLayoutItemLabel, QgsRectangle)
 
-from APIS.src.apis_utils import GenerateWeatherDescription
+from APIS.src.apis_utils import GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect
 
 import traceback, sys, os, errno, shutil, random, math
 
@@ -24,12 +24,14 @@ class APISPrinterQueue(QObject):
     SINGLE = 0
     MERGE = 1
 
-    def __init__(self, queue, mergeMode=SINGLE, dbm=None, parent=None):
+    def __init__(self, queue, mergeMode=SINGLE, openFile=False, openFolder=False, dbm=None, parent=None):
 
         super(APISPrinterQueue, self).__init__(parent)
 
         self.printerQueue = queue
         self.mergeMode = mergeMode
+        self.openFile = openFile
+        self.openFolder = openFolder
         self.dbm = dbm
         self.parent = parent
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
@@ -178,6 +180,13 @@ class APISPrinterQueue(QObject):
                     merger.write(fout)
                     self._updateProgress()
                     shutil.rmtree(os.path.join(os.path.dirname(os.path.abspath(self.saveTo)), self.tempDirName))
+
+            if self.openFolder:
+                #OpenFileOrFolder(os.path.dirname(os.path.abspath(self.saveTo)))
+                OpenFolderAndSelect(self.saveTo)
+
+            if self.openFile:
+                OpenFileOrFolder(os.path.abspath(self.saveTo))
 
         except Exception as inst:
             #tag, message = inst.args
@@ -462,7 +471,11 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
         # choice 2 = _gps.shp + connect points if featureCount > 1
         shpFile = flightpathDir + "\\" + self.id[2:6] + "\\" + self.id + "_gps.shp"
         dataSource = shpDriver.Open(shpFile, 0)
-        if not vectorLayer.hasFeatures() and dataSource and dataSource.GetLayer().GetFeatureCount() > 1:
+        schema = []
+        if dataSource:
+            ldefn = dataSource.GetLayer().GetLayerDefn()
+            schema = [ldefn.GetFieldDefn(n).name for n in range(ldefn.GetFieldCount())]
+        if not vectorLayer.hasFeatures() and dataSource and dataSource.GetLayer().GetFeatureCount() > 1 and "bildnr" in schema:
 
             sortedFeatures = sorted(dataSource.GetLayer(), key=lambda f: f['bildnr'])
             pointList = []

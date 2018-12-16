@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QCoreApplication
+from PyQt5.QtCore import QSettings, QCoreApplication, QDateTime
 from PyQt5.QtSql import QSqlQuery
 from PyQt5.QtWidgets import QMessageBox, QPushButton
 from qgis.core import QgsProject, QgsCoordinateTransform
@@ -91,6 +91,10 @@ def OpenFileOrFolder(fileOrFolder):
             subprocess.call(["xdg-open", fileOrFolder])
         else:
             os.startfile(fileOrFolder)
+
+def OpenFolderAndSelect(file):
+    if os.path.exists(file):
+        subprocess.Popen(r'explorer /select,"{0}"'.format(os.path.abspath(file)))
 
 # ---------------------------------------------------------------------------
 # Recurring Tasks
@@ -179,6 +183,7 @@ def SiteHasFindspot(db, siteNumber):
     query.first()
     return query.value(0)
 
+
 def SitesHaveFindspots(db, siteNumbers):
     sites = u", ".join(u"'{0}'".format(siteNumber) for siteNumber in siteNumbers)
     query = QSqlQuery(db)
@@ -186,6 +191,7 @@ def SitesHaveFindspots(db, siteNumbers):
     query.exec_()
     query.first()
     return query.value(0)
+
 
 def GetFindspotNumbers(db, siteNumbers):
     query = QSqlQuery(db)
@@ -199,6 +205,7 @@ def GetFindspotNumbers(db, siteNumbers):
 
     return findspots
 
+
 def IsFilm(db, filmNumber):
     """
     Checks if filmNumber is a filmNumber in film Table
@@ -211,6 +218,29 @@ def IsFilm(db, filmNumber):
     query.exec_()
     query.first()
     return query.value(0)
+
+
+def ApisLogger(db, action, fromTable, primaryKeysWhere):
+        toTable = fromTable + u"_log"
+
+        q = QSqlQuery(db)
+        q.exec_("PRAGMA table_info({0});".format(fromTable))
+        q.seek(-1)
+        fieldNames = []
+        while (q.next()):
+            fieldNames.append(str(q.record().value(1)))
+        fieldNames.pop(0) # pop id
+        query = QSqlQuery(db)
+        query.prepare("INSERT INTO {0}({1}) SELECT {1} FROM {2} WHERE {3}".format(toTable, ", ".join(fieldNames), fromTable, primaryKeysWhere))
+        res = query.exec_()
+        if not res:
+            QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+
+        import getpass
+        query.prepare("UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser()))
+        res = query.exec_()
+        if not res:
+            QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
 
 # noinspection PyMethodMayBeStatic
 def tr(message):

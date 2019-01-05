@@ -86,7 +86,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
         self.uiSearchModeIntersectsRBtn.setChecked(True)
 
         self.spatialSearchTool = RectangleMapTool(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
-        self.spatialSearchTool.setCursor(Qt.CrossCursor)
+        #self.spatialSearchTool.setCursor(Qt.CrossCursor)
         self.spatialSearchTool.setButton(self.uiSpatialSearchBtn)
         self.uiSpatialSearchBtn.setCheckable(True)
         self.uiSpatialSearchBtn.toggled.connect(self.toggleSpatialSearch)
@@ -333,7 +333,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
             # qryStr = "SELECT fundortnummer, flurname, katastralgemeinde, fundgewinnung, sicherheit FROM fundort_pnt WHERE fundort_pnt.fundortnummer IN (SELECT DISTINCT fundort_pol.fundortnummer FROM fundort_pol WHERE NOT IsEmpty(fundort_pol.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}',{1}), fundort_pol.geometry) AND fundort_pol.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundort_pol' AND search_frame = GeomFromText('{0}',{1}) ) ) ORDER BY SUBSTR(fundortnummer, 0, 3), CAST(SUBSTR(fundortnummer, 5) AS INTEGER)".format(searchGeometry.asWkt(), epsg)
             query.prepare(u"SELECT fundortnummer, flurname, katastralgemeinde, fundgewinnung, sicherheit FROM fundort WHERE fundortnummer IN (SELECT DISTINCT fo.fundortnummer FROM fundort fo, ({0}) cc WHERE NOT IsEmpty(fo.geometry) AND Intersects(cc.geometry, fo.geometry) AND fo.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundort' AND search_frame = cc.geometry ) ) ORDER BY katastralgemeindenummer, land, fundortnummer_nn".format(ccSearchStr))
             query.exec_()
-            self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+            self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
             #info = u"gefunden, die von den selektierten Features aus dem Layer '{0}' abgedeckt/geschnitten werden.".format(vlayer.name())
             res = self.siteSelectionListDlg.loadSiteListBySpatialQuery(query)
             if res:
@@ -378,7 +378,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
         # qryStr = "select cp.bildnummer as bildnummer, cp.filmnummer as filmnummer, cp.radius as mst_radius, f.weise as weise, f.art_ausarbeitung as art from film as f, luftbild_schraeg_cp AS cp WHERE f.filmnummer = cp.filmnummer AND cp.bildnummer IN (SELECT fp.bildnummer FROM luftbild_schraeg_fp AS fp WHERE NOT IsEmpty(fp.geometry) AND Intersects(GeomFromText('{0}',{1}), fp.geometry) AND rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_schraeg_fp' AND search_frame = GeomFromText('{0}',{1}) )) UNION ALL SELECT  cp_s.bildnummer AS bildnummer, cp_S.filmnummer AS filmnummer, cp_s.massstab, f_s.weise, f_s.art_ausarbeitung FROM film AS f_s, luftbild_senk_cp AS cp_s WHERE f_s.filmnummer = cp_s.filmnummer AND cp_s.bildnummer IN (SELECT fp_s.bildnummer FROM luftbild_senk_fp AS fp_s WHERE NOT IsEmpty(fp_s.geometry) AND Intersects(GeomFromText('{0}',{1}), fp_s.geometry) AND rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_senk_fp' AND search_frame = GeomFromText('{0}',{1}) ) ) ORDER BY filmnummer, bildnummer".format(searchGeometry.asWkt(), epsg)
         query.exec_()
-        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
         info = u"gefunden, deren Fundortnummer die Suche '{0}' enthält.".format(siteNumberSearchValue)
         res = self.siteSelectionListDlg.loadSiteListBySpatialQuery(query, info)
         if res:
@@ -402,7 +402,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
         query = QSqlQuery(self.dbm.db)
         query.prepare("SELECT fundortnummer, flurname, katastralgemeinde, fundgewinnung, sicherheit FROM fundort WHERE fundortnummer IN (SELECT DISTINCT fo.fundortnummer FROM fundort fo, {0} WHERE fo.geometry IS NOT NULL AND {0}.geometry IS NOT NULL AND {0}.filmnummer = '{1}' AND Intersects({0}.geometry, fo.geometry) AND fo.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundort' AND search_frame = {0}.geometry)) ORDER BY katastralgemeindenummer, land, fundortnummer_nn".format(fromTable, filmNumber))
         query.exec_()
-        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
         info = u"gefunden, die vom Film {0} abgedeckt/geschnitten werden.".format(filmNumber)
         res = self.siteSelectionListDlg.loadSiteListBySpatialQuery(query, info)
         if res:
@@ -417,7 +417,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
         query.prepare("SELECT fundortnummer, flurname, katastralgemeinde, fundgewinnung, sicherheit FROM fundort WHERE fundortnummer IN (SELECT DISTINCT fo.fundortnummer FROM fundort fo, (SELECT filmnummer, geometry FROM luftbild_schraeg_fp WHERE NOT IsEmpty(luftbild_schraeg_fp.geometry) AND substr(luftbild_schraeg_fp.filmnummer, 3, 4) = '{0}' UNION ALL SELECT filmnummer, geometry FROM luftbild_senk_fp WHERE NOT IsEmpty(luftbild_senk_fp.geometry) AND substr(luftbild_senk_fp.filmnummer, 3, 4) = '{0}') luftbild WHERE NOT IsEmpty(fo.geometry) AND Intersects(luftbild.geometry, fo.geometry) AND fo.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundort' AND search_frame = luftbild.geometry)) ORDER BY katastralgemeindenummer, land, fundortnummer_nn".format(year))
 
         query.exec_()
-        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
         info = u"gefunden, die von Filmen aus dem Jahr {0} abgedeckt/geschnitten werden.".format(year)
         res = self.siteSelectionListDlg.loadSiteListBySpatialQuery(query, info)
         if res:
@@ -431,7 +431,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
         query = QSqlQuery(self.dbm.db)
         query.prepare("SELECT fundortnummer, flurname, katastralgemeinde, fundgewinnung, sicherheit FROM fundort WHERE filmnummer_projekt LIKE '%{0}%' ORDER BY katastralgemeindenummer, land, fundortnummer_nn".format(projectNameSearchValue))
         query.exec_()
-        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
         info = u"gefunden, deren Projektbezeichnung die Suche '{0}' enthält.".format(projectNameSearchValue)
         res = self.siteSelectionListDlg.loadSiteListBySpatialQuery(query, info)
         if res:

@@ -33,7 +33,7 @@ from qgis.core import QgsDataSourceUri, QgsProject, QgsVectorLayer, QgsVectorFil
 
 from APIS.src.apis_site import APISSite
 from APIS.src.apis_utils import SiteHasFindspot, SitesHaveFindspots, GetFindspotNumbers, OpenFileOrFolder, GetFindspotNumbers
-from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter
+from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter, OutputMode
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_site_selection_list.ui'), resource_suffix='')
@@ -262,7 +262,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
             pdfsToPrint = []
             for s in siteList:
                 pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [s]})
-            APISPrinterQueue(pdfsToPrint, APISPrinterQueue.MERGE, parent=self)
+            APISPrinterQueue(pdfsToPrint, OutputMode.MergeAll, parent=self)
 
     def exportAsPdf(self, list=False, detail=False, subList=False, subDetail=False):
         siteList = self.askForSiteList()
@@ -282,7 +282,8 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
                                 for f in findspotList:
                                     pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [f]})
 
-            APISPrinterQueue(pdfsToPrint, APISPrinterQueue.MERGE, dbm=self.dbm, parent=self)
+            if pdfsToPrint:
+                APISPrinterQueue(pdfsToPrint, OutputMode.MergeAll, dbm=self.dbm, parent=self)
 
     def exportSiteAsPdfOLD(self):
         siteList = self.askForSiteList()
@@ -408,7 +409,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
         if siteList:
             pdfsToPrint = []
             pdfsToPrint.append({'type': APISListPrinter.SITE, 'idList': siteList})
-            APISPrinterQueue(pdfsToPrint, APISPrinterQueue.SINGLE, parent=self)
+            APISPrinterQueue(pdfsToPrint, OutputMode.MergeNone, parent=self)
 
             # ToDo: remove lines
             # pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': siteList})

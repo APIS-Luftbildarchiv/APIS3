@@ -283,16 +283,6 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="3">
-             <widget class="QSpinBox" name="uiImageNumberToSpn">
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>999</number>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="2">
              <widget class="QLabel" name="label_9">
               <property name="text">
@@ -300,10 +290,23 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="3">
-             <widget class="QSpinBox" name="uiFlightHeightObliqueSpn">
-              <property name="maximum">
-               <number>99999</number>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_13">
+              <property name="text">
+               <string>Beschreibung:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1" colspan="3">
+             <widget class="QLineEdit" name="uiImageDescriptionEdit"/>
+            </item>
+            <item row="2" column="1" colspan="3">
+             <widget class="QLineEdit" name="uiImageKeywordEdit"/>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>Schlüsselwort:</string>
               </property>
              </widget>
             </item>
@@ -327,12 +330,8 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_10">
-              <property name="text">
-               <string>Durchmesser:</string>
-              </property>
-             </widget>
+            <item row="4" column="1" colspan="3">
+             <widget class="QComboBox" name="uiProjectObliqueCombo"/>
             </item>
             <item row="0" column="1">
              <widget class="QSpinBox" name="uiImageNumberFromSpn">
@@ -344,15 +343,25 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_13">
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>Beschreibung:</string>
+               <string>Durchmesser:</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="1" colspan="3">
-             <widget class="QComboBox" name="uiProjectObliqueCombo"/>
+            <item row="5" column="0" rowspan="3" colspan="4">
+             <widget class="QListWidget" name="uiProjectObliqueList"/>
+            </item>
+            <item row="0" column="3">
+             <widget class="QSpinBox" name="uiImageNumberToSpn">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>999</number>
+              </property>
+             </widget>
             </item>
             <item row="4" column="0">
              <widget class="QLabel" name="label_14">
@@ -361,21 +370,21 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="1" colspan="3">
-             <widget class="QLineEdit" name="uiImageDescriptionEdit"/>
-            </item>
-            <item row="2" column="1" colspan="3">
-             <widget class="QLineEdit" name="uiImageKeywordEdit"/>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_12">
-              <property name="text">
-               <string>Schlüsselwort:</string>
+            <item row="1" column="3">
+             <widget class="QSpinBox" name="uiFlightHeightObliqueSpn">
+              <property name="maximum">
+               <number>99999</number>
               </property>
              </widget>
             </item>
-            <item row="4" column="4">
+            <item row="5" column="4">
              <widget class="QPushButton" name="uiAddProjectObliqueBtn">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -385,8 +394,31 @@
               </property>
              </widget>
             </item>
+            <item row="4" column="4">
+             <widget class="QPushButton" name="uiEditProjectTableBtn">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+              </property>
+             </widget>
+            </item>
             <item row="6" column="4">
              <widget class="QPushButton" name="uiRemoveProjectObliqueBtn">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -395,9 +427,6 @@
                 <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
               </property>
              </widget>
-            </item>
-            <item row="6" column="0" colspan="4">
-             <widget class="QListWidget" name="uiProjectObliqueList"/>
             </item>
            </layout>
           </item>
@@ -408,7 +437,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>877</width>
+           <width>610</width>
            <height>613</height>
           </rect>
          </property>

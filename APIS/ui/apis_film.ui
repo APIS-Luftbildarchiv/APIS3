@@ -12,8 +12,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1400</width>
-    <height>900</height>
+    <width>2011</width>
+    <height>1273</height>
    </rect>
   </property>
   <property name="contextMenuPolicy">
@@ -1023,7 +1023,7 @@ QgsDateTimeEdit {background-color: rgb(218, 218, 218);}</string>
       </widget>
      </item>
      <item row="11" column="2">
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="uiEditProjectTableBtn">
        <property name="text">
         <string/>
        </property>
@@ -1054,7 +1054,7 @@ QgsDateTimeEdit {background-color: rgb(218, 218, 218);}</string>
       </widget>
      </item>
      <item row="10" column="2">
-      <widget class="QPushButton" name="pushButton_2">
+      <widget class="QPushButton" name="uiEditCopyrightTableBtn">
        <property name="text">
         <string/>
        </property>

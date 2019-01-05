@@ -150,17 +150,17 @@ class ApisImageRegistry(QObject):
 
     def hasImageRE(self, imageNumber):
         r = re.compile(r"^{0}\.({1})$".format(imageNumber, self.imageFormatsStr), re.IGNORECASE)
-        r = filter(r.match, self.__imageRegistry)
+        r = list(filter(r.match, self.__imageRegistry))
         return len(r)
 
     def hasHiResRE(self, imageNumber):
         r = re.compile(r"^{0}\.({1})$".format(imageNumber, self.hiResFormatsStr), re.IGNORECASE)
-        r = filter(r.match, self.__hiResRegistry)
+        r = list(filter(r.match, self.__hiResRegistry))
         return len(r)
 
     def hasOrthoRE(self, imageNumber):
         r = re.compile(r"^{0}_op.+\.({1})$".format(imageNumber, self.orthoFormatsStr), re.IGNORECASE)
-        r = filter(r.match, self.__orthoRegistry)
+        r = list(filter(r.match, self.__orthoRegistry))
         return len(r)
 
     #filmNumber = OLD Film Number
@@ -261,41 +261,35 @@ class UpdateRegistryWorker(QObject):
         self.killed = False
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
-        #self.registryFile = pluginDir + "\\" + "apis_image_registry.json" #self.settings.value("APIS/image_registry_file", None)
+        # self.registryFile = pluginDir + "\\" + "apis_image_registry.json" #self.settings.value("APIS/image_registry_file", None)
 
         self.imageDirName = self.settings.value("APIS/image_dir")
         self.orthoDirName = self.settings.value("APIS/ortho_image_dir")
         self.imageDir = QDir(self.imageDirName)
         self.orthoDir = QDir(self.orthoDirName)
 
-        self.imageFormats = self.settings.value("APIS/image_formats", [u'jpg'])
-        self.hiResFormats = self.settings.value("APIS/hires_formats", [u'jpg', u'tif', u'sid', u'nef', u'raf', u'cr2', u'dng'])
-        self.orthoFormats = self.settings.value("APIS/ortho_formats", [u'jpg', u'tif', u'sid'])
+        self.imageFormats = self.settings.value("APIS/image_formats", ['jpg'])
+        self.hiResFormats = self.settings.value("APIS/hires_formats", ['jpg', 'tif', 'sid', 'nef', 'raf', 'cr2', 'dng'])
+        self.orthoFormats = self.settings.value("APIS/ortho_formats", ['jpg', 'tif', 'sid'])
 
-        self.imageFormatsStr = u"|".join(self.imageFormats)
-        self.hiResFormatsStr = u"|".join(self.hiResFormats)
-        self.orthoFormatsStr = u"|".join(self.orthoFormats)
+        self.imageFormatsStr = "|".join(self.imageFormats)
+        self.hiResFormatsStr = "|".join(self.hiResFormats)
+        self.orthoFormatsStr = "|".join(self.orthoFormats)
 
     def run(self):
         try:
             self.updateImageRegistries()
             self.updateOrthoRegistry()
-            #import time
-            #for i in range(5000):
-                #if self.killed is True:
-                    # kill request received, exit loop early
-                    #break
-                #time.sleep(0.001)
 
             if self.killed is False:
                 ret = True
                 ret = {
                     "imageRegistryNE": self.imageRegistryNE,
-                    "hiResRegistryNE" : self.hiResRegistryNE,
-                    "orthoRegistryNE" : self.orthoRegistryNE,
-                    "imageRegistry" : self.imageRegistry,
-                    "hiResRegistry" : self.hiResRegistry,
-                    "orthoRegistry" : self.orthoRegistry
+                    "hiResRegistryNE": self.hiResRegistryNE,
+                    "orthoRegistryNE": self.orthoRegistryNE,
+                    "imageRegistry": self.imageRegistry,
+                    "hiResRegistry": self.hiResRegistry,
+                    "orthoRegistry": self.orthoRegistry
                 }
             else:
                 ret = False

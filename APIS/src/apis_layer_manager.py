@@ -138,8 +138,11 @@ class ApisLayerManager:
                 group = self._addGroupIfMissing(groupName)
 
                 stylePath = self.stylesDir + self.__layers[layer]["style"]
-                self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers[layer]["name"], self.__layers[layer]["display_name"], groupName, None, True, True, stylePath)
+                l = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers[layer]["name"], self.__layers[layer]["display_name"], groupName, None, True, True, stylePath)
+                l.beforeCommitChanges.connect(self.testInfluence)
 
+    def testInfluence(self):
+        QMessageBox.information(None, "Test", "Test")
 
     def _isApisGroupName(self, groupName):
         apisGroupNames = [self.__groups[groupId]["display_name"] for groupId in self.__groups]

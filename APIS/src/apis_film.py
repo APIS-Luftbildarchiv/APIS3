@@ -46,9 +46,10 @@ from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_site_selection_list import APISSiteSelectionList
 from APIS.src.apis_utils import OpenFileOrFolder
 from APIS.src.apis_weather import APISWeather
-from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
+from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_exif2points import Exif2Points
+from APIS.src.apis_system_table_editor import APISSystemTableEditor
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -110,6 +111,9 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiWeatherCodeEdit.textChanged.connect(self.generateWeatherCode)
         self.uiFilmModeCombo.currentIndexChanged.connect(self.onFilmModeChanged)
 
+        self.uiEditProjectTableBtn.clicked.connect(lambda: self.openSystemTableEditor("projekt", self.uiProjectSelectionCombo))
+        self.uiEditCopyrightTableBtn.clicked.connect(lambda: self.openSystemTableEditor("copyright", self.uiCopyrightCombo))
+
         # init Project Btn
         self.uiAddProjectBtn.clicked.connect(self.addProject)
         self.uiRemoveProjectBtn.clicked.connect(self.removeProject)
@@ -122,6 +126,7 @@ class APISFilm(QDialog, FORM_CLASS):
         self.flightPathDlg = APISFlightPath(self.iface, self.dbm, self)
         self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
         self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self)
+        self.systemTableEditorDlg = None
 
         # Setup film model
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
@@ -506,16 +511,15 @@ class APISFilm(QDialog, FORM_CLASS):
     def exportDetailsPdf(self):
         if self.printingOptionsDlg is None:
             self.printingOptionsDlg = APISPrintingOptions(self)
-            self.printingOptionsDlg.uiPrintModeGrp.setVisible(False)
-            self.printingOptionsDlg.uiMergeModeGrp.setVisible(False)
-            self.printingOptionsDlg.adjustSize()
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film")
+            self.printingOptionsDlg.configure(False, False)
 
         self.printingOptionsDlg.show()
 
         if self.printingOptionsDlg.exec_():
 
             APISPrinterQueue([{'type': APISTemplatePrinter.FILM, 'idList': [self.uiCurrentFilmNumberEdit.text()]}],
-                             APISPrinterQueue.SINGLE,
+                             OutputMode.MergeNone,
                              openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
                              openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
                              dbm=self.dbm,
@@ -608,6 +612,17 @@ class APISFilm(QDialog, FORM_CLASS):
                 help += 1
             pos += 1
         return weatherDescription
+
+    def openSystemTableEditor(self, table, updateEditor):
+        if self.systemTableEditorDlg is None:
+            self.systemTableEditorDlg = APISSystemTableEditor(self.dbm, parent=self)
+
+        self.systemTableEditorDlg.loadTable(table)
+        self.systemTableEditorDlg.show()
+
+        if self.systemTableEditorDlg.exec_():
+            pass
+            # Update updateEditor
 
     def openFlightPathDialog(self, filmList, toClose=None):
         self.flightPathDlg.viewFilms(filmList) #DEBUG

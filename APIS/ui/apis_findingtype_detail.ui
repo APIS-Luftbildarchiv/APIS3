@@ -5,6 +5,14 @@
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>540</width>
+    <height>770</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>APIS Fundart Detail</string>
   </property>
@@ -15,15 +23,15 @@
   <property name="modal">
    <bool>true</bool>
   </property>
-  <layout class="QFormLayout" name="formLayout">
-   <item row="0" column="0">
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0" colspan="3">
     <widget class="QLabel" name="label">
      <property name="text">
       <string>Fundart:</string>
      </property>
     </widget>
    </item>
-   <item row="0" column="1">
+   <item row="0" column="3">
     <widget class="QLineEdit" name="uiFindingTypeEdit">
      <property name="styleSheet">
       <string notr="true">background-color: rgb(218, 218, 218);</string>
@@ -33,14 +41,14 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
+   <item row="1" column="0" colspan="3">
     <widget class="QLabel" name="label_2">
      <property name="text">
       <string>Fundart Detail:</string>
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
+   <item row="1" column="3">
     <widget class="QLineEdit" name="uiFindingTypeDetailEdit">
      <property name="styleSheet">
       <string notr="true">background-color: rgb(218, 218, 218);</string>
@@ -50,24 +58,7 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="label_3">
-     <property name="text">
-      <string>Auswahl:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QLineEdit" name="uiFindingTypeDetailNewEdit">
-     <property name="styleSheet">
-      <string notr="true">background-color: rgb(218, 218, 218);</string>
-     </property>
-     <property name="readOnly">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0" colspan="2">
+   <item row="3" column="0" colspan="4">
     <widget class="QTableView" name="uiFindingTypeDetailTableV">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -96,7 +87,24 @@ selection-color: rgb(0, 0, 0);</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="0" colspan="2">
+   <item row="2" column="0" colspan="3">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Auswahl:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3">
+    <widget class="QLineEdit" name="uiFindingTypeDetailNewEdit">
+     <property name="styleSheet">
+      <string notr="true">background-color: rgb(218, 218, 218);</string>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="3">
     <widget class="QDialogButtonBox" name="uiButtonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -105,6 +113,46 @@ selection-color: rgb(0, 0, 0);</string>
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
      <property name="centerButtons">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QPushButton" name="uiResetSelectionBtn">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/plugins/APIS/icons/update.png</normaloff>:/plugins/APIS/icons/update.png</iconset>
+     </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QPushButton" name="uiDropSelectionBtn">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/plugins/APIS/icons/cancel.png</normaloff>:/plugins/APIS/icons/cancel.png</iconset>
+     </property>
+     <property name="autoDefault">
       <bool>false</bool>
      </property>
     </widget>

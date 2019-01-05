@@ -731,7 +731,7 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         res = self.model.insertRowIntoTable(currentRecord)
         if not res:
-            QMessageBox.information(None, "SqlError", "{0}, {1}".format(self.model.lastError().text(), ))
+            QMessageBox.information(None, "SqlError", "{0}, {1}".format(self.model.lastError().text(), self.model.query().executedQuery()))
 
         self.model.setFilter("fundortnummer='{0}' AND fundstellenummer={1}".format(siteNumber, findspotNumber))
         res = self.model.select()

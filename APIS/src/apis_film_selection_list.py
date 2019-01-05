@@ -29,7 +29,8 @@ from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QMenu
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QIcon
 
-from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, APISListPrinter
+from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, APISListPrinter, OutputMode
+from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_utils import SelectionOrAll
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -50,13 +51,15 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
+        self.printingOptionsDlg = None
+
         self.uiDisplayFlightPathBtn.clicked.connect(lambda: parent.openFlightPathDialog(self.getFilmList(), self))
 
         mPdfExport = QMenu()
         aPdfExportFilmList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Filmliste")
-        aPdfExportFilmList.triggered.connect(self.exportListAsPdf)
+        aPdfExportFilmList.triggered.connect(lambda: self.exportAsPdf(list=True))
         aPdfExportFilm = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Film")
-        aPdfExportFilm.triggered.connect(self.exportDetailsAsPdf)
+        aPdfExportFilm.triggered.connect(lambda: self.exportAsPdf(detail=True))
         self.uiPdfExportTBtn.setMenu(mPdfExport)
         self.uiPdfExportTBtn.clicked.connect(self.uiPdfExportTBtn.showMenu)
 
@@ -130,18 +133,55 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         return filmList
 
-    def exportListAsPdf(self):
-        filmList = self.askForFilmList()
-        if filmList:
-            APISPrinterQueue([{'type': APISListPrinter.FILM, 'idList': filmList}], APISPrinterQueue.SINGLE, parent=self)
+    def exportAsPdf(self, list=False, detail=False):
+        if self.printingOptionsDlg is None:
+            self.printingOptionsDlg = APISPrintingOptions(self)
 
-    def exportDetailsAsPdf(self):
-        filmList = self.askForFilmList()
-        if filmList:
-            pdfsToPrint = []
-            for f in filmList:
-                pdfsToPrint.append({'type': APISTemplatePrinter.FILM, 'idList': [f]})
-            APISPrinterQueue(pdfsToPrint, APISPrinterQueue.MERGE, dbm=self.dbm, parent=self)
+        if list and not detail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Filmliste")
+        elif detail and not list:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film")
+        else:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film und Filmliste")
+
+        if self.uiFilmListTableV.model().rowCount() == 1:
+            self.printingOptionsDlg.configure(False, False)
+        elif not self.uiFilmListTableV.selectionModel().hasSelection():
+            self.printingOptionsDlg.configure(False, detail)
+        else:
+            if len(self.uiFilmListTableV.selectionModel().selectedRows()) == 1:
+                self.printingOptionsDlg.configure(True, detail)
+            elif len(self.uiFilmListTableV.selectionModel().selectedRows()) == self.uiFilmListTableV.model().rowCount():
+                self.printingOptionsDlg.configure(False, detail)
+            else:
+                self.printingOptionsDlg.configure(True, detail)
+
+        self.printingOptionsDlg.show()
+
+        if self.printingOptionsDlg.exec_():
+            # get settings from dialog
+            selectionModeIsAll = self.printingOptionsDlg.selectionModeIsAll()
+            outputMode = self.printingOptionsDlg.outputMode()
+
+            filmList = self.getFilmList(selectionModeIsAll)
+
+            if filmList:
+                pdfsToPrint = []
+                if list:
+                    pdfsToPrint.append({'type': APISListPrinter.FILM, 'idList': filmList})
+
+                if detail:
+                    for f in filmList:
+                        pdfsToPrint.append({'type': APISTemplatePrinter.FILM, 'idList': [f]})
+
+                if pdfsToPrint:
+                    APISPrinterQueue(pdfsToPrint,
+                                     outputMode,
+                                     openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
+                                     openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
+                                     dbm=self.dbm,
+                                     imageRegistry=self.imageRegistry,
+                                     parent=self)
 
     def onAccepted(self):
         self.accept()

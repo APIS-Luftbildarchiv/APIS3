@@ -28,7 +28,7 @@ import glob
 
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView, QHeaderView, QPushButton, QFileDialog, QProgressDialog, QMenu
-from PyQt5.QtCore import QSettings, Qt, QFileInfo, QDateTime, QDir, QFile, QVariant
+from PyQt5.QtCore import QSettings, Qt, QFileInfo, QDateTime, QDir, QFile, QVariant, QDate
 from PyQt5.QtGui import QDoubleValidator, QStandardItemModel, QStandardItem, QColor, QFont, QIcon
 from PyQt5.QtSql import QSqlQuery
 
@@ -38,7 +38,7 @@ from qgis.core import (QgsRasterLayer, QgsProject, QgsVectorFileWriter,
 
 from APIS.src.apis_utils import OpenFileOrFolder
 from APIS.src.apis_thumb_viewer import QdContactSheet
-from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter
+from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_selection_list.ui'), resource_suffix='')
@@ -103,6 +103,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiFilterScanCombo.currentIndexChanged.connect(self.applyFilter)
         self.uiFilterHiResCombo.currentIndexChanged.connect(self.applyFilter)
         self.uiFilterOrthoCombo.currentIndexChanged.connect(self.applyFilter)
+        self.uiFilterFromChk.stateChanged.connect(self.applyFilter)
+        self.uiFilterToChk.stateChanged.connect(self.applyFilter)
 
     def loadImageListBySqlQuery(self, query=None):
         self.model = QStandardItemModel()
@@ -170,31 +172,11 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiImageListTableV.setModel(self.model)
         self.uiImageListTableV.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
-        #hide and sort Columns
-        #visibleColumns = ['filmnummer', 'flugdatum', 'anzahl_bilder', 'weise', 'art_ausarbeitung', 'militaernummer', 'militaernummer_alt']
-        #vCIdx = []
-        #for vC in visibleColumns:
-            #vCIdx.append(self.model.fieldIndex(vC))
-
-        #for c in range(self.model.columnCount()):
-            #if c not in vCIdx:
-                #self.uiImageListTableV.hideColumn(c)
-
-        #hH = self.uiImageListTableV.horizontalHeader()
-        #for i in range(len(vCIdx)):
-           #hH.moveSection(hH.visualIndex(vCIdx[i]), i)
-
         self.uiImageListTableV.resizeColumnsToContents()
         self.uiImageListTableV.resizeRowsToContents()
         self.uiImageListTableV.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-       # self.uiImageListTableV.show()
 
         self.uiImageListTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
-
-
-        # signals
-
-        #
 
     def setupFilter(self):
         self.uiFilterGrp.setChecked(False)
@@ -212,6 +194,23 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiFilterHiResCombo.setCurrentIndex(0)
         self.uiFilterOrthoCombo.setCurrentIndex(0)
 
+        self.uiFilterFromChk.setCheckState(Qt.Unchecked)
+        self.uiFilterToChk.setCheckState(Qt.Unchecked)
+
+        minDate, maxDate = self.getMinMaxDate()
+        # QMessageBox.information(None, "MinMax", "{0}, {1}".format(minDate.toString("MM.yyyy"), maxDate.toString("MM.yyyy")))
+
+        self.uiFilterFromDate.setMinimumDate(minDate)
+        self.uiFilterFromDate.setMaximumDate(maxDate)
+        self.uiFilterFromDate.setDate(minDate)
+
+        self.uiFilterToDate.setMinimumDate(minDate)
+        self.uiFilterToDate.setMaximumDate(maxDate)
+        self.uiFilterToDate.setDate(maxDate)
+
+        self.uiFilterFromDate.dateChanged.connect(self.updateToDate)
+        self.uiFilterToDate.dateChanged.connect(self.updateFromDate)
+
         filmKinds = []
         for row in range(self.model.rowCount()):
             filmKinds.append(self.model.item(row, 4).text())
@@ -219,6 +218,14 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         for filmKind in set(filmKinds):
             self.uiFilterFilmKindCombo.addItem(filmKind)
         self.uiFilterFilmKindCombo.setCurrentIndex(0)
+
+    def updateToDate(self, date):
+        self.uiFilterToDate.setMinimumDate(date)
+        self.applyFilter()
+
+    def updateFromDate(self, date):
+        self.uiFilterFromDate.setMaximumDate(date)
+        self.applyFilter()
 
     def getImageList(self, getAll=False, filterSection=None, filterValue=None):
         imageList = []
@@ -655,7 +662,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         if imageList:
             pdfsToPrint = []
             pdfsToPrint.append({'type': APISListPrinter.IMAGE, 'idList': imageList})
-            APISPrinterQueue(pdfsToPrint, APISPrinterQueue.SINGLE, parent=self)
+            APISPrinterQueue(pdfsToPrint, OutputMode.MergeNone, dbm=self.dbm, imageRegistry=self.imageRegistry, parent=self)
 
     def askForImageList(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
@@ -679,159 +686,19 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
         return imageList
 
+
     def exportLabelsAsPdf(self):
+        imageListOblique = self.getImageList(True, 3, u"schräg")
+        imageListVertical = self.getImageList(True, 3, u"senk.")
+        pdfsToPrint = []
+        if imageListOblique:
+            pdfsToPrint.append({'type': APISLabelPrinter.Oblique, 'idList': imageListOblique})
 
-        if self.uiImageListTableV.selectionModel().hasSelection():
-            #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Etiketten als PDF speichern')
-            msgBox.setText(u'Wollen Sie für die ausgewählten Bilder oder für die gesamte Liste Etiketten als PDF speichern?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
+        if imageListVertical:
+            pdfsToPrint.append({'type': APISLabelPrinter.Vertical, 'idList': imageListVertical})
 
-            if ret == 0:
-                imageListOblique = self.getImageList(False, 3, u"schräg")
-                imageListVertical = self.getImageList(False, 3, u"senk.")
-            elif ret == 1:
-                imageListOblique = self.getImageList(True, 3, u"schräg")
-                imageListVertical = self.getImageList(True, 3, u"senk.")
-            else:
-                return
-        else:
-            imageListOblique = self.getImageList(True, 3, u"schräg")
-            imageListVertical = self.getImageList(True, 3, u"senk.")
-
-        query = QSqlQuery(self.dbm.db)
-
-        if len(imageListOblique) > 0:
-            title = u"Uni Wien - IUHA - Luftbildarchiv"
-            qryStrOblique = u"SELECT luftbild_schraeg_fp.bildnummer AS bildnummer, '[' || fundortnummer || '][' || katastralgemeindenummer  || ' ' || katastralgemeinde || ']' AS fundort_kg FROM fundort, luftbild_schraeg_fp WHERE luftbild_schraeg_fp.bildnummer IN ({0}) AND Intersects(fundort.geometry, luftbild_schraeg_fp.geometry)AND fundort.rowid IN (SELECT rowid FROM spatialindex WHERE f_table_name='fundort' AND search_frame=luftbild_schraeg_fp.geometry) ORDER BY luftbild_schraeg_fp.bildnummer, katastralgemeindenummer, fundortnummer_nn".format(u",".join(u"'{0}'".format(image) for image in imageListOblique))
-            query.prepare(qryStrOblique)
-            query.exec_()
-            labelsData = []
-
-            for imageNumber in imageListOblique:
-                labelData = {
-                    'title': [title],
-                    'bildnummer': [imageNumber],
-                    'fundort_kg': []
-                }
-                query.seek(-1)
-                while query.next():
-                    rec = query.record()
-                    if rec.value("bildnummer") == imageNumber:
-                        labelData['fundort_kg'].append(rec.value("fundort_kg"))
-
-                labelsData.append(labelData)
-
-            pageSettings = {}
-            labelSettings = {'width': 42.0, 'height': 10.0}
-            labelItemOrder = ['title', 'bildnummer', 'fundort_kg']
-            labelLayout = {
-                'title': {'width': 1.0, 'height': 1.0/3.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'bildnummer': {'width': 1.0, 'height': 1.0/3.0, 'font': QFont("Arial", 6, QFont.Bold), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'fundort_kg': {'width': 1.0, 'height': 1.0/3.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-            }
-
-
-            labelPrinterOblique = ApisLabelPrinter(self, u"Schräg", pageSettings, labelSettings, labelLayout, labelItemOrder, labelsData)
-
-        if len(imageListVertical) > 0:
-            title = u"Uni Wien - IUHA - Luftbildarchiv"
-            qryStrOblique = u"SELECT luftbild_senk_fp.bildnummer AS bildnummer, film.kamera, luftbild_senk_cp.fokus, luftbild_senk_cp.hoehe, luftbild_senk_cp.massstab, film.militaernummer AS mil_num, film.flugdatum, '[' || fundortnummer || '][' || katastralgemeindenummer  || ' ' || katastralgemeinde || ']' AS fundort_kg FROM film, fundort, luftbild_senk_cp, luftbild_senk_fp WHERE luftbild_senk_fp.filmnummer = film.filmnummer AND luftbild_senk_cp.bildnummer = luftbild_senk_fp.bildnummer AND luftbild_senk_fp.bildnummer IN ({0}) AND Intersects(fundort.geometry, luftbild_senk_fp.geometry)AND fundort.rowid IN (SELECT rowid FROM spatialindex WHERE f_table_name='fundort' AND search_frame=luftbild_senk_fp.geometry) ORDER BY luftbild_senk_fp.bildnummer, katastralgemeindenummer, fundortnummer_nn".format(u",".join(u"'{0}'".format(image) for image in imageListVertical))
-            query.prepare(qryStrOblique)
-            query.exec_()
-            labelsData = []
-            query.seek(-1)
-            count = 0
-            while query.next():
-                count += 1
-
-            #Keine FOs
-            if count == 0:
-                qryStrOblique = u"SELECT luftbild_senk_cp.bildnummer AS bildnummer, film.kamera, luftbild_senk_cp.fokus, luftbild_senk_cp.hoehe, luftbild_senk_cp.massstab, film.militaernummer AS mil_num, film.flugdatum FROM film, luftbild_senk_cp WHERE luftbild_senk_cp.filmnummer = film.filmnummer AND luftbild_senk_cp.bildnummer IN ({0}) ORDER BY luftbild_senk_cp.bildnummer".format(u",".join(u"'{0}'".format(image) for image in imageListVertical))
-                query.prepare(qryStrOblique)
-                query.exec_()
-
-            for imageNumber in imageListVertical:
-                labelData = {
-                    'title': [title],
-                    'bildnummer': [imageNumber],
-                    'mil_nummer': [],
-                    'flugdatum': [],
-                    'kamera': [],
-                    'fokus': [],
-                    'massstab': [],
-                    'hoehe': [],
-                    'fundort_kg': []
-                }
-
-                query.seek(-1)
-                while query.next():
-                    rec = query.record()
-                    if rec.value("bildnummer") == imageNumber:
-                        if len(labelData['mil_nummer']) < 1:
-                            if rec.isNull("mil_nummer"):
-                                labelData['mil_nummer'].append(u"Mil#: -")
-                            else:
-                                labelData['mil_nummer'].append(u"Mil#: {0}".format(rec.value("mil_num")))
-
-                        if len(labelData['flugdatum']) < 1:
-                            if rec.isNull("flugdatum"):
-                                labelData['flugdatum'].append(u"kein Flugdatum")
-                            else:
-                                labelData['flugdatum'].append(u"Flug vom {0}".format(datetime.datetime.strptime(rec.value("flugdatum"), '%Y-%m-%d').strftime('%d.%m.%Y')))
-
-                        if len(labelData['kamera']) < 1:
-                            if rec.isNull("kamera"):
-                                labelData['kamera'].append(u"Kamera: -")
-                            else:
-                                labelData['kamera'].append(u"Kamera: {0}".format(rec.value("kamera")))
-
-                        if len(labelData['fokus']) < 1:
-                            if rec.isNull("fokus"):
-                                labelData['fokus'].append(u"Fokus: -")
-                            else:
-                                labelData['fokus'].append(u"Fokus: {0:.2f}".format(float(rec.value("fokus"))))
-
-                        if len(labelData['massstab']) < 1:
-                            if rec.isNull("massstab"):
-                                labelData['massstab'].append(u"Mst. -")
-                            else:
-                                labelData['massstab'].append(u"Mst. 1:{0}".format(int(rec.value("massstab"))))
-
-                        if len(labelData['hoehe']) < 1:
-                            if rec.isNull("hoehe"):
-                                labelData['hoehe'].append(u"Höhe: -")
-                            else:
-                                labelData['hoehe'].append(u"Höhe: {0}m".format(rec.value("hoehe")))
-
-                        if count > 0:
-                            if rec.isNull("fundort_kg"):
-                                labelData['fundort_kg'].append(u"---")
-                            else:
-                                labelData['fundort_kg'].append(rec.value("fundort_kg"))
-
-                labelsData.append(labelData)
-
-            pageSettings = {}
-            labelSettings = {'width': 70.0, 'height': 35.0}
-            labelItemOrder = ['title', 'bildnummer', 'mil_nummer', 'flugdatum', 'kamera','fokus', 'massstab', 'hoehe', 'fundort_kg']
-            labelLayout = {
-                'title': {'width': 1.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'bildnummer': {'width': 1.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 6, QFont.Bold), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'mil_nummer': {'width': 1.0 / 2.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'flugdatum': {'width': 1.0 / 2.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'kamera': {'width': 1.0 / 2.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'fokus': {'width': 1.0 / 2.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'massstab': {'width': 1.0 / 2.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'hoehe': {'width': 1.0 / 2.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-                'fundort_kg': {'width': 1.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter, 'valign': Qt.AlignVCenter},
-            }
-
-            labelPrinterVertical = ApisLabelPrinter(self, u"Senkrecht", pageSettings, labelSettings, labelLayout, labelItemOrder, labelsData)
+        if pdfsToPrint:
+            APISPrinterQueue(pdfsToPrint, OutputMode.MergeNone, dbm=self.dbm, parent=self)
 
     def onSelectionChanged(self, current, previous):
         # Filter ortho = ja
@@ -853,13 +720,13 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             count = 0
             for row in range(self.model.rowCount()):
                 show = True
-                #Weise
+                # Weise
                 if (self.uiFilterVerticalChk.checkState() == Qt.Unchecked and self.model.item(row, 3).text() == u'senk.') or (self.uiFilterObliqueChk.checkState() == Qt.Unchecked and self.model.item(row, 3).text() == u'schräg'):
                     show = False
-                #Images
+                # Images
                 if show and ((self.uiFilterScanChk.checkState() == Qt.Checked and self.model.item(row,5).text() != self.uiFilterScanCombo.currentText()) or (self.uiFilterOrthoChk.checkState() == Qt.Checked and self.model.item(row,6).text() != self.uiFilterOrthoCombo.currentText()) or (self.uiFilterHiResChk.checkState() == Qt.Checked and self.model.item(row,7).text() != self.uiFilterHiResCombo.currentText())):
                     show = False
-                #Scale
+                # Scale
                 if show and self.uiFilterScaleEdit.text().strip() != '':
                     imageScaleNumber = float(self.model.item(row, 2).text())
                     scaleNumber = float(self.uiFilterScaleEdit.text().replace(',', '.'))
@@ -873,8 +740,14 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     elif operator == '<=':
                         if imageScaleNumber > scaleNumber:
                             show = False
-                #filmart
+                # filmart
                 if show and self.uiFilterFilmKindChk.checkState() == Qt.Checked and self.uiFilterFilmKindCombo.currentText() != self.model.item(row,4).text():
+                    show = False
+
+                # year
+                if show and self.uiFilterFromChk.checkState() == Qt.Checked and int(self.model.item(row,1).text()[2:6]) < self.uiFilterFromDate.date().year():
+                    show = False
+                if show and self.uiFilterToChk.checkState() == Qt.Checked and int(self.model.item(row,1).text()[2:6]) > self.uiFilterToDate.date().year():
                     show = False
 
                 if show:
@@ -922,224 +795,11 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             self.uiFilterHiResChk.setChecked(False)
             self.uiFilterOrthoChk.setChecked(False)
 
+    def getMinMaxDate(self):
+        years = []
+        for row in range(self.model.rowCount()):
+            years.append(int(self.model.item(row, 1).text()[2:6]))
+        return QDate(min(years), 1, 1), QDate(max(years), 1, 1)
+
     def onAccepted(self):
         self.accept()
-
-    # def DEVexportListAsPdf(self):
-    #     if self.uiImageListTableV.selectionModel().hasSelection():
-    #         #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-    #         msgBox = QMessageBox()
-    #         msgBox.setWindowTitle(u'Bildliste als PDF speichern')
-    #         msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste als PDF speichern?')
-    #         msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-    #         msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-    #         msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-    #         ret = msgBox.exec_()
-    #
-    #         if ret == 0:
-    #             imageList = self.getImageList(False)
-    #             scanCount = len(self.getImageList(False,5,"ja"))
-    #             hiResCount = len(self.getImageList(False,7,"ja"))
-    #             orthoCount = len(self.getImageList(False,6,"ja"))
-    #         elif ret == 1:
-    #             imageList = self.getImageList(True)
-    #             scanCount = len(self.getImageList(True,5,"ja"))
-    #             hiResCount = len(self.getImageList(True,7,"ja"))
-    #             orthoCount = len(self.getImageList(True,6,"ja"))
-    #         else:
-    #             return
-    #     else:
-    #         imageList = self.getImageList(True)
-    #         scanCount = len(self.getImageList(True,5,"ja"))
-    #         hiResCount = len(self.getImageList(True,7,"ja"))
-    #         orthoCount = len(self.getImageList(True,6,"ja"))
-    #
-    #     #qryStr = u"SELECT filmnummer AS Filmnummer, strftime('%d.%m.%Y', flugdatum) AS Flugdatum, anzahl_bilder AS Bildanzahl, weise AS Weise, art_ausarbeitung AS Art, militaernummer AS Militärnummer, militaernummer_alt AS 'Militärnummer Alt', CASE WHEN weise = 'senk.' THEN (SELECT count(*) from luftbild_senk_cp WHERE film.filmnummer = luftbild_senk_cp.filmnummer) ELSE (SELECT count(*) from luftbild_schraeg_cp WHERE film.filmnummer = luftbild_schraeg_cp.filmnummer) END AS Kartiert, 0 AS Gescannt FROM film WHERE filmnummer IN ({0}) ORDER BY filmnummer".format(u",".join(u"'{0}'".format(image) for image in imageList))
-    #     qryStr = u"SELECT bildnummer AS Bildnummer, weise AS Weise, radius AS 'Radius/Maßstab', art_ausarbeitung AS Art, 'nein' AS Gescannt, 'nein' AS Ortho, 'nein' AS HiRes FROM luftbild_schraeg_cp oI, film f WHERE oI.filmnummer = f.filmnummer AND bildnummer IN ({0}) UNION ALL SELECT bildnummer AS Bildnummer, weise AS Weise, CAST(massstab AS INT) AS 'Radius/Maßstab', art_ausarbeitung AS Art, 'nein' AS Gescannt, 'nein' AS Ortho, 'nein' AS HiRes FROM luftbild_senk_cp vI, film f WHERE vI.filmnummer = f.filmnummer AND bildnummer IN ({0}) ORDER BY bildnummer".format(u",".join(u"'{0}'".format(image) for image in imageList))
-    #     printer = ApisListPrinter(self, self.dbm, self.imageRegistry, True, False, None, 0)
-    #     printer.setupInfo(u"Bildliste", u"Bildliste speichern", u"Bildliste", 14)
-    #     printer.setQuery(qryStr)
-    #     printer.printList(u"Gescannt", u"Ortho", u"HiRes")
-    #
-    # TODO REMOVE
-
-    # def exportListAsPdf(self):
-    #
-    #     if self.uiImageListTableV.selectionModel().hasSelection():
-    #         #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-    #         msgBox = QMessageBox()
-    #         msgBox.setWindowTitle(u'Bildliste als PDF speichern')
-    #         msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste als PDF speichern?')
-    #         msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-    #         msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-    #         msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-    #         ret = msgBox.exec_()
-    #
-    #         if ret == 0:
-    #             imageList = self.getImageListWithRows(False)
-    #             scanCount = len(self.getImageList(False,5,"ja"))
-    #             hiResCount = len(self.getImageList(False,7,"ja"))
-    #             orthoCount = len(self.getImageList(False,6,"ja"))
-    #         elif ret == 1:
-    #             imageList = self.getImageListWithRows(True)
-    #             scanCount = len(self.getImageList(True,5,"ja"))
-    #             hiResCount = len(self.getImageList(True,7,"ja"))
-    #             orthoCount = len(self.getImageList(True,6,"ja"))
-    #         else:
-    #             return
-    #     else:
-    #         imageList = self.getImageListWithRows(True)
-    #         scanCount = len(self.getImageList(True,5,"ja"))
-    #         hiResCount = len(self.getImageList(True,7,"ja"))
-    #         orthoCount = len(self.getImageList(True,6,"ja"))
-    #
-    #
-    #     #fileName = 'C:\\apis\\temp\\BildListe.pdf'
-    #     saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-    #     fileName = QFileDialog.getSaveFileName(self, 'Bildliste Speichern', saveDir + "\\" + 'Bildliste_{0}'.format(QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")), '*.pdf')
-    #
-    #
-    #
-    #     if fileName:
-    #
-    #         ms = QgsMapSettings()
-    #         comp = QgsComposition(ms)
-    #         comp.setPlotStyle(QgsComposition.Print)
-    #         comp.setPrintResolution(300)
-    #         comp.setPaperSize(210.0, 297.0)
-    #
-    #         #header
-    #         hHight = 15
-    #         fHight = 15
-    #         margin = 15
-    #         mTab = 5
-    #         hWidth = comp.paperWidth()/2-margin
-    #         fWidth = (comp.paperWidth()-(2*margin))/3
-    #
-    #         page = 1
-    #         prevPage = 0
-    #         imageCount = 0
-    #         imageCountTotal = 0
-    #         pageBreak = 40
-    #         for imageRow in imageList:
-    #             imageCountTotal += 1
-    #             imageCount += 1
-    #             if imageCount > pageBreak:
-    #                 imageCount = 1
-    #                 page += 1
-    #             if page > prevPage:
-    #                 prevPage = page
-    #                 #Header Left - Title
-    #                 hLeft = QgsComposerLabel(comp)
-    #                 hLeft.setItemPosition(margin, margin, hWidth , hHight, QgsComposerItem.UpperLeft, False, page)
-    #                 hLeft.setBackgroundEnabled(True)
-    #                 hLeft.setBackgroundColor(QColor("#CCCCCC"))
-    #                 hLeft.setText(u"Bildliste")
-    #                 hLeft.setVAlign(Qt.AlignVCenter)
-    #                 hLeft.setMarginX(5)
-    #                 hLeft.setFont(QFont("Arial", 16, 100))
-    #                 comp.addItem(hLeft)
-    #                 #Header Right - Stats
-    #                 hRight = QgsComposerLabel(comp)
-    #                 hRight.setItemPosition(comp.paperWidth()/2, margin, hWidth , hHight, QgsComposerItem.UpperLeft, False, page)
-    #                 hRight.setBackgroundEnabled(True)
-    #                 hRight.setBackgroundColor(QColor("#CCCCCC"))
-    #                 hRight.setText(u"Anzahl:\t{0}\nScan:\t\t\t{1}\nHiRes:\t\t\t{2}\nOrtho:\t{3}".format(len(imageList), scanCount, hiResCount, orthoCount))
-    #                 hRight.setVAlign(Qt.AlignVCenter)
-    #                 hRight.setHAlign(Qt.AlignRight)
-    #                 hRight.setMarginX(5)
-    #                 hRight.setFont(QFont("Arial", 8))
-    #                 comp.addItem(hRight)
-    #                 #Footer Left - Institute
-    #                 fLeft = QgsComposerLabel(comp)
-    #                 fLeft.setItemPosition(margin, comp.paperHeight()-margin, fWidth, fHight, QgsComposerItem.LowerLeft, False, page)
-    #                 fLeft.setBackgroundEnabled(True)
-    #                 fLeft.setBackgroundColor(QColor("#CCCCCC"))
-    #                 #FIXME get From Settings!
-    #                 fLeft.setText(u"Luftbildarchiv,\nInstitut für Urgeschichte und Historische Archäologie,\nUniversität Wien")
-    #                 fLeft.setVAlign(Qt.AlignVCenter)
-    #                 fLeft.setMarginX(5)
-    #                 fLeft.setFont(QFont("Arial", 8))
-    #                 comp.addItem(fLeft)
-    #                 #Footer Center - Date
-    #                 fCenter = QgsComposerLabel(comp)
-    #                 fCenter.setItemPosition(margin+fWidth, comp.paperHeight()-margin, fWidth, fHight, QgsComposerItem.LowerLeft, False, page)
-    #                 fCenter.setBackgroundEnabled(True)
-    #                 fCenter.setBackgroundColor(QColor("#CCCCCC"))
-    #                 fCenter.setText(u"{0}".format(QDateTime.currentDateTime().toString("dd.MM.yyyy")))
-    #                 fCenter.setVAlign(Qt.AlignVCenter)
-    #                 fCenter.setHAlign(Qt.AlignHCenter)
-    #                 fCenter.setMarginX(5)
-    #                 fCenter.setFont(QFont("Arial", 8))
-    #                 comp.addItem(fCenter)
-    #                 #Footer Right - PageNumber
-    #                 fRight = QgsComposerLabel(comp)
-    #                 fRight.setItemPosition(margin+(2*fWidth), comp.paperHeight()-margin, fWidth, fHight, QgsComposerItem.LowerLeft, False, page)
-    #                 fRight.setBackgroundEnabled(True)
-    #                 fRight.setBackgroundColor(QColor("#CCCCCC"))
-    #                 fRight.setText(u"Seite {0}".format(page))
-    #                 fRight.setVAlign(Qt.AlignVCenter)
-    #                 fRight.setHAlign(Qt.AlignRight)
-    #                 fRight.setMarginX(5)
-    #                 fRight.setFont(QFont("Arial", 8))
-    #                 comp.addItem(fRight)
-    #
-    #                 imageTab = QgsComposerTextTable(comp)
-    #                 imageTab.setShowGrid(True)
-    #                 imageTab.setGridStrokeWidth(0.2)
-    #                 imageTab.setLineTextDistance(1.2)
-    #                 imageTab.setHeaderFont(QFont("Arial",9,100))
-    #                 #imageTab.setHeaderHAlignment(QgsComposerTable.HeaderCenter)
-    #                 hLabels = [u"#", "Bildnummer", "Filmnummer", u"Mst./\nRad.", "Weise", "Art", "Scan", "Ortho", "HiRes"]
-    #                 hLabelsAdjust = []
-    #                 for l in hLabels:
-    #                     hLabelsAdjust.append(l.ljust(12))
-    #                 # colProps = QgsComposerTableColumn()
-    #                 # props = QDomElement()
-    #                 # props.setAttribute("hAlignment", 4)
-    #                 # props.setAttribute("vAlignment", 128)
-    #                 # props.setAttribute("heading", "Nummer")
-    #                 # props.setAttribute("attribute", "" )
-    #                 # props.setAttribute("sortByRank", 0 )
-    #                 # props.setAttribute("sortOrder", 0 )
-    #                 # props.setAttribute("width", "100.0" )
-    #                 # colProps.readXML(props)
-    #                 # imageTab.setColumns([colProps])
-    #
-    #                 imageTab.setHeaderLabels(hLabelsAdjust)
-    #                 imageTab.setItemPosition(margin+mTab,margin+hHight+mTab, QgsComposerItem.UpperLeft, page)
-    #                 comp.addItem(imageTab)
-    #
-    #             #imageTab.addRow([str(imageCountTotal).zfill(len(str(len(imageList))))])
-    #             imageTab.addRow([str(imageCountTotal).zfill(len(str(len(imageList))))] + imageRow)
-    #
-    #             # if imageCount == pageBreak or imageCount == len(imageList):
-    #             #     w = imageTab.rect().width()
-    #             #     QMessageBox.warning(None, "Bild", u"{0}".format(w))
-    #             #     hLabels = [u"ABC", "Bildnummer", "Filmnummer", u"Maßstab", "Weise", "Art","Scan","HiRes","Ortho"]
-    #             #     imageTab.setHeaderLabels(hLabels)
-    #
-    #         comp.setNumPages(page)
-    #
-    #         #header.setItemPosition(0,0,comp.paperWidth(), 20, QgsComposerItem.UpperLeft, False, 1)
-    #
-    #         #footer
-    #         # footer = QgsComposerItemGroup(comp)
-    #         # left = QgsComposerLabel(comp)
-    #         # left.setText(u"Luftbildarchiv - Institut für Urgeschichte und Historische Archäologie, Universität Wien")
-    #         # footer.addItem(left)
-    #         # footer.setBackgroundEnabled(True)
-    #         # footer.setBackgroundColor(QColor('#ab23c9'))
-    #         # footer.setItemPosition(0,comp.paperHeight(), comp.paperWidth(), 100, QgsComposerItem.LowerLeft,  False, 1)
-    #
-    #
-    #         #comp.moveItemToTop(header)
-    #         #comp.addItem(footer)
-    #         #comp.moveItemToBottom(footer)
-    #
-    #         comp.exportAsPDF(fileName)
-    #
-    #         try:
-    #             OpenFileOrFolder(fileName)
-    #         except Exception as e:
-    #             pass

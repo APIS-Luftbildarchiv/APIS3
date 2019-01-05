@@ -41,9 +41,10 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
         self.dbm = dbm
         self.setupUi(self)
 
-        self.setMode = False
+        self.uiResetSelectionBtn.clicked.connect(lambda: self.setSelectionForFindingTypeDetail(self.uiFindingTypeDetailEdit.text().strip()))
+        self.uiDropSelectionBtn.clicked.connect(lambda: self.setSelectionForFindingTypeDetail(""))
 
-        self.accepted.connect(self.onAccepted)
+        self.setMode = False
 
     def loadList(self, findingType, findingTypeDetail):
 
@@ -70,7 +71,6 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
 
         self.uiFindingTypeDetailTableV.setModel(model)
 
-        #self.uiRemarksTableV.setSelectionMode(QAbstractItemView.SingleSelection)
         self.uiFindingTypeDetailTableV.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.uiFindingTypeDetailTableV.verticalHeader().setVisible(False)
         self.uiFindingTypeDetailTableV.hideColumn(0)
@@ -88,18 +88,19 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
 
     def setSelectionForFindingTypeDetail(self, findingTypeDetail):
         self.setMode = True
-        if len(findingTypeDetail) > 0:
-            findingTypeDetailList = findingTypeDetail.split(',')
-            #QMessageBox.warning(None, "not found", u"{0}, '{1}'".format(len(findingTypeDetailList),u",".join(findingTypeDetailList)))
-            e = self.uiFindingTypeDetailTableV
-            sm = e.selectionModel()
-            sm.clearSelection()
 
+        # QMessageBox.warning(None, "not found", u"{0}, '{1}'".format(len(findingTypeDetailList),u",".join(findingTypeDetailList)))
+        e = self.uiFindingTypeDetailTableV
+        sm = e.selectionModel()
+        sm.clearSelection()
+
+        if len(findingTypeDetail) > 0:
             m = self.uiFindingTypeDetailTableV.model()
             rC = m.rowCount()
             selection = QItemSelection()
 
             notFound = []
+            findingTypeDetailList = findingTypeDetail.split(',')
             for detail in findingTypeDetailList:
                 found = False
                 for r in range(rC):
@@ -137,6 +138,3 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
 
     def getFindingTypeDetailText(self):
         return self.uiFindingTypeDetailNewEdit.text()
-
-    def onAccepted(self):
-        self.accept()

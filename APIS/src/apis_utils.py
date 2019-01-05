@@ -79,7 +79,7 @@ def IsApisIni(ini):
             isIni = False
             errorKeys.append(k)
 
-    return isIni, s if isIni else tr( u"Folgende Schlüssel in der INI Datei sind nicht korrekt oder nicht vorhanden: ") + u", ".join(errorKeys)
+    return isIni, s if isIni else tr("Folgende Schlüssel in der INI Datei sind nicht korrekt oder nicht vorhanden: ") + ", ".join(errorKeys)
 
 # ---------------------------------------------------------------------------
 # Open Files or Folder
@@ -131,6 +131,9 @@ def GenerateWeatherDescription(db, weatherCode):
             help += 1
         pos += 1
     return weatherDescription
+
+def VersionToCome(version="3.1"):
+    QMessageBox.information(None, "Version 3", "Diese Funktion steht ab Version {0} zur Verfügung.".format(version))
 
 # ---------------------------------------------------------------------------
 # Common Calculations

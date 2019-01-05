@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2000</width>
-    <height>1387</height>
+    <width>2185</width>
+    <height>1455</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,6 +32,20 @@
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QPushButton" name="uiLoadFindspotInQGisBtn">
+          <property name="text">
+           <string>Funstelle in QGIS laden</string>
+          </property>
+          <property name="icon">
+           <iconset resource="resource.qrc">
+            <normaloff>:/plugins/APIS/icons/layer.png</normaloff>:/plugins/APIS/icons/layer.png</iconset>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">

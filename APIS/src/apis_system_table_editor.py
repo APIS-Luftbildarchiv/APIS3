@@ -25,39 +25,38 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog
-
-from APIS.src.apis_printer import OutputMode
+from PyQt5.QtWidgets import QDialog, QAbstractItemView
+from PyQt5.QtSql import QSqlRelationalTableModel
 
 FORM_CLASS, _ = loadUiType(os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_printing_options.ui'), resource_suffix='')
+    os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_system_table_editor.ui'), resource_suffix='')
 
 
-class APISPrintingOptions(QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+class APISSystemTableEditor(QDialog, FORM_CLASS):
+    def __init__(self, dbm, parent=None):
         """Constructor."""
-        super(APISPrintingOptions, self).__init__(parent)
+        self.dbm = dbm
+        super(APISSystemTableEditor, self).__init__(parent)
 
         self.setupUi(self)
 
-    def configure(self, visSelectionModeGrp=True, visOutputModeGrp=True, visOneFileForEachRBtn=False):
-        self.uiSelectionModeGrp.setVisible(visSelectionModeGrp)
-        self.uiOutputModeGrp.setVisible(visOutputModeGrp)
-        self.uiOneFileForEachRBtn.setVisible(visOneFileForEachRBtn)
+        self.setupTable()
+
+    def setupTable(self):
+        self.uiSystemTableV.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.uiSystemTableV.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+    def loadTable(self, table):
+        self.uiSysTableLbl.setText(table)
+
+        model = QSqlRelationalTableModel(self, self.dbm.db)
+        model.setTable(table)
+        model.select()
+        rc = model.rowCount()
+        while (model.canFetchMore()):
+            model.fetchMore()
+            rc = model.rowCount()
+
+        self.uiSystemTableV.setModel(model)
 
         self.adjustSize()
-
-    def addPrintingOption(self):
-
-        self.adjustSize()
-
-    def selectionModeIsAll(self):
-        return self.uiPrintAllRBtn.isChecked()
-
-    def outputMode(self):
-        if self.uiOneFileRBtn.isChecked():
-            return OutputMode.MergeAll
-        elif self.uiOneFileForEachRBtn.isChecked():
-            return OutputMode.MergeByGroup
-        elif self.uiSingleFilesRBtn.isChecked():
-            return OutputMode.MergeNone

@@ -33,6 +33,8 @@ from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature,
 
 from APIS.src.apis_findspot import APISFindspot
 from APIS.src.apis_utils import OpenFileOrFolder
+from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter, OutputMode
+from APIS.src.apis_printing_options import APISPrintingOptions
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_findspot_selection_list.ui'), resource_suffix='')
@@ -67,15 +69,16 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         mPdfExport = QMenu()
         aPdfExportFindspotList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstellenliste")
-        aPdfExportFindspotList.triggered.connect(self.exportListAsPdf)  # TODO: use lambda: to send mode
+        aPdfExportFindspotList.triggered.connect(lambda: self.exportAsPdf(list=True))
         aPdfExportFindspot = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstelle")
-        aPdfExportFindspot.triggered.connect(self.exportFindspotAsPdf)  # TODO: use lambda: to send mode
+        aPdfExportFindspot.triggered.connect(lambda: self.exportAsPdf(detail=True))
         aPdfExportFindspotAndSite = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstelle und Fundort")
-        aPdfExportFindspotAndSite.triggered.connect(self.exportFindspotAsPdf)  # TODO: use lambda: to send mode
+        aPdfExportFindspotAndSite.triggered.connect(lambda: self.exportAsPdf(detail=True, parentDetail=True))
         self.uiPdfExportTBtn.setMenu(mPdfExport)
         self.uiPdfExportTBtn.clicked.connect(self.uiPdfExportTBtn.showMenu)
 
         self.findspotDlg = None
+        self.printingOptionsDlg = None
 
     def hideEvent(self,event):
         self.query = None
@@ -137,7 +140,6 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         self.loadFindspotListBySpatialQuery(self.query, None, True)
         #QMessageBox.warning(None, self.tr(u"Load Site"), self.tr(u"Reload Table Now"))
 
-
     def loadFindspotInQgis(self):
         findspotList = self.askForFindspotList()
         if findspotList:
@@ -165,7 +167,6 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                     self.loadLayer(centerPointLayer)
 
                 self.close()
-
 
     def exportFindspotAsShp(self):
         findspotList = self.askForFindspotList()
@@ -195,67 +196,26 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                     # save PointLayer
                     self.exportLayer(centerPointLayer, time)
 
+    def exportAsPdf(self, list=False, detail=False, parentDetail=False):
+        if self.printingOptionsDlg is None:
+            self.printingOptionsDlg = APISPrintingOptions(self)
 
-    def exportFindspotAsPdf(self):
+        if list:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
+
         findspotList = self.askForFindspotList()
         if findspotList:
-            saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-            timeStamp = QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")
+            pdfsToPrint = []
+            if list:
+                pdfsToPrint.append({'type': APISListPrinter.FINDSPOT, 'idList': findspotList})
 
-            if len(findspotList) == 1:
-                saveDialogTitle = u"Fundstelle"
-                targetFileNameTemplate = u"Fundstelle_{0}_{1}".format(findspotList[0], timeStamp)
-            else:
-                saveDialogTitle = u"Fundstellen Sammlung"
-                targetFileNameTemplate = u"Fundstellen_Sammlung_{0}".format(timeStamp)
+            if detail:
+                for findspot in findspotList:
+                    if parentDetail:
+                        pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot[:8]]})
+                    pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [findspot]})
 
-            targetFileName = QFileDialog.getSaveFileName(self, saveDialogTitle, os.path.join(saveDir, targetFileNameTemplate), "*.pdf")[0]
-
-            if targetFileName:
-                fsDetailsPrinter = ApisFindspotPrinter(self, self.dbm, self.imageRegistry)
-
-                if len(findspotList) == 1:
-
-                    # print file
-                    pdfFiles = fsDetailsPrinter.exportDetailsPdf(findspotList, targetFileName, timeStamp, False)
-
-                    # open file, open location?
-                    for key in pdfFiles:
-                        for pdfFile in pdfFiles[key]:
-                            OpenFileOrFolder(pdfFile)
-
-                else:
-                    targetDirName = os.path.join(os.path.dirname(os.path.abspath(targetFileName)), u"temp_apis_print")
-                    try:
-                        os.makedirs(targetDirName)
-                    except OSError:
-                        if not os.path.isdir(targetDirName):
-                            raise
-
-                    # print files (temp)
-                    pdfFiles = fsDetailsPrinter.exportDetailsPdf(findspotList, targetDirName, timeStamp, False)
-
-                    # merge to collection
-                    pdfFilesList = []
-                    for key in pdfFiles:
-                        for pdfFile in pdfFiles[key]:
-                            pdfFilesList.append(pdfFile)
-
-                    MergePdfFiles(targetFileName, pdfFilesList)
-
-                    # open file, open location?
-                    OpenFileOrFolder(targetFileName)
-
-
-    def exportListAsPdf(self):
-        findspotList = self.askForFindspotList()
-        if findspotList:
-            qryStr = u"SELECT fs.fundortnummer || '.' || fs.fundstellenummer AS Fundstellenummer, fo.katastralgemeindenummer AS 'KG Nummer', fo.katastralgemeinde AS 'KG Name', datierung_zeit || ',' || datierung_periode || ',' || datierung_periode_detail || ',' || phase_von || '-' || phase_bis AS Datierung, fundart AS Fundart FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND fs.fundortnummer || '.' || fs.fundstellenummer IN ({0}) ORDER BY fo.land, fo.katastralgemeindenummer, fo.fundortnummer_nn, fs.fundstellenummer".format(u",".join(u"'{0}'".format(findspot) for findspot in findspotList))
-            printer = ApisListPrinter(self, self.dbm, self.imageRegistry, True, False, None, 1)
-            printer.setupInfo(u"Fundstellenliste", u"Fundstellenliste speichern", u"Fundstellenliste", 22)
-            printer.setQuery(qryStr)
-            printer.printList()
-
+            APISPrinterQueue(pdfsToPrint, OutputMode.MergeAll, True, False, self.dbm, )
 
     def askForFindspotList(self):
         if self.uiFindspotListTableV.selectionModel().hasSelection():
@@ -279,7 +239,6 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         return findspotList
 
-
     def getFindspotList(self, getAll):
         findspotList = []
         if self.uiFindspotListTableV.selectionModel().hasSelection() and not getAll:
@@ -293,7 +252,6 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                     findspotList.append(u"{0}.{1}".format(self.model.item(row, 0).text(), self.model.item(row, 1).text()))
 
         return findspotList
-
 
     def askForGeometryType(self):
         # Abfrage ob Fundstellen der selektierten Bilder Exportieren oder alle
@@ -320,7 +278,6 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         return polygon, point
 
-
     def getSpatialiteLayer(self, layerName, subsetString=None, displayName=None):
         if not displayName:
             displayName = layerName
@@ -338,10 +295,8 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         # symbol_layer.setColor(QColor(100, 50, 140, 255))
         # self.siteLayer.rendererV2().symbols()[0].changeSymbolLayer(0, symbol_layer)
 
-
     def loadLayer(self, layer):
         QgsProject.instance().addMapLayer(layer)
-
 
     def exportLayer(self, layer, time):
         geomType = "Punkt" if layer.geometryType() == 0 else "Polygon"
@@ -378,7 +333,6 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
             else:
                 QMessageBox.warning(None, "Fundstelle Export", u"Beim erstellen der SHP Datei ist ein Fehler aufgetreten.")
-
 
     def generateCenterPointLayer(self, polygonLayer, displayName=None):
         if not displayName:

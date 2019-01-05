@@ -7,7 +7,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QProgressBar, QPushButton, QMessageBox
 from PyQt5.QtSql import QSqlQuery
 
-from qgis.core import (QgsProject, Qgis, QgsGeometry, QgsPointXY, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMessageLog, QgsWkbTypes)
+from qgis.core import (QgsProject, QgsApplication, Qgis, QgsGeometry, QgsPointXY, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMessageLog, QgsWkbTypes)
 from qgis.gui import (QgsMapToolEmitPoint, QgsRubberBand)
 
 from APIS.src.apis_image_selection_list import APISImageSelectionList
@@ -24,24 +24,11 @@ class RectangleMapTool(QgsMapToolEmitPoint):
         self.apisLayer = apisLayer
 
         QgsMapToolEmitPoint.__init__(self, self.canvas)
-        #self.setCursor(Qt.CrossCursor)
 
         self.rubberBand = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
-        self.rubberBand.setCursor(Qt.CrossCursor)
-        self.rubberBand.setColor(QColor(255,128,0, 255))
+        self.rubberBand.setColor(QColor(255, 128, 0, 255))
         self.rubberBand.setFillColor(QColor(255, 128, 0, 128))
         self.rubberBand.setWidth(1)
-
-        # self.setCursor(Qt.CrossCursor)#QgsApplication.getThemeCursor(QgsApplication.Cursor.Select))
-
-        # self.iface.mainWindow().centralWidget().setCursor(Qt.CrossCursor)
-
-        # QMessageBox.information(self.iface.mainWindow(),
-        #                        'Important Information',
-        #                        '{}'.format(QgsApplication.getThemeCursor(QgsApplication.Cursor.Select)))
-
-
-        # self.vertexMarker = QgsVertexMarker(self.canvas)
 
         self.topic = 'image'  # 'image', 'site', 'findspot'
 
@@ -58,11 +45,10 @@ class RectangleMapTool(QgsMapToolEmitPoint):
 
     def deactivate(self):
         super(RectangleMapTool, self).deactivate()
-        #self.emit(SIGNAL("deactivated()"))
         self.deactivated.emit()
 
     def activate(self):
-        pass
+        self.canvas.setCursor(QgsApplication.getThemeCursor(QgsApplication.Cursor.Select))
 
     def reset(self):
         self.startPoint = self.endPoint = None

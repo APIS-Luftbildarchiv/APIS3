@@ -560,22 +560,30 @@
          </spacer>
         </item>
         <item row="1" column="13">
-         <widget class="QDateEdit" name="dateEdit"/>
+         <widget class="QDateEdit" name="uiFilterToDate">
+          <property name="displayFormat">
+           <string>yyyy</string>
+          </property>
+         </widget>
         </item>
         <item row="0" column="13">
-         <widget class="QDateEdit" name="dateEdit_2"/>
+         <widget class="QDateEdit" name="uiFilterFromDate">
+          <property name="displayFormat">
+           <string>yyyy</string>
+          </property>
+         </widget>
         </item>
         <item row="0" column="12">
-         <widget class="QCheckBox" name="checkBox">
+         <widget class="QCheckBox" name="uiFilterFromChk">
           <property name="text">
-           <string>Datum von:</string>
+           <string>Jahr ab:</string>
           </property>
          </widget>
         </item>
         <item row="1" column="12">
-         <widget class="QCheckBox" name="checkBox_2">
+         <widget class="QCheckBox" name="uiFilterToChk">
           <property name="text">
-           <string>Datum bis:</string>
+           <string>Jahr bis:</string>
           </property>
          </widget>
         </item>

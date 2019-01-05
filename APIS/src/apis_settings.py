@@ -29,6 +29,8 @@ from PyQt5.uic import loadUiType
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog
 
+from APIS.src.apis_utils import VersionToCome
+
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_settings.ui'), resource_suffix='')
@@ -50,6 +52,7 @@ class APISSettings(QDialog, FORM_CLASS):
         s = QSettings()
 
         # Signals/Slot Connections
+        self.uiEditSystemTableBtn.clicked.connect(lambda: VersionToCome())
         self.rejected.connect(self.onReject)
         self.buttonBox.rejected.connect(self.onReject)
         self.buttonBox.accepted.connect(self.onAccept)

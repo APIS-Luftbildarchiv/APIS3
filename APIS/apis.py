@@ -34,7 +34,7 @@ from APIS.src.apis_image_mapping import APISImageMapping
 from APIS.src.apis_site_mapping import APISSiteMapping
 from APIS.src.apis_search import APISSearch
 
-from APIS.src.apis_utils import tr, ApisPluginSettings
+from APIS.src.apis_utils import tr, ApisPluginSettings, VersionToCome
 from APIS.src.apis_image_registry import ApisImageRegistry
 from APIS.src.apis_db_manager import ApisDbManager
 from APIS.src.apis_layer_manager import ApisLayerManager
@@ -422,9 +422,11 @@ class APIS:
             pass
 
     def loadApisLayerTree(self, layerGroup):
-        QMessageBox.information(None, "Apis Layer", layerGroup)
-        if self.apisLayer and self.apisLayer.isLoaded:
+        #QMessageBox.information(None, "Apis Layer", layerGroup)
+        if self.apisLayer and self.apisLayer.isLoaded and layerGroup == "all":
             self.apisLayer.loadDefaultLayerTree()
+        else:
+            VersionToCome()
 
     def openFilmDialog(self):
         """Run method that performs all the real work"""
@@ -467,7 +469,7 @@ class APIS:
 
     def toggleSearchDialg(self):
         if not self.searchDlg:
-            self.searchDlg = APISSearch(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+            self.searchDlg = APISSearch(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
             #self.searchDlg = APISSearch(self.iface)
             self.searchDlg.visibilityChanged.connect(self.searchActionBtn.setChecked)
 

@@ -395,7 +395,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
         #Prepare Image Numbers
         if self.isOblique:
-            fromImageNumber =  self.uiImageNumberFromSpn.value()
+            fromImageNumber = self.uiImageNumberFromSpn.value()
             toImageNumber = self.uiImageNumberToSpn.value()
             if fromImageNumber > toImageNumber:
                 QMessageBox.warning(None, u"Bild Nummern", u"Die erste Bildnummer darf nicht größer als die zweite sein.")
@@ -417,7 +417,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         #Check if Image Number in Table
         for imageNumber in imageNumbers:
             QMessageBox.warning(None, u"Bild Nummern", u"{0}".format(QgsVectorLayerUtils.getValues(self.cpLayer, "bildnummer_nn")))
-            if imageNumber in self.cpLayer.getValues("bildnummer_nn")[0]:
+            #if imageNumber in self.cpLayer.getValues("bildnummer_nn")[0]:
+            if imageNumber in QgsVectorLayerUtils.getValues(self.cpLayer, "bildnummer_nn")[0]:
                 QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
                 return
 
@@ -425,8 +426,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         if caps & QgsVectorDataProvider.AddFeatures:
             features = []
 
-            feat = QgsFeature(self.cpLayer.pendingFields())
-            feat.setGeometry(QgsGeometry.fromPoint(self.imageCenterPoint))
+            feat = QgsFeature(self.cpLayer.fields())
+            feat.setGeometry(QgsGeometry.fromPointXY(self.imageCenterPoint))
 
             # From Film Table
             #filmFields = ["form1", "form2", "weise", "kammerkonstante"]
@@ -466,8 +467,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                 for j in range(self.uiProjectVerticalList.count()):
                     items.append(self.uiProjectVerticalList.item(j))
 
-
-            feat.setAttribute('projekt',  ";".join([i.text() for i in items]))
+            feat.setAttribute('projekt', ";".join([i.text() for i in items]))
             feat.setAttribute('hoehe', h)
 
             # Calculated/Derived
@@ -478,13 +478,13 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             feat.setAttribute('land', countryCode)
 
             if countryCode == 'AUT':
-                #get meridian and epsg Code
+                # get meridian and epsg Code
                 meridian, epsgGK = GetMeridianAndEpsgGK(self.imageCenterPoint.x())
 
                 # get KG Coordinates
-                gk = TransformGeometry(QgsGeometry().fromPoint(self.imageCenterPoint), self.cpLayer.crs(), QgsCoordinateReferenceSystem(epsgGK, QgsCoordinateReferenceSystem.EpsgCrsId))
-                gkx = gk.asPoint().y() # Hochwert
-                gky = gk.asPoint().x() # Rechtswert
+                gk = TransformGeometry(QgsGeometry().fromPointXY(self.imageCenterPoint), self.cpLayer.crs(), QgsCoordinateReferenceSystem(epsgGK, QgsCoordinateReferenceSystem.EpsgCrsId))
+                gkx = gk.asPoint().y()  # Hochwert
+                gky = gk.asPoint().x()  # Rechtswert
             else:
                 meridian = None
                 gkx = None
@@ -536,7 +536,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             QMessageBox.warning(None, u"Layer Capabilities!")
 
         if self.canvas.isCachingEnabled():
-            self.cpLayer.setCacheImage(None)
+            self.cpLayer.triggerRepaint()
         else:
             self.canvas.refresh()
 
@@ -616,7 +616,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
                 iter = self.cpLayer.getFeatures()
                 iterNext = self.cpLayer.getFeatures()
-                existingFootpints = self.fpLayer.getValues("bildnummer")[0]
+                # existingFootpints = self.fpLayer.getValues("bildnummer")[0]
+                existingFootpints = QgsVectorLayerUtils.getValues(self.fpLayer, "bildnummer")
                 ft = QgsFeature()
                 ftNext = QgsFeature()
                 iterNext.nextFeature(ftNext)
@@ -689,10 +690,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     #b = math.degrees(bottom)
                     #r = math.degrees(right)
                     #t = math.degrees(top)
-                    p1 = QgsGeometry.fromPoint(QgsPointXY(l, b))
-                    p2 = QgsGeometry.fromPoint(QgsPointXY(r, b))
-                    p3 = QgsGeometry.fromPoint(QgsPointXY(r, t))
-                    p4 = QgsGeometry.fromPoint(QgsPointXY(l, t))
+                    p1 = QgsGeometry.fromPointXY(QgsPointXY(l, b))
+                    p2 = QgsGeometry.fromPointXY(QgsPointXY(r, b))
+                    p3 = QgsGeometry.fromPointXY(QgsPointXY(r, t))
+                    p4 = QgsGeometry.fromPointXY(QgsPointXY(l, t))
                     #p1.rotate(kappa+90, p)
                     #p2.rotate(kappa+90, p)
                     #p3.rotate(kappa+90, p)
@@ -701,10 +702,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     geom = QgsGeometry.fromPolygon(pol)
                     geom.rotate(kappaMetric, pMetric)
                     #Transform to DestinationCRS
-                    ctB = QgsCoordinateTransform(calcCrs, self.fpLayer.crs())
+                    ctB = QgsCoordinateTransform(calcCrs, self.fpLayer.crs(), QgsProject.instance())
                     geom.transform(ctB)
 
-                    feat = QgsFeature(self.fpLayer.pendingFields())
+                    feat = QgsFeature(self.fpLayer.fields())
                     feat.setGeometry(geom)
                     feat.setAttribute('filmnummer', self.currentFilmNumber)
                     feat.setAttribute('bildnummer', ft['bildnummer'])
@@ -730,8 +731,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
 
                 self.fpLayer.updateExtents()
-                if self.canvas.isCachingEnabled():
-                    self.fpLayer.setCacheImage(None)
+                if self.canvas .isCachingEnabled():
+                    self.fpLayer.triggerRepaint()
                 else:
                     self.canvas.refresh()
             else:
@@ -748,43 +749,47 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
         caps = self.fpLayer.dataProvider().capabilities()
         if caps & QgsVectorDataProvider.AddFeatures:
-            iter = self.cpLayer.getFeatures()
-            existingFootpints = self.fpLayer.getValues("bildnummer")[0]
-            cpFt = QgsFeature()
-            fpFts = []
-            #iterate over points from CP Layer > LON, LAT
-            while iter.nextFeature(cpFt):
-                if cpFt['bildnummer'] in existingFootpints:
-                    #QMessageBox.warning(None, u"Bild Nummern", u"Footprint für das Bild mit der Nummer {0} wurde bereits erstellt.".format(ft['BILD']))
-                    continue
-                cp = cpFt.geometry()
-                cpMetric = QgsGeometry(cp)
-                destCrs = QgsCoordinateReferenceSystem()
-                destCrs.createFromProj4(self.Proj4Utm(cp.asPoint()))
-                coordTransformF = QgsCoordinateTransform(self.cpLayer.crs(), destCrs)
-                coordTransformB = QgsCoordinateTransform(destCrs, self.cpLayer.crs())
-                cpMetric.transform(coordTransformF)
-                if cpFt['radius'] == '':
-                    r = 175
-                else:
-                    r = int(cpFt['radius'])
-                fpMetric = QgsGeometry(cpMetric.buffer(r,18))
-                fp = QgsGeometry(fpMetric)
-                fp.transform(coordTransformB)
+            if self.cpLayer.dataProvider().featureCount() > 0:
+                iter = self.cpLayer.getFeatures()
+                # existingFootpints = self.fpLayer.getValues("bildnummer")[0]
+                existingFootpints = QgsVectorLayerUtils.getValues(self.fpLayer, "bildnummer")[0]
+                cpFt = QgsFeature()
+                fpFts = []
+                #iterate over points from CP Layer > LON, LAT
+                while iter.nextFeature(cpFt):
+                    if cpFt['bildnummer'] in existingFootpints:
+                        #QMessageBox.warning(None, u"Bild Nummern", u"Footprint für das Bild mit der Nummer {0} wurde bereits erstellt.".format(ft['BILD']))
+                        continue
+                    cp = cpFt.geometry()
+                    cpMetric = QgsGeometry(cp)
+                    destCrs = QgsCoordinateReferenceSystem()
+                    destCrs.createFromProj4(self.Proj4Utm(cp.asPoint()))
+                    coordTransformF = QgsCoordinateTransform(self.cpLayer.crs(), destCrs, QgsProject.instance())
+                    coordTransformB = QgsCoordinateTransform(destCrs, self.cpLayer.crs(), QgsProject.instance())
+                    cpMetric.transform(coordTransformF)
+                    if cpFt['radius'] == '':
+                        r = 175
+                    else:
+                        r = int(cpFt['radius'])
+                    fpMetric = QgsGeometry(cpMetric.buffer(r, 18))
+                    fp = QgsGeometry(fpMetric)
+                    fp.transform(coordTransformB)
 
-                fpFt = QgsFeature(self.fpLayer.pendingFields())
-                fpFt.setGeometry(fp)
-                fpFt.setAttribute("bildnummer", cpFt["bildnummer"])
-                fpFt.setAttribute("filmnummer", cpFt["filmnummer"])
-                fpFts.append(fpFt)
-            (res, outFeats) = self.fpLayer.dataProvider().addFeatures(fpFts)
-            self.fpLayer.updateExtents()
-            if self.canvas.isCachingEnabled():
-                self.fpLayer.setCacheImage(None)
+                    fpFt = QgsFeature(self.fpLayer.fields())
+                    fpFt.setGeometry(fp)
+                    fpFt.setAttribute("bildnummer", cpFt["bildnummer"])
+                    fpFt.setAttribute("filmnummer", cpFt["filmnummer"])
+                    fpFts.append(fpFt)
+                (res, outFeats) = self.fpLayer.dataProvider().addFeatures(fpFts)
+                self.fpLayer.updateExtents()
+                if self.canvas.isCachingEnabled():
+                    self.fpLayer.triggerRepaint()
+                else:
+                    self.canvas.refresh()
             else:
-                self.canvas.refresh()
+                QMessageBox.warning(None, "Keine Bildmittelpunkte", "Keine Bildmittelpunkte für den Film {0} vorhanden.".format(self.currentFilmNumber))
         else:
-            QMessageBox.warning(None, u"Layer Capabilities!")
+            QMessageBox.warning(None, "Layer Capabilities", "AddFeature is not enabled ({0})".format(self.fpLayer.dataProvider().capabilitiesString()))
 
 
     def Proj4Utm(self,  p):

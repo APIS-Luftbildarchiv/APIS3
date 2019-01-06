@@ -26,16 +26,13 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QSettings, Qt, QFile, QDir, QDate, QTime, QDateTime
+from PyQt5.QtCore import QSettings, Qt, QDate, QTime
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtWidgets import (QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QMessageBox,
-                             QFileDialog, QCompleter)
-from PyQt5.QtXml import QDomDocument
+                             QCompleter)
+
 from PyQt5.uic import loadUiType
-from qgis.core import (QgsMapSettings, QgsCoordinateReferenceSystem, QgsUnitTypes, QgsDataSourceUri, QgsVectorLayer,
-                       QgsLineSymbol, QgsProject, QgsMessageLog, QgsLayout, QgsLayoutExporter, QgsReadWriteContext)
-from qgis.gui import QgsMessageBar
 
 from APIS.src.apis_film_new import APISFilmNew
 from APIS.src.apis_film_number_selection import APISFilmNumberSelection
@@ -44,7 +41,7 @@ from APIS.src.apis_film_selection_list import APISFilmSelectionList
 from APIS.src.apis_flight_path import APISFlightPath
 from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_site_selection_list import APISSiteSelectionList
-from APIS.src.apis_utils import OpenFileOrFolder
+from APIS.src.apis_utils import VersionToCome
 from APIS.src.apis_weather import APISWeather
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
@@ -82,6 +79,9 @@ class APISFilm(QDialog, FORM_CLASS):
         self.addMode = False
         self.initalLoad = True
 
+        #self.uiInitalEntryQgsDate.setCalendarPopup(False)
+        #self.uiLastChangesQgsDate.setCalendarPopup(False)
+
         # Signals/Slot Connections
         self.rejected.connect(self.onReject)
         self.uiOkBtn.clicked.connect(self.onAccept)
@@ -111,8 +111,10 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiWeatherCodeEdit.textChanged.connect(self.generateWeatherCode)
         self.uiFilmModeCombo.currentIndexChanged.connect(self.onFilmModeChanged)
 
-        self.uiEditProjectTableBtn.clicked.connect(lambda: self.openSystemTableEditor("projekt", self.uiProjectSelectionCombo))
-        self.uiEditCopyrightTableBtn.clicked.connect(lambda: self.openSystemTableEditor("copyright", self.uiCopyrightCombo))
+        # self.uiEditProjectTableBtn.clicked.connect(lambda: self.openSystemTableEditor("projekt", self.uiProjectSelectionCombo))
+        # self.uiEditCopyrightTableBtn.clicked.connect(lambda: self.openSystemTableEditor("copyright", self.uiCopyrightCombo))
+        self.uiEditProjectTableBtn.clicked.connect(lambda: VersionToCome())
+        self.uiEditCopyrightTableBtn.clicked.connect(lambda: VersionToCome())
 
         # init Project Btn
         self.uiAddProjectBtn.clicked.connect(self.addProject)
@@ -233,12 +235,12 @@ class APISFilm(QDialog, FORM_CLASS):
         #self.mapper.addMapping(self.uiCommentsPTxt, self.model.fieldIndex("kommentar"))
 
         # Date and Times
-        #self.mapper.addMapping(self.uiFlightDate, self.model.fieldIndex("flugdatum"))
-        self.mapper.addMapping(self.uiFlightQgsDate, self.model.fieldIndex("flugdatum"))
-        #self.mapper.addMapping(self.uiInitalEntryDate, self.model.fieldIndex("datum_ersteintrag"))
-        self.mapper.addMapping(self.uiInitalEntryQgsDate, self.model.fieldIndex("datum_ersteintrag"))
-        #self.mapper.addMapping(self.uiLastChangesDate, self.model.fieldIndex("datum_aenderung"))
-        self.mapper.addMapping(self.uiLastChangesQgsDate, self.model.fieldIndex("datum_aenderung"))
+        self.mapper.addMapping(self.uiFlightDate, self.model.fieldIndex("flugdatum"))
+        #self.mapper.addMapping(self.uiFlightQgsDate, self.model.fieldIndex("flugdatum"))
+        self.mapper.addMapping(self.uiInitalEntryDate, self.model.fieldIndex("datum_ersteintrag"))
+        #self.mapper.addMapping(self.uiInitalEntryQgsDate, self.model.fieldIndex("datum_ersteintrag"))
+        self.mapper.addMapping(self.uiLastChangesDate, self.model.fieldIndex("datum_aenderung"))
+        #self.mapper.addMapping(self.uiLastChangesQgsDate, self.model.fieldIndex("datum_aenderung"))
 
         self.mapper.addMapping(self.uiDepartureTime, self.model.fieldIndex("abflug_zeit"))
         self.mapper.addMapping(self.uiArrivalTime, self.model.fieldIndex("ankunft_zeit"))
@@ -680,7 +682,7 @@ class APISFilm(QDialog, FORM_CLASS):
 
         if useLastEntry:
             #copy last row
-            for c in range(self.model.columnCount()):
+            for c in range(1, self.model.columnCount()):
                 value = self.model.data(self.model.createIndex(row-1, c))
                 self.model.setData(self.model.createIndex(row,c), value)
                 editor = self.mapper.mappedWidgetAt(c)
@@ -696,18 +698,19 @@ class APISFilm(QDialog, FORM_CLASS):
         self.mapper.setCurrentIndex(row)
 
         self.uiTotalFilmCountLbl.setText(str(self.model.rowCount()))
-        #self.uiFlightDate.setDate(flightDate)
-        self.uiFlightQgsDate.setDate(flightDate)
+        self.uiFlightDate.setDate(flightDate)
+        #self.uiFlightQgsDate.setDate(flightDate)
         self.uiProducerEdit.setText(producer)
         self.uiArchiveCombo.lineEdit().setText(producer)
         if not useLastEntry:
             self.uiWeatherCodeEdit.setText("9990X")
 
-        now = QDateTime.currentDateTime()
-        #self.uiInitalEntryDate.setDate(now)
-        self.uiInitalEntryQgsDate.setDateTime(now)
-        #self.uiLastChangesDate.setDate(now)
-        self.uiLastChangesQgsDate.setDateTime(now)
+        #now = QDateTime.currentDateTime()
+        now = QDate.currentDate()
+        self.uiInitalEntryDate.setDate(now)
+        #self.uiInitalEntryQgsDate.setDateTime(now)
+        self.uiLastChangesDate.setDate(now)
+        #self.uiLastChangesQgsDate.setDateTime(now)
         self.uiFilmModeCombo.setEnabled(True)
 
 
@@ -766,9 +769,10 @@ class APISFilm(QDialog, FORM_CLASS):
 
         #saveToModel
         currIdx = self.mapper.currentIndex()
-        now = QDateTime.currentDateTime()
-        #self.uiLastChangesDate.setDate(now)
-        self.uiLastChangesQgsDate.setDateTime(now)
+        #now = QDateTime.currentDateTime()
+        now = QDate.currentDate()
+        self.uiLastChangesDate.setDate(now)
+        #self.uiLastChangesQgsDate.setDateTime(now)
 
         res = self.mapper.submit()
 
@@ -861,13 +865,22 @@ class FilmDelegate(QSqlRelationalDelegate):
                 #value ="00:00:00"
                 #QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
 
-        # elif editor.metaObject().className() == 'QDateEdit' and value == '':
-        #     editor.setDate(QDate())
+        elif editor.metaObject().className() == 'QDateEdit' and value == '':
+            editor.setDate(QDate())
+            editor.setStyleSheet("{0} {{background-color: rgb(255, 229, 204);}}".format(editor.metaObject().className()))
+
+        elif editor.metaObject().className() == 'QDateEdit' and value != '':
+            if editor.isReadOnly():
+                editor.setStyleSheet("{0} {{background-color: rgb(218, 218, 218);}}".format(editor.metaObject().className()))
+            else:
+                editor.setStyleSheet("")
+            QSqlRelationalDelegate.setEditorData(self, editor, index)
 
         elif editor.metaObject().className() == 'QgsDateTimeEdit' and value == '':
             editor.setAllowNull(True)
             editor.clear()
-            editor.setEmpty()
+            editor.clearFocus()
+            editor.setAllowNull(False)
 
         elif editor.metaObject().className() == 'QgsDateTimeEdit' and value != '':
             editor.setAllowNull(False)

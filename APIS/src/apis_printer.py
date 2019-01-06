@@ -332,21 +332,14 @@ class APISTemplatePrinter:
             logo.setPicturePath(os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "layout", "Luftbildarchiv.png"]))
             logo.refreshPicture()
 
-        # path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
-        # repImageName = self.getRepresentativeImage(siteDict['fundortnummer'])
-        # if repImageName:
-        #     path += u"\\" + repImageName + u".jpg"
-        #
-        #     repImageFile = QFile(path)
-        #     if repImageFile.exists():
-        #         itemImg.setPicturePath(path)
-        #     else:
-        #         # remove itemImg (to avoid red cross)
-        #         composition.removeComposerItem(itemImg)
-        # else:
-        #     # remove itemImg (to avoid red cross)
-        #     composition.removeComposerItem(itemImg)
-
+        repImage = self.layout.itemById('rep_luftbild')
+        if isinstance(repImage, QgsLayoutItemPicture):
+            path = self.loadRepresentativeImage()
+            if path:
+                repImage.setPicturePath(path)
+                repImage.refreshPicture()
+            else:
+                self.layout.removeLayoutItem(repImage)
 
         # Handle Adjustments (overflow)
         self.adjustItems()
@@ -780,8 +773,6 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
         scaleVal = max(extent.width(), extent.height())
         baseVal = max(float(self.settings.value("APIS/site_print_map_min_size", 1600.0)), scaleVal * 1.1)
         extent.scale(baseVal / scaleVal)
-
-
         return extent
 
     def getRepresentativeImage(self, siteNumber):
@@ -801,6 +792,14 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
                        "literatur", "detailinterpretation"]
         self.adjustItemsHightAndPos(adjustItemHight, adjustItemsPos)
 
+    def loadRepresentativeImage(self):
+        repImageName = self.getRepresentativeImage(self.substituteDict['fundortnummer'])
+        if repImageName:
+            path = os.path.join(*[self.settings.value("APIS/repr_image_dir", QDir.home().dirName()), "{}.jpg".format(repImageName)])
+            repImageFile = QFile(path)
+            return path if repImageFile.exists() else None
+        else:
+            return None
 
 class APISFindspotTemplatePrinter(APISTemplatePrinter):
     FILENAMETEMPLATE = "Fundstelle_{0}"

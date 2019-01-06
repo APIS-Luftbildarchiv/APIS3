@@ -57,7 +57,7 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         mPdfExport = QMenu()
         aPdfExportFilmList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Filmliste")
-        aPdfExportFilmList.triggered.connect(lambda: self.exportAsPdf(list=True))
+        aPdfExportFilmList.triggered.connect(lambda: self.exportAsPdf(tab_list=True))
         aPdfExportFilm = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Film")
         aPdfExportFilm.triggered.connect(lambda: self.exportAsPdf(detail=True))
         self.uiPdfExportTBtn.setMenu(mPdfExport)
@@ -133,13 +133,13 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         return filmList
 
-    def exportAsPdf(self, list=False, detail=False):
+    def exportAsPdf(self, tab_list=False, detail=False):
         if self.printingOptionsDlg is None:
             self.printingOptionsDlg = APISPrintingOptions(self)
 
-        if list and not detail:
+        if tab_list and not detail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Filmliste")
-        elif detail and not list:
+        elif detail and not tab_list:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film")
         else:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film und Filmliste")
@@ -167,7 +167,7 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
             if filmList:
                 pdfsToPrint = []
-                if list:
+                if tab_list:
                     pdfsToPrint.append({'type': APISListPrinter.FILM, 'idList': filmList})
 
                 if detail:

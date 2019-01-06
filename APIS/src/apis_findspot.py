@@ -37,6 +37,8 @@ from APIS.src.apis_findingtype_detail import APISFindingTypeDetail
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger
+from APIS.src.apis_printing_options import APISPrintingOptions
+from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
 
 # QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
 # QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
@@ -98,9 +100,9 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         mPdfExport = QMenu()
         aPdfExportFindspot = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstelle")
-        aPdfExportFindspot.triggered.connect(self.exportDetailsPdf) #TODO: use lambda: to send mode
+        aPdfExportFindspot.triggered.connect(lambda: self.exportAsPdf(detail=True))
         aPdfExportFindspotAndSite = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstelle und Fundort")
-        aPdfExportFindspotAndSite.triggered.connect(self.exportDetailsPdf) #TODO: use lambda: to send mode
+        aPdfExportFindspotAndSite.triggered.connect(lambda: self.exportAsPdf(detail=True, parentDetail=True))
         self.uiPdfExportTBtn.setMenu(mPdfExport)
         self.uiPdfExportTBtn.clicked.connect(self.uiPdfExportTBtn.showMenu)
 
@@ -116,7 +118,7 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.uiFindspotTBtn.clicked.connect(self.uiFindspotTBtn.showMenu)
 
         # Setup Sub-Dialogs
-
+        self.printingOptionsDlg = None
         self.initalLoad = False
 
     def openInViewMode(self, siteNumber, findspotNumber):
@@ -799,161 +801,38 @@ class APISFindspot(QDialog, FORM_CLASS):
         query.first()
         return query.value(0)
 
-    def exportDetailsPdf(self):
-        saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-        timeStamp = QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")
-        saveDialogTitle = u"Fundstelle"
-        targetFileNameTemplate = u"Fundstelle_{0}.{1}_{2}".format(self.siteNumber, self.findspotNumber, timeStamp)
-        targetFileName = QFileDialog.getSaveFileName(self, saveDialogTitle, os.path.join(saveDir, targetFileNameTemplate), "*.pdf")[0]
+    def exportAsPdf(self, detail=False, parentDetail=False):
+        if self.printingOptionsDlg is None:
+            self.printingOptionsDlg = APISPrintingOptions(self)
 
-        if targetFileName:
-            fsDetailsPrinter = ApisFindspotPrinter(self, self.dbm, self.imageRegistry)
+        if detail and not parentDetail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
+        elif detail and parentDetail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle und Fundort")
+        else:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
 
-            # print file
-            pdfFiles = fsDetailsPrinter.exportDetailsPdf([u"{0}.{1}".format(self.siteNumber, self.findspotNumber)], targetFileName, timeStamp, False)
+        self.printingOptionsDlg.configure(False, parentDetail)  # only if parent site is selected allow outputmode
 
-            # open file, open location?
-            for key in pdfFiles:
-                for pdfFile in pdfFiles[key]:
-                    OpenFileOrFolder(pdfFile)
+        self.printingOptionsDlg.show()
 
-    #
-    # def exportDetailsPdf(self):
-    #     saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-    #     fileName = QFileDialog.getSaveFileName(self, 'Fundstelle Details', saveDir + "\\" + 'FundstelleDetails_{0}.{1}_{2}'.format(self.siteNumber, self.findspotNumber,QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")),'*.pdf')
-    #
-    #     if fileName:
-    #         queryStr = u"SELECT katastralgemeinde, katastralgemeindenummer, fundstelle.* FROM fundstelle, fundort WHERE fundstelle.fundortnummer = fundort.fundortnummer AND fundstelle.fundortnummer = '{0}' AND fundstelle.fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber)
-    #
-    #         query = QSqlQuery(self.dbm.db)
-    #         query.prepare(queryStr)
-    #         query.exec_()
-    #
-    #         query.seek(-1)
-    #         while query.next():
-    #             findspotDict = {}
-    #             rec = query.record()
-    #
-    #             #Replace
-    #             for col in range(rec.count()-1): #-1 geometry wird nicht benötigt!
-    #                 val = u"{0}".format(rec.value(col))
-    #                 if val.replace(" ", "") == '' or val == 'NULL':
-    #                     val = u"---"
-    #                 findspotDict[unicode(rec.fieldName(col))] = val
-    #
-    #             findspotDict['datum_druck'] = QDate.currentDate().toString("dd.MM.yyyy")
-    #             findspotDict['datum_ersteintrag'] = QDate.fromString(findspotDict['datum_ersteintrag'], "yyyy-MM-dd").toString("dd.MM.yyyy")
-    #             findspotDict['datum_aenderung'] = QDate.fromString(findspotDict['datum_aenderung'], "yyyy-MM-dd").toString("dd.MM.yyyy")
-    #
-    #
-    #             if findspotDict['sicherheit'] == u"1":
-    #                 findspotDict['sicherheit'] = u"sicher"
-    #             elif findspotDict['sicherheit'] == u"2":
-    #                 findspotDict['sicherheit'] = u"wahrscheinlich"
-    #             elif findspotDict['sicherheit'] == u"3":
-    #                 findspotDict['sicherheit'] = u"fraglich"
-    #             elif findspotDict['sicherheit'] == u"4":
-    #                 findspotDict['sicherheit'] = u"keine Fundstelle"
-    #
-    #             # MapSettings
-    #             mapSettings = QgsMapSettings()
-    #             mapSettings.setMapUnits(QGis.UnitType(0))
-    #             mapSettings.setOutputDpi(300)
-    #
-    #             # Template
-    #             template = os.path.dirname(__file__) + "/composer/templates/FundstelleDetail.qpt"  # map_print_test.qpt"
-    #             templateDom = QDomDocument()
-    #             templateDom.setContent(QFile(template), False)
-    #
-    #             # Composition
-    #             composition = QgsComposition(mapSettings)
-    #             composition.setPlotStyle(QgsComposition.Print)
-    #             composition.setPrintResolution(300)
-    #             composition.loadFromTemplate(templateDom, findspotDict)
-    #
-    #             # Composer Items
-    #
-    #             pageCount = 1
-    #
-    #             adjustItems = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "fundgeschichte", "literatur", "sonstiges"]
-    #             bottomBorder = 30.0
-    #             topBorder = 27.0
-    #             i = 0
-    #             for itemId in adjustItems:
-    #
-    #                 itemTxt = composition.getComposerItemById(itemId + "Txt")
-    #                 itemLbl = composition.getComposerItemById(itemId +"Lbl")
-    #                 itemBox = composition.getComposerItemById(itemId + "Box")
-    #
-    #                 if itemTxt and itemLbl:
-    #
-    #                     #textWidth = QgsComposerUtils.textWidthMM(itemTxt.font(), itemTxt.displayText())
-    #                     fontHeight = QgsComposerUtils.fontHeightMM(itemTxt.font())
-    #                     oldHeight = itemTxt.rectWithFrame().height()
-    #                     displayText = itemTxt.displayText()
-    #                     boxWidth = itemTxt.rectWithFrame().width() - 2 * itemTxt.marginX()
-    #                     lineCount = 0
-    #                     for line in displayText.splitlines():
-    #                         textWidth = max(1.0, QgsComposerUtils.textWidthMM(itemTxt.font(), line))
-    #                         lineCount += math.ceil(textWidth / boxWidth)
-    #
-    #                     newHeight = fontHeight * (lineCount + 1)
-    #                     newHeight += 2 * itemTxt.marginY() + 2
-    #
-    #                     x = itemTxt.pos().x()
-    #                     if i == 0:
-    #                         y = itemTxt.pos().y()
-    #                     else:
-    #                         y = newY
-    #                     w = itemTxt.rectWithFrame().width()
-    #                     newY = y + newHeight
-    #                     if newY > composition.paperHeight() - bottomBorder:
-    #                         pageCount += 1
-    #                         y = topBorder
-    #                         newY = y + newHeight
-    #                         #copy Header
-    #                         header = 1
-    #                         while composition.getComposerItemById("header_{0}".format(header)):
-    #                             self.cloneLabel(composition, composition.getComposerItemById("header_{0}".format(header)), pageCount)
-    #                             header += 1
-    #                         #copyFooter
-    #                         footer = 1
-    #                         while composition.getComposerItemById("footer_{0}".format(footer)):
-    #                             self.cloneLabel(composition, composition.getComposerItemById("footer_{0}".format(footer)),pageCount)
-    #                             footer += 1
-    #
-    #                     itemTxt.setItemPosition(x, y, w, newHeight, QgsComposerItem.UpperLeft, True, pageCount)
-    #                     itemLbl.setItemPosition(itemLbl.pos().x(), y, itemLbl.rectWithFrame().width(), itemLbl.rectWithFrame().height(), QgsComposerItem.UpperLeft, True, pageCount)
-    #
-    #                     i += 1
-    #
-    #                     if itemBox:
-    #                         h = (itemBox.rectWithFrame().height() - oldHeight) + newHeight
-    #                         itemBox.setItemPosition(itemBox.pos().x(), itemBox.pos().y(), itemBox.rectWithFrame().width(), h, QgsComposerItem.UpperLeft, True, pageCount)
-    #
-    #
-    #             #QMessageBox.information(None, "info", u"w: {0}, h: {1}, w: {2}, h: {3}, , x: {4}, y: {5}".format(width, height, l.rectWithFrame().width(), l.rectWithFrame().height(), l.pos().x(), l.pos().y()))
-    #
-    #             composition.setNumPages(pageCount)
-    #
-    #             # Create PDF
-    #             composition.exportAsPDF(fileName)
-    #
-    #             # Open PDF
-    #             OpenFileOrFolder(fileName)
-    #
-    def cloneLabel(self, comp, l, pageCount):
-        label = QgsComposerLabel(comp)
-        label.setItemPosition(l.pos().x(), l.pos().y(), l.rectWithFrame().width(), l.rectWithFrame().height(), QgsComposerItem.UpperLeft, True, pageCount)
-        label.setBackgroundEnabled(True)
-        label.setBackgroundColor(QColor("#CCCCCC"))
-        label.setText(l.text())
-        label.setVAlign(l.vAlign())
-        label.setHAlign(l.hAlign())
-        label.setMarginX(l.marginX())
-        label.setMarginY(l.marginY())
-        label.setFont(l.font())
-        comp.addItem(label)
+        if self.printingOptionsDlg.exec_():
+            # get settings from dialog
+            outputMode = self.printingOptionsDlg.outputMode()
+
+            pdfsToPrint = []
+            if detail:
+                if parentDetail:
+                    pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [self.siteNumber]})
+                pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': ["{0}.{1}".format(self.siteNumber, self.findspotNumber)]})
+
+            if pdfsToPrint:
+                APISPrinterQueue(pdfsToPrint,
+                                 outputMode,
+                                 openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
+                                 openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
+                                 dbm=self.dbm,
+                                 parent=self)
 
     def openSiteDialog(self):
         from APIS.src.apis_site import APISSite
@@ -970,7 +849,6 @@ class APISFindspot(QDialog, FORM_CLASS):
             if siteDlg.exec_():
                 pass
             siteDlg.removeSitesFromSiteMapCanvas()
-
 
     def removeNewFindspot(self):
         self.initalLoad = True
@@ -1043,8 +921,6 @@ class APISFindspot(QDialog, FORM_CLASS):
         if not self.isGeometryEditingSaved:
             self.isGeometryEditingSaved = True
         return True
-
-
 
     def cancelEdit(self):
         currIdx = self.mapper.currentIndex()

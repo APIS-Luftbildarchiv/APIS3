@@ -69,7 +69,7 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         mPdfExport = QMenu()
         aPdfExportFindspotList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstellenliste")
-        aPdfExportFindspotList.triggered.connect(lambda: self.exportAsPdf(list=True))
+        aPdfExportFindspotList.triggered.connect(lambda: self.exportAsPdf(tab_list=True))
         aPdfExportFindspot = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstelle")
         aPdfExportFindspot.triggered.connect(lambda: self.exportAsPdf(detail=True))
         aPdfExportFindspotAndSite = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundstelle und Fundort")
@@ -196,26 +196,57 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                     # save PointLayer
                     self.exportLayer(centerPointLayer, time)
 
-    def exportAsPdf(self, list=False, detail=False, parentDetail=False):
+    def exportAsPdf(self, tab_list=False, detail=False, parentDetail=False):
         if self.printingOptionsDlg is None:
             self.printingOptionsDlg = APISPrintingOptions(self)
 
-        if list:
+        if tab_list and not detail and not parentDetail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstellenliste")
+        elif detail and not tab_list and not parentDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
+        elif detail and parentDetail and not tab_list:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle und Fundort")
+        else:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstellen Auswahl")
 
-        findspotList = self.askForFindspotList()
-        if findspotList:
-            pdfsToPrint = []
-            if list:
-                pdfsToPrint.append({'type': APISListPrinter.FINDSPOT, 'idList': findspotList})
+        if self.uiFindspotListTableV.model().rowCount() == 1:
+            self.printingOptionsDlg.configure(False, False)
+        elif not self.uiFindspotListTableV.selectionModel().hasSelection():
+            self.printingOptionsDlg.configure(False, detail)
+        else:
+            if len(self.uiFindspotListTableV.selectionModel().selectedRows()) == 1:
+                self.printingOptionsDlg.configure(True, detail)
+            elif len(self.uiFindspotListTableV.selectionModel().selectedRows()) == self.uiFindspotListTableV.model().rowCount():
+                self.printingOptionsDlg.configure(False, detail)
+            else:
+                self.printingOptionsDlg.configure(True, detail)
 
-            if detail:
-                for findspot in findspotList:
-                    if parentDetail:
-                        pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot[:8]]})
-                    pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [findspot]})
+        self.printingOptionsDlg.show()
 
-            APISPrinterQueue(pdfsToPrint, OutputMode.MergeAll, True, False, self.dbm, )
+        if self.printingOptionsDlg.exec_():
+            # get settings from dialog
+            selectionModeIsAll = self.printingOptionsDlg.selectionModeIsAll()
+            outputMode = self.printingOptionsDlg.outputMode()
+
+            findspotList = self.getFindspotList(selectionModeIsAll)
+            if findspotList:
+                pdfsToPrint = []
+                if tab_list:
+                    pdfsToPrint.append({'type': APISListPrinter.FINDSPOT, 'idList': findspotList})
+
+                if detail:
+                    for findspot in findspotList:
+                        if parentDetail:
+                            pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot[:8]]})
+                        pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [findspot]})
+
+                if pdfsToPrint:
+                    APISPrinterQueue(pdfsToPrint,
+                                     outputMode,
+                                     openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
+                                     openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
+                                     dbm=self.dbm,
+                                     parent=self)
 
     def askForFindspotList(self):
         if self.uiFindspotListTableV.selectionModel().hasSelection():

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>648</width>
+    <width>600</width>
     <height>1334</height>
    </rect>
   </property>
@@ -262,7 +262,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>610</width>
+           <width>562</width>
            <height>613</height>
           </rect>
          </property>
@@ -395,7 +395,7 @@
              </widget>
             </item>
             <item row="4" column="4">
-             <widget class="QPushButton" name="uiEditProjectTableBtn">
+             <widget class="QPushButton" name="uiEditProjectTableObliqueBtn">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -437,7 +437,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>610</width>
+           <width>562</width>
            <height>613</height>
           </rect>
          </property>
@@ -448,90 +448,127 @@
          <attribute name="label">
           <string>senkrecht</string>
          </attribute>
-         <widget class="QWidget" name="gridLayoutWidget_2">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>0</y>
-            <width>320</width>
-            <height>292</height>
-           </rect>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_2">
-           <item row="3" column="1" colspan="2">
-            <widget class="QComboBox" name="uiProjectVerticalCombo"/>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_6">
-             <property name="text">
-              <string>Bildnummer:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_7">
-             <property name="text">
-              <string>Höhe:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_16">
-             <property name="text">
-              <string>Projekt(e):</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1" colspan="2">
-            <widget class="QSpinBox" name="uiImageNumberSpn">
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>999</number>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1" colspan="2">
-            <widget class="QSpinBox" name="uiFlightHeightVerticalSpn">
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>99999</number>
-             </property>
-             <property name="value">
-              <number>100</number>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="3">
-            <widget class="QPushButton" name="uiAddProjectVerticalBtn">
-             <property name="text">
-              <string/>
-             </property>
-             <property name="icon">
-              <iconset resource="resource.qrc">
-               <normaloff>:/plugins/APIS/icons/add.png</normaloff>:/plugins/APIS/icons/add.png</iconset>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="3">
-            <widget class="QPushButton" name="uiRemoveProjectVerticalBtn">
-             <property name="text">
-              <string/>
-             </property>
-             <property name="icon">
-              <iconset resource="resource.qrc">
-               <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0" colspan="3">
-            <widget class="QListWidget" name="uiProjectVerticalList"/>
-           </item>
-          </layout>
-         </widget>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <layout class="QGridLayout" name="gridLayout">
+            <item row="4" column="2">
+             <widget class="QPushButton" name="uiRemoveProjectVerticalBtn">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_16">
+              <property name="text">
+               <string>Projekt(e):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>Bildnummer:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="2">
+             <widget class="QPushButton" name="uiEditProjectTableVerticalBtn">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="uiProjectVerticalCombo">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QSpinBox" name="uiFlightHeightVerticalSpn">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>99999</number>
+              </property>
+              <property name="value">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2">
+             <widget class="QPushButton" name="uiAddProjectVerticalBtn">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/plugins/APIS/icons/add.png</normaloff>:/plugins/APIS/icons/add.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>Höhe:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="uiImageNumberSpn">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>999</number>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" rowspan="3" colspan="2">
+             <widget class="QListWidget" name="uiProjectVerticalList">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </widget>
        </widget>
       </item>

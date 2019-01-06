@@ -37,7 +37,7 @@ from qgis.core import (QgsProject, Qgis, QgsDataSourceUri, QgsVectorDataProvider
 from qgis.gui import (QgsMapToolEmitPoint, QgsVertexMarker)
 
 from APIS.src.apis_film_number_selection import APISFilmNumberSelection
-from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry
+from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry, VersionToCome
 from APIS.src.apis_image_digital_auto_import import APISDigitalImageAutoImport
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -65,6 +65,9 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.fpLayerId = None
         self.currentFilmNumber = None
         self.isOblique = True
+
+        self.uiEditProjectTableObliqueBtn.clicked.connect(lambda: VersionToCome())
+        self.uiEditProjectTableVerticalBtn.clicked.connect(lambda: VersionToCome())
 
         self.visibilityChanged.connect(self.onVisibilityChanged)
 
@@ -128,7 +131,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             if self.mappingMode:
                 self.vertexMarker.show()
                 self.vertexMarker2.show()
-
 
     def openFilmSelectionDialog(self):
         """Run method that performs all the real work"""

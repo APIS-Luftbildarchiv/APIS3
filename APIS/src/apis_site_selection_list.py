@@ -74,7 +74,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
 
         mPdfExport = QMenu()
         aPdfExportSiteList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundortliste")
-        aPdfExportSiteList.triggered.connect(lambda: self.exportAsPdf(list=True))
+        aPdfExportSiteList.triggered.connect(lambda: self.exportAsPdf(tab_list=True))
         aPdfExportSite = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundort")
         aPdfExportSite.triggered.connect(lambda: self.exportAsPdf(detail=True))
         aPdfExportSiteFindspotList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Fundort und Funstellenliste")
@@ -258,17 +258,17 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
                     # save PointLayer
                     self.exportLayer(centerPointLayer, time)
 
-    def exportAsPdf(self, list=False, detail=False, subList=False, subDetail=False):
+    def exportAsPdf(self, tab_list=False, detail=False, subList=False, subDetail=False):
         if self.printingOptionsDlg is None:
             self.printingOptionsDlg = APISPrintingOptions(self)
 
-        if list and not detail and not subList and not subDetail:
+        if tab_list and not detail and not subList and not subDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundortliste")
-        elif detail and not list and not subList and not subDetail:
+        elif detail and not tab_list and not subList and not subDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort")
-        elif detail and subList and not list and not subDetail:
+        elif detail and subList and not tab_list and not subDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort und Funndstellenliste")
-        elif detail and subList and subDetail and not list:
+        elif detail and subList and subDetail and not tab_list:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort, Funndstellenliste und Fundstellen")
         else:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort Auswahl")
@@ -295,7 +295,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
             siteList = self.getSiteList(selectionModeIsAll)
             if siteList:
                 pdfsToPrint = []
-                if list:
+                if tab_list:
                     pdfsToPrint.append({'type': APISListPrinter.SITE, 'idList': siteList})
                 if detail:
                     for s in siteList:

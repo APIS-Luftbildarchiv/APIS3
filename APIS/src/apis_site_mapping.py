@@ -586,6 +586,9 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                     findspotLayer.updateFeature(fSFeature)
 
                 commitRes = findspotLayer.commitChanges()
+                if self.findspotLayer is None:
+                    self.loadFindspotLayer()
+                self.findspotLayer.triggerRepaint()
                 # log
                 if commitRes:
                     for log in logs:

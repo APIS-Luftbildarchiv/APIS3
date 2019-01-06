@@ -34,6 +34,7 @@ from qgis.core import QgsDataSourceUri, QgsProject, QgsVectorLayer, QgsVectorFil
 from APIS.src.apis_site import APISSite
 from APIS.src.apis_utils import SiteHasFindspot, SitesHaveFindspots, GetFindspotNumbers, OpenFileOrFolder, GetFindspotNumbers
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter, OutputMode
+from APIS.src.apis_printing_options import APISPrintingOptions
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_site_selection_list.ui'), resource_suffix='')
@@ -84,6 +85,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
         self.uiPdfExportTBtn.clicked.connect(self.uiPdfExportTBtn.showMenu)
 
         self.siteDlg = None
+        self.printingOptionsDlg = None
 
     def hideEvent(self,event):
         self.query = None
@@ -256,174 +258,64 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
                     # save PointLayer
                     self.exportLayer(centerPointLayer, time)
 
-    def exportSiteAsPdf(self):
-        siteList = self.askForSiteList()
-        if siteList:
-            pdfsToPrint = []
-            for s in siteList:
-                pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [s]})
-            APISPrinterQueue(pdfsToPrint, OutputMode.MergeAll, parent=self)
-
     def exportAsPdf(self, list=False, detail=False, subList=False, subDetail=False):
-        siteList = self.askForSiteList()
-        if siteList:
-            pdfsToPrint = []
-            if list:
-                pdfsToPrint.append({'type': APISListPrinter.SITE, 'idList': siteList})
-            if detail:
-                for s in siteList:
-                    pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [s]})
-                    if SiteHasFindspot(self.dbm.db, s) and (subList or subDetail):
-                        findspotList = GetFindspotNumbers(self.dbm.db, [s])
-                        if findspotList:
-                            if subList:
-                                pdfsToPrint.append({'type': APISListPrinter.FINDSPOT, 'idList': findspotList})
-                            if subDetail:
-                                for f in findspotList:
-                                    pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [f]})
+        if self.printingOptionsDlg is None:
+            self.printingOptionsDlg = APISPrintingOptions(self)
 
-            if pdfsToPrint:
-                APISPrinterQueue(pdfsToPrint, OutputMode.MergeAll, dbm=self.dbm, parent=self)
+        if list and not detail and not subList and not subDetail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundortliste")
+        elif detail and not list and not subList and not subDetail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort")
+        elif detail and subList and not list and not subDetail:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort und Funndstellenliste")
+        elif detail and subList and subDetail and not list:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort, Funndstellenliste und Fundstellen")
+        else:
+            self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort Auswahl")
 
-    def exportSiteAsPdfOLD(self):
-        siteList = self.askForSiteList()
-        if siteList:
-
-            if SitesHaveFindspots(self.dbm.db, siteList):
-                # At least one site has a Findspot
-                msgBox = QMessageBox()
-                msgBox.setWindowTitle(u'Fundort als PDF exportieren')
-                msgBox.setText(u"Wählen Sie eine der folgenden Druckoptionen.")
-                msgBox.addButton(QPushButton(u'FO Detail'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'FO Detail und FS Liste'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'FO Detail, FS Liste und Detail'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-                printMode = msgBox.exec_()
-
-                if printMode not in [0, 1, 2]:
-                    return
+        if self.uiSiteListTableV.model().rowCount() == 1:
+            self.printingOptionsDlg.configure(False, False)
+        elif not self.uiSiteListTableV.selectionModel().hasSelection():
+            self.printingOptionsDlg.configure(False, detail)
+        else:
+            if len(self.uiSiteListTableV.selectionModel().selectedRows()) == 1:
+                self.printingOptionsDlg.configure(True, detail)
+            elif len(self.uiSiteListTableV.selectionModel().selectedRows()) == self.uiSiteListTableV.model().rowCount():
+                self.printingOptionsDlg.configure(False, detail)
             else:
-                # All sites have no Findspot
-                printMode = 0
+                self.printingOptionsDlg.configure(True, detail)
 
-            # Setup Output
-            saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-            timeStamp = QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")
-            if printMode == 0:
-                if len(siteList) == 1:
-                    saveDialogTitle = u"Fundort"
-                    targetFileNameTemplate = u"Fundort_{0}_{1}".format(siteList[0], timeStamp)
-                else:
-                    saveDialogTitle = u"Fundorte Sammlung"
-                    targetFileNameTemplate = u"Fundorte_Sammlung_{0}".format(timeStamp)
+        self.printingOptionsDlg.show()
 
-            elif printMode == 1:
-                if len(siteList) == 1:
-                    saveDialogTitle = u"Fundort mit Fundstellenliste"
-                    targetFileNameTemplate = u"Fundort_{0}_Fundstellenliste_{1}".format(siteList[0], timeStamp)
-                else:
-                    saveDialogTitle = u"Fundorte Sammlung mit Fundstellenlisten"
-                    targetFileNameTemplate = u"Fundorte_Sammlung_Fundstellenlisten_{0}".format(timeStamp)
+        if self.printingOptionsDlg.exec_():
+            # get settings from dialog
+            selectionModeIsAll = self.printingOptionsDlg.selectionModeIsAll()
+            outputMode = self.printingOptionsDlg.outputMode()
 
-            elif printMode == 2:
-                if len(siteList) == 1:
-                    saveDialogTitle = u"Fundort mit Fundstellen"
-                    targetFileNameTemplate = u"Fundort_{0}_Fundstellen_{1}".format(siteList[0], timeStamp)
-                else:
-                    saveDialogTitle = u"Fundorte Sammlung mit Fundstellen"
-                    targetFileNameTemplate = u"Fundorte_Sammlung_Fundstellen_{0}".format(timeStamp)
-            else:
-                return
+            siteList = self.getSiteList(selectionModeIsAll)
+            if siteList:
+                pdfsToPrint = []
+                if list:
+                    pdfsToPrint.append({'type': APISListPrinter.SITE, 'idList': siteList})
+                if detail:
+                    for s in siteList:
+                        pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [s]})
+                        if SiteHasFindspot(self.dbm.db, s) and (subList or subDetail):
+                            findspotList = GetFindspotNumbers(self.dbm.db, [s])
+                            if findspotList:
+                                if subList:
+                                    pdfsToPrint.append({'type': APISListPrinter.FINDSPOT, 'idList': findspotList})
+                                if subDetail:
+                                    for f in findspotList:
+                                        pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [f]})
 
-            targetFileName = QFileDialog.getSaveFileName(self, saveDialogTitle, os.path.join(saveDir, targetFileNameTemplate), "*.pdf")[0]
-
-            if targetFileName:
-
-                if printMode in [0, 1, 2]:
-                    # print details for all Sites
-                    # Temp Folder
-                    if printMode == 0 and len(siteList) == 1:
-                        foDetailsPrinter = ApisSitePrinter(self, self.dbm, self.imageRegistry)
-                        foDetailsPrinter.setStylesDir(self.apisLayer.getStylesDir())
-                        sitePdfs = foDetailsPrinter.exportSiteDetailsPdf(siteList, targetFileName, timeStamp, False)
-                    else:
-                        targetDirName = os.path.join(os.path.dirname(os.path.abspath(targetFileName)), u"temp_apis_print")
-                        try:
-                            os.makedirs(targetDirName)
-                        except OSError:
-                            if not os.path.isdir(targetDirName):
-                                raise
-
-                        foDetailsPrinter = ApisSitePrinter(self, self.dbm, self.imageRegistry)
-                        foDetailsPrinter.setStylesDir(self.apisLayer.getStylesDir())
-                        sitePdfs = {}
-                        for siteNumber in siteList:
-                            sitePdf = foDetailsPrinter.exportSiteDetailsPdf([siteNumber], targetDirName, timeStamp, True)
-                            sitePdfs[siteNumber] = sitePdf[siteNumber]
-
-                if printMode in [1, 2]:
-                    # print FindspotLists for all Sites
-                    findspotListsDict = {}
-                    for siteNumber in siteList:
-                        if SiteHasFindspot(self.dbm.db, siteNumber):
-                            qryStr = u"SELECT fs.fundortnummer || '.' || fs.fundstellenummer AS Fundstellenummer, fo.katastralgemeindenummer AS 'KG Nummer', fo.katastralgemeinde AS 'KG Name', datierung_zeit || ',' || datierung_periode || ',' || datierung_periode_detail || ',' || phase_von || '-' || phase_bis AS Datierung, fundart AS Fundart FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND fs.fundortnummer = '{0}' ORDER BY fs.fundstellenummer".format(siteNumber)
-                            fN = os.path.join(targetDirName, u"Fundstellenliste_{0}_{1}.pdf".format(siteNumber, timeStamp))
-                            printer = ApisListPrinter(self, self.dbm, self.imageRegistry, False, True, fN, 1)
-                            printer.setupInfo(u"Fundstellenliste", u"Fundstellenliste speichern", u"Fundstellenliste", 22)
-                            printer.setQuery(qryStr)
-                            findspotListPdf = printer.printList()
-                            findspotListsDict[siteNumber] = findspotListPdf
-
-                if printMode == 2:
-                    # print all Findspots of each Site
-                    findspotList = GetFindspotNumbers(self.dbm.db, siteList)
-                    if findspotList:
-                        fsDetailsPrinter = ApisFindspotPrinter(self, self.dbm, self.imageRegistry)
-                        findspots = fsDetailsPrinter.exportDetailsPdf(findspotList, targetDirName, timeStamp, True)
-
-
-                # Order files
-                if not (printMode == 0 and len(siteList) == 1):
-                    pdfFiles = []
-                    for siteNumber in siteList:
-                        #Site
-                        pdfFiles.append(sitePdfs[siteNumber])
-                        # FindspotList for Site
-                        if printMode in [1, 2]:
-                            if siteNumber in findspotListsDict:
-                                pdfFiles.append(findspotListsDict[siteNumber])
-                        # Findspots for Site
-                        if printMode == 2:
-                            if siteNumber in findspots:
-                                for findspot in findspots[siteNumber]:
-                                    pdfFiles.append(findspot)
-                    if pdfFiles:
-                        MergePdfFiles(targetFileName, pdfFiles)
-
-                OpenFileOrFolder(targetFileName)
-
-
-
-    def exportListAsPdf(self):
-        siteList = self.askForSiteList()
-        if siteList:
-            pdfsToPrint = []
-            pdfsToPrint.append({'type': APISListPrinter.SITE, 'idList': siteList})
-            APISPrinterQueue(pdfsToPrint, OutputMode.MergeNone, parent=self)
-
-            # ToDo: remove lines
-            # pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': siteList})
-            # pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': siteList})
-            # pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': siteList})
-            # pdfsToPrint.append({'type': APISTemplatePrinter.FILM, 'idList': ['0119990102']})
-            # pdfsToPrint.append({'type': APISTemplatePrinter.FILM, 'idList': ['0119990103']})
-            # ToDo: remove lines
-            #qryStr = u"SELECT filmnummer AS Filmnummer, strftime('%d.%m.%Y', flugdatum) AS Flugdatum, anzahl_bilder AS Bildanzahl, weise AS Weise, art_ausarbeitung AS Art, militaernummer AS Militärnummer, militaernummer_alt AS 'Militärnummer Alt', CASE WHEN weise = 'senk.' THEN (SELECT count(*) from luftbild_senk_cp WHERE film.filmnummer = luftbild_senk_cp.filmnummer) ELSE (SELECT count(*) from luftbild_schraeg_cp WHERE film.filmnummer = luftbild_schraeg_cp.filmnummer) END AS Kartiert, 0 AS Gescannt FROM film WHERE filmnummer IN ({0}) ORDER BY filmnummer".format(u",".join(u"'{0}'".format(site) for site in siteList))
-            #qryStr = u"SELECT fundortnummer AS Fundortnummer, katastralgemeindenummer AS 'KG Nummer', katastralgemeinde AS 'KG Name', flurname AS Flurname, fundgewinnung AS Fundgewinnung, sicherheit AS Sicherheit FROM fundort WHERE fundortnummer IN ({0}) ORDER BY land, katastralgemeindenummer, fundortnummer_nn".format(u",".join(u"'{0}'".format(site) for site in siteList))
-            #printer = ApisListPrinter(self, self.dbm, self.imageRegistry, True, False, None, 1)
-            #printer.setupInfo(u"Fundortliste", u"Fundortliste speichern", u"Fundortliste", 22)
-            #printer.setQuery(qryStr)
-            #printer.printList()
+                if pdfsToPrint:
+                    APISPrinterQueue(pdfsToPrint,
+                                     outputMode,
+                                     openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
+                                     openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
+                                     dbm=self.dbm,
+                                     parent=self)
 
     def askForSiteList(self, plusCols=None):
         if self.uiSiteListTableV.selectionModel().hasSelection():

@@ -33,15 +33,17 @@ from PyQt5.QtSql import QSqlQuery
 
 from qgis.core import (QgsProject, Qgis, QgsDataSourceUri, QgsVectorDataProvider, QgsGeometry,
                        QgsFeature, QgsVectorLayer, QgsRectangle, QgsPointXY, QgsCoordinateTransform,
-                       QgsCoordinateReferenceSystem, QgsVectorLayerUtils)
+                       QgsCoordinateReferenceSystem, QgsVectorLayerUtils, QgsDistanceArea)
 from qgis.gui import (QgsMapToolEmitPoint, QgsVertexMarker)
 
 from APIS.src.apis_film_number_selection import APISFilmNumberSelection
 from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry
+from APIS.src.apis_image_digital_auto_import import APISDigitalImageAutoImport
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_mapping.ui'), resource_suffix='')
 
+import exifread
 
 class APISImageMapping(QDockWidget, FORM_CLASS):
     def __init__(self, iface, dbm, apisLayer, parent=None):
@@ -157,9 +159,13 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         sourceCpLayer = self.apisLayer.requestShapeFile(sourceCpLayerPath, epsg, None, "Bildkartierung", True, True)
         sourceFpLayer = self.apisLayer.requestShapeFile(sourceFpLayerPath, epsg, None, "Bildkartierung", True, True)
         if cpIsFile and fpIsFile:
-            monoplotImportDlg = ApisMonoplotImportDialog(self, self.iface, self.dbm, sourceCpLayer, sourceFpLayer, self.cpLayer, self.fpLayer, self.currentFilmNumber)
-            monoplotImportDlg.show()
-            if monoplotImportDlg.exec_():
+
+            #monoplotImportDlg = ApisMonoplotImportDialog(self, self.iface, self.dbm, sourceCpLayer, sourceFpLayer, self.cpLayer, self.fpLayer, self.currentFilmNumber)
+            #monoplotImportDlg.show()
+            #if monoplotImportDlg.exec_():
+            autoImportDlg = APISDigitalImageAutoImport(self.iface, self.dbm, sourceCpLayer, sourceFpLayer, self.cpLayer, self.fpLayer, self.currentFilmNumber, parent=self)
+            autoImportDlg.show()
+            if autoImportDlg.exec_():
                 self.cpLayer.updateExtents()
                 self.fpLayer.updateExtents()
         else:
@@ -502,7 +508,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
                 if self.isOblique:
                     exif = self.getExifForImage(bn)
-                    #exif = [None, None, None, None, None, None]
+
                     if exif[0]:
                         f.setAttribute('hoehe', exif[0])
                     f.setAttribute('gps_longitude', exif[1])
@@ -553,7 +559,67 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         else:
             return query.value(0)
 
+    def _get_if_exist(self, data, key):
+        return data[key] if key in data else None
+
+    def _convert_to_degress(self, value):
+        """
+        Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
+        :param value:
+        :type value: exifread.utils.Ratio
+        :rtype: float
+        """
+        return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
+
     def getExifForImage(self, imageNumber):
+        exif = [None, None, None, None, None, None]
+
+        dirName = self.settings.value("APIS/image_dir")
+        imageName = imageNumber.replace('.', '_') + '.jpg'
+        image = os.path.normpath(dirName + '\\' + self.filmId + '\\' + imageName)
+
+        with open(image, 'rb') as f:
+            tags = exifread.process_file(f, details=False)
+
+            gps_altitude = self._get_if_exist(tags, 'GPS GPSAltitude')
+            gps_altitude_ref = self._get_if_exist(tags, 'GPS GPSAltitudeRef')
+            if gps_altitude and gps_altitude_ref:
+                alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
+                if gps_altitude_ref.values[0] == 1:
+                    alt *= -1
+                exif[0] = alt
+
+            gps_longitude = self._get_if_exist(tags, 'GPS GPSLongitude')
+            gps_longitude_ref = self._get_if_exist(tags, 'GPS GPSLongitudeRef')
+            if gps_longitude and gps_longitude_ref:
+                lon = self._convert_to_degress(gps_longitude)
+                if gps_longitude_ref.values[0] != 'E':
+                    lon = 0 - lon
+                exif[1] = lon
+
+            gps_latitude = self._get_if_exist(tags, 'GPS GPSLatitude')
+            gps_latitude_ref = self._get_if_exist(tags, 'GPS GPSLatitudeRef')
+            if gps_latitude and gps_latitude_ref:
+                lat = self._convert_to_degress(gps_latitude)
+                if gps_latitude_ref.values[0] != 'N':
+                    lat = 0 - lat
+                exif[2] = lat
+
+            exif_exposure_time = self._get_if_exist(tags, 'EXIF ExposureTime')
+            if exif_exposure_time:
+                exif[3] = float(exif_exposure_time.values[0].num / exif_exposure_time.values[0].den)
+
+            exif_focal_length = self._get_if_exist(tags, 'EXIF FocalLength')
+            if exif_focal_length:
+                exif[4] = float(exif_focal_length.values[0].num / exif_focal_length.values[0].den)
+
+            exif_fnumber = self._get_if_exist(tags, 'EXIF FNumber')
+            if exif_fnumber:
+                exif[5] = float(exif_fnumber.values[0].num / exif_fnumber.values[0].den)
+
+        return exif
+
+    def OLDgetExifForImage(self, imageNumber):
         exif = [None, None, None, None, None, None]
         dirName = self.settings.value("APIS/image_dir")
         #TODO RM imageName = IdToIdLegacy(imageNumber).replace('.','_') + '.jpg' TODO RM
@@ -588,7 +654,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
         return exif
 
-
     def reloadCpLayer(self):
          if self.cpLayerId not in QgsProject.instance().mapLayers():
             self.loadCenterPointLayerForFilm()
@@ -616,13 +681,12 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
                 iter = self.cpLayer.getFeatures()
                 iterNext = self.cpLayer.getFeatures()
-                # existingFootpints = self.fpLayer.getValues("bildnummer")[0]
-                existingFootpints = QgsVectorLayerUtils.getValues(self.fpLayer, "bildnummer")
+                existingFootpints = QgsVectorLayerUtils.getValues(self.fpLayer, "bildnummer")[0]
                 ft = QgsFeature()
                 ftNext = QgsFeature()
                 iterNext.nextFeature(ftNext)
                 fpFeats = []
-                #iterate over points from CP Layer > LON, LAT
+                # iterate over points from CP Layer > LON, LAT
                 i = 0
 
                 while iter.nextFeature(ft):
@@ -630,12 +694,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     iterNext.nextFeature(ftNext)
                     p = QgsPointXY(ft.geometry().asPoint())
                     if ft['bildnummer'] in existingFootpints:
-                        #pPrev = QgsPoint(p)
                         pPrevGeom = QgsGeometry(ft.geometry())
                         #QMessageBox.warning(None, u"Bild Nummern", u"Footprint für das Bild mit der Nummer {0} wurde bereits erstellt.".format(ft['BILD']))
                         continue
                     if i == 1:
-                        #pPrev = QgsPoint(ftNext.geometry().asPoint())
                         pPrevGeom = QgsGeometry(ftNext.geometry())
                     #if iterNext.isClosed():
                     #    #use pPrev as pNext
@@ -662,7 +724,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     pMetric = QgsPointXY(cpMetric.asPoint())
                     pPrevMetric = QgsPointXY(pPrevGeom.asPoint())
                     kappaMetric = pMetric.azimuth(pPrevMetric)
-                    #pPrev = QgsPoint(p)
                     pPrevGeom = QgsGeometry(ft.geometry())
                     l = pMetric.x() - d
                     b = pMetric.y() - d
@@ -699,7 +760,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     #p3.rotate(kappa+90, p)
                     #p4.rotate(kappa+90, p)
                     pol = [[p1.asPoint(), p2.asPoint(), p3.asPoint(), p4.asPoint()]]
-                    geom = QgsGeometry.fromPolygon(pol)
+                    geom = QgsGeometry.fromPolygonXY(pol)
                     geom.rotate(kappaMetric, pMetric)
                     #Transform to DestinationCRS
                     ctB = QgsCoordinateTransform(calcCrs, self.fpLayer.crs(), QgsProject.instance())
@@ -709,16 +770,11 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     feat.setGeometry(geom)
                     feat.setAttribute('filmnummer', self.currentFilmNumber)
                     feat.setAttribute('bildnummer', ft['bildnummer'])
-                    #TODO Shape_Length, Shape_Area
+                    da = QgsDistanceArea()
+                    da.setEllipsoid(self.fpLayer.crs().ellipsoidAcronym())
+                    feat.setAttribute('shape_length', da.measurePerimeter(geom))
+                    feat.setAttribute('shape_area', da.measureArea(geom))
                     fpFeats.append(feat)
-
-                    #r = QgsRubberBand(self.canvas, True)
-                    #r.setToGeometry(geom, None)
-
-                    # QMessageBox.warning(None, u"Bild Nummern", "{0}, {1}".format(math.degrees(urLat), math.degrees(urLon)))
-                    #m = QgsVertexMarker(self.canvas)
-                    #m.setCenter(QgsPoint(math.degrees(urLon), math.degrees(urLat)))
-
 
                     #TODO update Kappa in cpLayer
                     #if not self.cpLayer.isEditable():
@@ -751,7 +807,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         if caps & QgsVectorDataProvider.AddFeatures:
             if self.cpLayer.dataProvider().featureCount() > 0:
                 iter = self.cpLayer.getFeatures()
-                # existingFootpints = self.fpLayer.getValues("bildnummer")[0]
                 existingFootpints = QgsVectorLayerUtils.getValues(self.fpLayer, "bildnummer")[0]
                 cpFt = QgsFeature()
                 fpFts = []
@@ -779,7 +834,12 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     fpFt.setGeometry(fp)
                     fpFt.setAttribute("bildnummer", cpFt["bildnummer"])
                     fpFt.setAttribute("filmnummer", cpFt["filmnummer"])
+                    da = QgsDistanceArea()
+                    da.setEllipsoid(self.fpLayer.crs().ellipsoidAcronym())
+                    fpFt.setAttribute('shape_length', da.measurePerimeter(fp))
+                    fpFt.setAttribute('shape_area', da.measureArea(fp))
                     fpFts.append(fpFt)
+
                 (res, outFeats) = self.fpLayer.dataProvider().addFeatures(fpFts)
                 self.fpLayer.updateExtents()
                 if self.canvas.isCachingEnabled():

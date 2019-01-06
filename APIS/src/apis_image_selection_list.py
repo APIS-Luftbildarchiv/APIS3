@@ -39,6 +39,7 @@ from qgis.core import (QgsRasterLayer, QgsProject, QgsVectorFileWriter,
 from APIS.src.apis_utils import OpenFileOrFolder
 from APIS.src.apis_thumb_viewer import QdContactSheet
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
+from APIS.src.apis_printing_options import APISPrintingOptions
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_selection_list.ui'), resource_suffix='')
@@ -105,6 +106,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiFilterOrthoCombo.currentIndexChanged.connect(self.applyFilter)
         self.uiFilterFromChk.stateChanged.connect(self.applyFilter)
         self.uiFilterToChk.stateChanged.connect(self.applyFilter)
+
+        self.printingOptionsDlg = None
 
     def loadImageListBySqlQuery(self, query=None):
         self.model = QStandardItemModel()
@@ -658,11 +661,41 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         progressDlg.setValue(count)
 
     def exportListAsPdf(self):
-        imageList = self.askForImageList()
-        if imageList:
-            pdfsToPrint = []
-            pdfsToPrint.append({'type': APISListPrinter.IMAGE, 'idList': imageList})
-            APISPrinterQueue(pdfsToPrint, OutputMode.MergeNone, dbm=self.dbm, imageRegistry=self.imageRegistry, parent=self)
+
+        if self.printingOptionsDlg is None:
+            self.printingOptionsDlg = APISPrintingOptions(self)
+        self.printingOptionsDlg.setWindowTitle("Druck Optionen: Bildliste")
+
+        if self.uiImageListTableV.model().rowCount() == 1:
+            self.printingOptionsDlg.configure(False, False)
+        elif not self.uiImageListTableV.selectionModel().hasSelection():
+            self.printingOptionsDlg.configure(False, False)
+        else:
+            if len(self.uiImageListTableV.selectionModel().selectedRows()) == 1:
+                self.printingOptionsDlg.configure(True, False)
+            elif len(self.uiImageListTableV.selectionModel().selectedRows()) == self.uiImageListTableV.model().rowCount():
+                self.printingOptionsDlg.configure(False, False)
+            else:
+                self.printingOptionsDlg.configure(True, False)
+
+        self.printingOptionsDlg.show()
+
+        if self.printingOptionsDlg.exec_():
+
+            selectionModeIsAll = self.printingOptionsDlg.selectionModeIsAll()
+            outputMode = self.printingOptionsDlg.outputMode()
+
+            imageList = self.getImageList(selectionModeIsAll)
+            if imageList:
+                pdfsToPrint = []
+                pdfsToPrint.append({'type': APISListPrinter.IMAGE, 'idList': imageList})
+                APISPrinterQueue(pdfsToPrint,
+                                 OutputMode.MergeNone,
+                                 openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
+                                 openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
+                                 dbm=self.dbm,
+                                 imageRegistry=self.imageRegistry,
+                                 parent=self)
 
     def askForImageList(self):
         if self.uiImageListTableV.selectionModel().hasSelection():

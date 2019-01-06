@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>apisMonoplotImportDialog</class>
- <widget class="QDialog" name="apisMonoplotImportDialog">
+ <class>apisAutoImportDialog</class>
+ <widget class="QDialog" name="apisAutoImportDialog">
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
@@ -9,12 +9,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>775</width>
-    <height>325</height>
+    <width>909</width>
+    <height>585</height>
    </rect>
   </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
   <property name="windowTitle">
-   <string>APIS MONOPLOT Import</string>
+   <string>APIS Auto Import</string>
   </property>
   <property name="windowIcon">
    <iconset resource="resource.qrc">
@@ -27,7 +30,7 @@
    <item>
     <widget class="QPlainTextEdit" name="uiReportPTxt">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>

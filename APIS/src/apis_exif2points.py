@@ -106,10 +106,7 @@ class Exif2Points(object):
 
     # https: // gist.github.com / snakeye / fdc372dbf11370fe29eb
     def _get_if_exist(self, data, key):
-        if key in data:
-            return data[key]
-
-        return None
+        return data[key] if key in data else None
 
     def _convert_to_degress(self, value):
         """
@@ -118,11 +115,7 @@ class Exif2Points(object):
         :type value: exifread.utils.Ratio
         :rtype: float
         """
-        d = float(value.values[0].num) / float(value.values[0].den)
-        m = float(value.values[1].num) / float(value.values[1].den)
-        s = float(value.values[2].num) / float(value.values[2].den)
-
-        return d + (m / 60.0) + (s / 3600.0)
+        return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
 
     def get_exif_location(self, exif_data):
         """
@@ -148,11 +141,10 @@ class Exif2Points(object):
             if gps_longitude_ref.values[0] != 'E':
                 lon = 0 - lon
 
-            if gps_altitude:
-                alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
-                if gps_altitude_ref:
-                    alt += float(gps_altitude_ref.values[0])
-
+        if gps_altitude and gps_altitude_ref:
+            alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
+            if gps_altitude_ref.values[0] == 1:
+                alt *= -1
 
         return lat, lon, alt
 

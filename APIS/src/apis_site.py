@@ -38,7 +38,7 @@ from qgis.gui import QgsRubberBand
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
 from APIS.src.apis_overpass_request import APISOverpassRequest
-from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers
+from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers,VersionToCome
 from APIS.src.apis_findspot import APISFindspot
 from APIS.src.apis_findspot_selection_list import APISFindspotSelectionList
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
@@ -105,11 +105,13 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiSelectRepresentativeImageBtn.clicked.connect(self.openRepresentativeImageDialog)
         self.uiDeleteSiteBtn.clicked.connect(self.deleteSite)
 
+        self.uiLoadFindspotInQGisBtn.clicked.connect(lambda: VersionToCome())
+
         mSharding = QMenu()
         aShardingOverview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'footprints.png')), "Begehungen Übersicht")
         aShardingOverview.triggered.connect(self.openShardingSelectionListDialog)
         aShardingImages = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen")
-        # aShardingImages.triggered.connect(self.openShardingSelectionListDialog)
+        aShardingImages.triggered.connect(lambda: VersionToCome())
         self.uiShardingTBtn.setMenu(mSharding)
         self.uiShardingTBtn.clicked.connect(self.uiShardingTBtn.showMenu)
 
@@ -567,7 +569,6 @@ class APISSite(QDialog, FORM_CLASS):
         else:
             self.close()
 
-
     def openShardingSelectionListDialog(self):
         #if self.shardingDlg == None:
         self.shardingDlg = APISShardingSelectionList(self.iface, self.dbm)
@@ -576,7 +577,6 @@ class APISSite(QDialog, FORM_CLASS):
         if self.shardingDlg.exec_():
             pass
             #self.shardingDlg = None
-
 
     def openImageSelectionListDialog(self):
         #layer = self.uiSiteMapCanvas.layers()
@@ -931,7 +931,7 @@ class APISSite(QDialog, FORM_CLASS):
                 except Exception as e:
                     pass
                 # Copy Dummy Template
-                srcPath = os.path.normpath(os.path.join(os.path.dirname(__file__), u"master_templates"))
+                srcPath = os.path.normpath(os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "shp"]))
                 template = self.settings.value("APIS/int_master_shp")
                 for srcFile in glob.glob(os.path.normpath(os.path.join(srcPath, u'{0}.*'.format(template)))):
                     extension = os.path.splitext(srcFile)[1]
@@ -946,8 +946,7 @@ class APISSite(QDialog, FORM_CLASS):
 
             if ret == 1:
                 self.apisLayer.requestShapeFile(intShpPath, epsg=None, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True)
-                #pass
-                # TODO load with ApisLayerHandling Into Group Interpretationen
+
 
         #TODO : REMOVE
         # subsetString = u'"fundortnummer" = "{0}"'.format(siteNumber)

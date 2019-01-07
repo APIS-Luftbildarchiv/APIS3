@@ -35,6 +35,9 @@
         <iconset resource="resource.qrc">
          <normaloff>:/plugins/APIS/icons/update.png</normaloff>:/plugins/APIS/icons/update.png</iconset>
        </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
       </widget>
      </item>
      <item>

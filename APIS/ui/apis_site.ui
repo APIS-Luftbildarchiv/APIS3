@@ -553,12 +553,6 @@
     <layout class="QHBoxLayout" name="uiBottomHorizontalLayout">
      <item>
       <widget class="QPushButton" name="uiLoadSiteInterpretationInQGisBtn">
-       <property name="toolTip">
-        <string>Flugweg des Filmes in QGIS anzeigen</string>
-       </property>
-       <property name="whatsThis">
-        <string/>
-       </property>
        <property name="text">
         <string>Interpretation</string>
        </property>

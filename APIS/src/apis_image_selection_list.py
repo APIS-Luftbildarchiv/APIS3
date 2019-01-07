@@ -36,7 +36,7 @@ from qgis.core import (QgsRasterLayer, QgsProject, QgsVectorFileWriter,
                        QgsFields, QgsField, QgsFeature, QgsGeometry,
                        QgsCoordinateReferenceSystem, QgsWkbTypes)
 
-from APIS.src.apis_utils import OpenFileOrFolder
+from APIS.src.apis_utils import OpenFileOrFolder, VersionToCome
 from APIS.src.apis_thumb_viewer import QdContactSheet
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
@@ -62,7 +62,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         aImageCopy = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Kopieren")
         aImageCopy.triggered.connect(self.copyImages)
         aImageExif = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'exif_export.png')), "EXIF Export")
-        aImageExif.triggered.connect(self.image2Exif)
+        #aImageExif.triggered.connect(self.image2Exif)
+        aImageExif.triggered.connect(lambda: VersionToCome("3.0.1"))
         self.uiImageTBtn.setMenu(mImage)
         self.uiImageTBtn.clicked.connect(self.uiImageTBtn.showMenu)
 
@@ -89,6 +90,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.accepted.connect(self.onAccepted)
 
         self.uiImageListTableV.doubleClicked.connect(self.viewImage)
+        self.uiResetSelectionBtn.clicked.connect(self.uiImageListTableV.clearSelection)
+
 
         self.uiFilterGrp.toggled.connect(self.applyFilter)
         self.uiFilterVerticalChk.stateChanged.connect(self.applyFilter)
@@ -509,14 +512,10 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             QMessageBox.warning(None, "Bilder kopieren", u"Es sind keine Bilder vorhanden!")
             return
 
-        selectedDirName = QFileDialog.getExistingDirectory(
-             None,
-             u"Ziel Ordner auswählen",
-             self.settings.value("APIS/working_dir", QDir.home().dirName())
-        )[0]
-
+        selectedDirName = QFileDialog.getExistingDirectory(None, u"Ziel Ordner auswählen", QSettings().value("APIS/latest_export_dir", self.settings.value("APIS/working_dir", QDir.home().dirName())))
 
         if selectedDirName:
+            QSettings().setValue("APIS/latest_export_dir", os.path.dirname(os.path.abspath(selectedDirName)))
             loRes = True
             hiRes = False
             if len(hiResImageList) > 0:

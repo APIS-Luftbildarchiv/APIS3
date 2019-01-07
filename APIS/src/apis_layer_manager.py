@@ -4,7 +4,8 @@ import json
 
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtWidgets  import QMessageBox
-from qgis.core import QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsLayerTree, QgsCoordinateReferenceSystem
+from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsLayerTree, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform)
 
 
 class ApisLayerManager:
@@ -320,3 +321,17 @@ class ApisLayerManager:
 
     def getStylesDir(self):
         return self.stylesDir
+
+    def selectFeaturesByExpression(self, layer, expression):
+        layer.selectByExpression(expression)
+
+    def zoomToExtent(self, bbox):
+        self.iface.mapCanvas().setExtent(bbox)
+        self.iface.mapCanvas().refresh()
+
+    def zoomToSelection(self, layer):
+        if layer.selectedFeatureCount() > 0:
+            bbox = layer.boundingBoxOfSelected()
+            bbox.scale(1.1)
+            transform = QgsCoordinateTransform(layer.crs(), self.iface.mapCanvas().mapSettings().destinationCrs(), QgsProject.instance())
+            self.zoomToExtent(transform.transformBoundingBox(bbox))

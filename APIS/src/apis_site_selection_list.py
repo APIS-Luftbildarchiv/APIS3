@@ -69,6 +69,13 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
         mLayer.addSection("SHP Export")
         aLayerExportSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "Fundort(e)")
         aLayerExportSite.triggered.connect(self.exportSiteAsShp)
+        mLayer.addSection("In QGIS anzeigen")
+        aLayerShowSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen")
+        aLayerShowSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=False))
+        aLayerSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundort(e) selektieren")
+        aLayerSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen und selektieren")
+        aLayerShowAndSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=True))
         self.uiLayerTBtn.setMenu(mLayer)
         self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
 
@@ -145,6 +152,15 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
         #QMessageBox.information(None, "SqlQuery", self.query.executedQuery())
         self.loadSiteListBySpatialQuery(self.query, None, True)
         #QMessageBox.warning(None, self.tr(u"Load Site"), self.tr(u"Reload Table Now"))
+
+    def showSiteInQgis(self, zoomTo=True, select=False):
+        layer = self.apisLayer.requestSiteLayer()
+        expression = "\"fundortnummer\" IN ({})".format(','.join(["'{}'".format(sN) for sN in self.getSiteList(False)]))
+        self.apisLayer.selectFeaturesByExpression(layer, expression)
+        if zoomTo:
+            self.apisLayer.zoomToSelection(layer)
+        if not select:
+            layer.removeSelection()
 
     def loadSiteInQgis(self):
         siteList = self.askForSiteList()

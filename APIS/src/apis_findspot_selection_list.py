@@ -64,6 +64,13 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         mLayer.addSection("SHP Export")
         aLayerExportFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "Fundstelle(n)")
         aLayerExportFindspot.triggered.connect(self.exportFindspotAsShp)
+        mLayer.addSection("In QGIS anzeigen")
+        aLayerShowFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundstelle(n) zoomen")
+        aLayerShowFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=False))
+        aLayerSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundstelle(n) selektieren")
+        aLayerSelectFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundstelle(n) zoomen und selektieren")
+        aLayerShowAndSelectFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=True))
         self.uiLayerTBtn.setMenu(mLayer)
         self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
 
@@ -139,6 +146,15 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         self.query.exec_()
         self.loadFindspotListBySpatialQuery(self.query, None, True)
         #QMessageBox.warning(None, self.tr(u"Load Site"), self.tr(u"Reload Table Now"))
+
+    def showFindspotInQgis(self, zoomTo=True, select=False):
+        layer = self.apisLayer.requestFindspotLayer()
+        expression = "\"fundortnummer\" || '.' || \"fundstellenummer\" IN ({})".format(','.join(["'{}'".format(fsN) for fsN in self.getFindspotList(False)]))
+        self.apisLayer.selectFeaturesByExpression(layer, expression)
+        if zoomTo:
+            self.apisLayer.zoomToSelection(layer)
+        if not select:
+            layer.removeSelection()
 
     def loadFindspotInQgis(self):
         findspotList = self.askForFindspotList()

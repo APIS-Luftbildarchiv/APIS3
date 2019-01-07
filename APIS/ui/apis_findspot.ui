@@ -902,26 +902,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="uiChangeGeometryBtn">
-       <property name="text">
-        <string>Geometrie ändern</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/plugins/APIS/icons/edit_geometry_polygon.png</normaloff>:/plugins/APIS/icons/edit_geometry_polygon.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>30</width>
-         <height>30</height>
-        </size>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="uiViewSiteBtn">
        <property name="text">
         <string>Fundort Details öffnen</string>
@@ -1085,7 +1065,6 @@
   <tabstop>uiFindingsHistoryPTxt</tabstop>
   <tabstop>uiFindingsInterpretationPTxt</tabstop>
   <tabstop>uiLoadFindspotInQGisBtn</tabstop>
-  <tabstop>uiChangeGeometryBtn</tabstop>
   <tabstop>uiViewSiteBtn</tabstop>
   <tabstop>uiInitalEntryDate</tabstop>
   <tabstop>uiLastChangesDate</tabstop>

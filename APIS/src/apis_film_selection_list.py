@@ -55,6 +55,8 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         self.uiDisplayFlightPathBtn.clicked.connect(lambda: parent.openFlightPathDialog(self.getFilmList(), self))
 
+        self.uiResetSelectionBtn.clicked.connect(self.uiFilmListTableV.clearSelection)
+
         mPdfExport = QMenu()
         aPdfExportFilmList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Filmliste")
         aPdfExportFilmList.triggered.connect(lambda: self.exportAsPdf(tab_list=True))

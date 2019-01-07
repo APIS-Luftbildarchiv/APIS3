@@ -36,7 +36,7 @@ from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature)
 from APIS.src.apis_findingtype_detail import APISFindingTypeDetail
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_text_editor import APISTextEditor
-from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger
+from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger, VersionToCome
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
 
@@ -94,7 +94,7 @@ class APISFindspot(QDialog, FORM_CLASS):
         aShardingOverview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'footprints.png')), "Begehungen Übersicht")
         aShardingOverview.triggered.connect(self.openShardingSelectionListDialog)
         aShardingImages = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen")
-        # aShardingImages.triggered.connect(self.openShardingSelectionListDialog)
+        aShardingImages.triggered.connect(lambda: VersionToCome())
         self.uiShardingTBtn.setMenu(mSharding)
         self.uiShardingTBtn.clicked.connect(self.uiShardingTBtn.showMenu)
 
@@ -717,6 +717,7 @@ class APISFindspot(QDialog, FORM_CLASS):
     def cloneFindspot(self):
         self.initalLoad = True
         currentRecord = QSqlRecord(self.model.record(self.mapper.currentIndex()))
+
         siteNumber = currentRecord.value('fundortnummer')
         findspotNumberSource = currentRecord.value('fundstellenummer')
         findspotNumber = self.getNextFindspotNumber(siteNumber)
@@ -731,27 +732,28 @@ class APISFindspot(QDialog, FORM_CLASS):
         currentRecord.setValue('aktionsdatum', now.toString("yyyy-MM-dd"))
         currentRecord.setValue('aktionsuser', getpass.getuser())
 
-        res = self.model.insertRowIntoTable(currentRecord)
+        #QMessageBox.information(None, "info", "{}".format(", ".join(["{}".format(currentRecord.value(c)) for c in range(currentRecord.count())])))
+
+        # res = self.model.insertRowIntoTable(currentRecord)
+        res = self.model.insertRecord(-1, currentRecord)
         if not res:
-            QMessageBox.information(None, "SqlError", "{0}, {1}".format(self.model.lastError().text(), self.model.query().executedQuery()))
+            # QMessageBox.information(None, "SqlError", "{0}, {1}".format(self.model.lastError().text(), self.model.query().executedQuery()))
+            QMessageBox.warning(None, "Fundort Klonen", "Bitte schließen Sie das Fenster und öffnen es erneut ohne Änderungen an der Funstelle vorzunehmen vor dem Klonvorgang. (Anmerkunk: ein noch nicht identifizierter Bug verhindert das korrekte Klonen).")
+        else:
+            self.model.setFilter("fundortnummer='{0}' AND fundstellenummer={1}".format(siteNumber, findspotNumber))
+            res = self.model.select()
+            self.mapper.toFirst()
+            self.uiFindspotNumberEdit.setText("{0}.{1}".format(siteNumber, findspotNumber))
 
-        self.model.setFilter("fundortnummer='{0}' AND fundstellenummer={1}".format(siteNumber, findspotNumber))
-        res = self.model.select()
-        #self.mapper.setModel(self.model)
-        self.mapper.toFirst()
-        self.uiFindspotNumberEdit.setText("{0}.{1}".format(siteNumber, findspotNumber))
+            self.findspotNumber = findspotNumber
+            self.siteNumber = siteNumber
 
-        self.findspotNumber = findspotNumber
-        self.siteNumber = siteNumber
+            self.findspotEditsSaved.emit(True)
 
-        self.findspotEditsSaved.emit(True)
+            # in log eintragen
+            ApisLogger(self.dbm.db, "clone", "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
-        # in log eintragen
-        # TODO remove
-        # self.apisLogger(u"clone", u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
-        ApisLogger(self.dbm.db, "clone", "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
-
-        QMessageBox.information(None, u"Fundstelle Klonen", u"Die Fundstelle {0}.{1} wurde geklont und gespeichert: {0}.{2}".format(siteNumber, findspotNumberSource, findspotNumber))
+            QMessageBox.information(None, u"Fundstelle Klonen", u"Die Fundstelle {0}.{1} wurde geklont und gespeichert: {0}.{2}".format(siteNumber, findspotNumberSource, findspotNumber))
         self.initalLoad = False
 
     def deleteFindspot(self):
@@ -909,8 +911,6 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.findspotEditsSaved.emit(True)
 
         #log
-        # TODO remove
-        #self.apisLogger(action, u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
         ApisLogger(self.dbm.db, action, "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
         self.mapper.setCurrentIndex(currIdx)
@@ -987,8 +987,6 @@ class APISFindspot(QDialog, FORM_CLASS):
             else:
                 editor.setStyleSheet("")
         self.editorsEdited = []
-
-
 
         #self.uiDatingTimeCombo.editTextChanged.disconnect(self.onLineEditChanged)
         #self.uiDatingPeriodCombo.editTextChanged.disconnect(self.onLineEditChanged)

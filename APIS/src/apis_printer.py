@@ -623,7 +623,11 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
         dataSource = shpDriver.Open(shpFile, 0)
         if not vectorLayer.hasFeatures() and dataSource and dataSource.GetLayer().GetFeatureCount() > 0:
             features = []
-            for sourceFeature in dataSource.GetLayer():
+            flightPathLayer = dataSource.GetLayer()
+            spatialRef = flightPathLayer.GetSpatialRef()
+            proj4String = spatialRef.ExportToProj4()
+            QMessageBox.information(None, "SpatialRef", proj4String)
+            for sourceFeature in flightPathLayer:
                 feature = QgsFeature()
                 feature.setGeometry(QgsGeometry.fromWkt(sourceFeature.GetGeometryRef().ExportToWkt()))
                 features.append(feature)

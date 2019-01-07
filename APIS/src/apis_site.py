@@ -1203,7 +1203,7 @@ class APISSite(QDialog, FORM_CLASS):
         targetExtent = self.uiSiteMapCanvas.mapSettings().layerExtentToOutputExtent(siteLayer, extent)
 
         self.uiSiteMapCanvas.setExtent(targetExtent)
-       # self.saveCanvasAsImage() # FIXME: DELTETE NOT NEEDED
+       # self. saveCanvasAsImage() # FIXME: DELTETE NOT NEEDED
        # self.uiSiteMapCanvas.zoomToFeatureIds(siteLayer, set([0]))
 
     def reloadMapCanvas(self):

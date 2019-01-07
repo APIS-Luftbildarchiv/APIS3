@@ -489,7 +489,7 @@
      <item row="25" column="0">
       <widget class="QLabel" name="label_16">
        <property name="text">
-        <string>Befund:</string>
+        <string>Befundart:</string>
        </property>
       </widget>
      </item>
@@ -519,7 +519,7 @@
      <item row="26" column="0">
       <widget class="QPushButton" name="uiFindingTypeDetailBtn">
        <property name="text">
-        <string>Befund Detail:</string>
+        <string>Befundart Detail:</string>
        </property>
        <property name="icon">
         <iconset resource="resource.qrc">

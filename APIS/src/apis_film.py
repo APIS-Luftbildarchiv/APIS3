@@ -26,7 +26,7 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QSettings, Qt, QDate, QTime
+from PyQt5.QtCore import QSettings, Qt, QDate, QTime, QPoint, QSize
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtWidgets import (QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QMessageBox,
@@ -70,6 +70,10 @@ class APISFilm(QDialog, FORM_CLASS):
         self.parent = parent
 
         self.setupUi(self)
+
+        # Initial window size/pos last saved. Use default values for first time
+        self.resize(QSettings().value("APIS/film_size", QSize(270, 225)))
+        self.move(QSettings().value("APIS/film_pos", QPoint(50, 50)))
 
         self.printingOptionsDlg = None
 
@@ -502,6 +506,13 @@ class APISFilm(QDialog, FORM_CLASS):
                 self.show()
         else:
             self.close()
+
+    def closeEvent(self, e):
+        # Write window size and position to config file
+        QSettings().setValue("APIS/film_size", self.size())
+        QSettings().setValue("APIS/film_pos", self.pos())
+
+        e.accept()
 
     def extractGpsFromImages(self):
         key = self.uiCurrentFilmNumberEdit.text()

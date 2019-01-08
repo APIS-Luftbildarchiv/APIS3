@@ -36,6 +36,7 @@ from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsField, Q
                        QgsCoordinateTransform)
 
 from APIS.src.apis_points2path import Points2Path
+from APIS.src.apis_utils import TransformGeometry
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_flight_path.ui'), resource_suffix='')
@@ -295,7 +296,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
     def requestFlightPathLayer(self):
         # https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/vector.html#memory-provider
         filmsBySourceType = self.getSelection()
-        epsg=4326
+        epsg = 4326
         vectorCrs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
         flightPathPointLayer = QgsVectorLayer("MultiPoint?crs=epsg:{0}".format(epsg), "FlugwegePunkt", "memory")
         flightPathLineLayer = QgsVectorLayer("MultiLineString?crs=epsg:{0}".format(epsg), "FlugwegeLinie", "memory")
@@ -332,12 +333,12 @@ class APISFlightPath(QDialog, FORM_CLASS):
         # Point: Flight GPS
         for filmNumber in filmsBySourceType[0]:
             # load .shp file, get geometries as multigeometry
-            pointFeatureList.append(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, ".shp", ogr.wkbMultiPoint, "flight_gps"))
+            pointFeatureList.append(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, ".shp", ogr.wkbMultiPoint, "flight_gps", vectorCrs))
 
         # Point: Camera GPS
         for filmNumber in filmsBySourceType[2]:
             # load _gps.shp file, get geometries as multigeometry
-            pointFeatureList.append(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, "_gps.shp", ogr.wkbMultiPoint, "camera_gps"))
+            pointFeatureList.append(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, "_gps.shp", ogr.wkbMultiPoint, "camera_gps", vectorCrs))
 
         # Point: Image Mapping
         for filmNumber in filmsBySourceType[4]:
@@ -347,12 +348,12 @@ class APISFlightPath(QDialog, FORM_CLASS):
         # Line: Flight GPS
         for filmNumber in filmsBySourceType[1]:
             # load _lin.shp file, get geometries as multigeometry
-            lineFeatureList.append(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, "_lin.shp", ogr.wkbMultiLineString, "flight_gps"))
+            lineFeatureList.append(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, "_lin.shp", ogr.wkbMultiLineString, "flight_gps", vectorCrs))
 
         # Line: Camera GPS
         for filmNumber in filmsBySourceType[3]:
             # load _gps.shp file create line with Points2Path, get geometry as multigeometry
-            lineFeatureList.append(self.multiPointToLineString(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, "_gps.shp", ogr.wkbMultiPoint, "camera_gps", sortBy='bildnr')))
+            lineFeatureList.append(self.multiPointToLineString(self.getFeatureWithMultiGeomFromOgrShp(filmNumber, "_gps.shp", ogr.wkbMultiPoint, "camera_gps", vectorCrs, sortBy='bildnr')))
 
         # Line: Image Mapping
         for filmNumber in filmsBySourceType[5]:
@@ -369,16 +370,20 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
         return flightPathPointLayer, flightPathLineLayer
 
-    def getFeatureWithMultiGeomFromOgrShp(self, filmNumber, shpExtension, geomType, source, sortBy=None):
+    def getFeatureWithMultiGeomFromOgrShp(self, filmNumber, shpExtension, geomType, source, targetCrs, sortBy=None):
         flightPathDirectory = self.settings.value("APIS/flightpath_dir") + "\\" + self.yearFromFilm(filmNumber)
         shpFile = flightPathDirectory + "\\" + filmNumber + shpExtension
         dataSource = self.shpDriver.Open(shpFile, 0)
         if dataSource:
+            sourceCrs = QgsCoordinateReferenceSystem()
+            sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
+
             # Create QgsMultiPointGeometry; iterate over all Points and add to MultiGeometry
             if sortBy:
                 layer = sorted(dataSource.GetLayer(), key=lambda f: f[sortBy])
             else:
                 layer = dataSource.GetLayer()
+
             sourceMultiGeom = ogr.Geometry(geomType)
             for feature in layer:
                 sourceMultiGeom.AddGeometry(feature.GetGeometryRef())
@@ -386,7 +391,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
             targetMultiGeom.convertToMultiType()
 
             feature = QgsFeature()
-            feature.setGeometry(targetMultiGeom)
+            feature.setGeometry(TransformGeometry(targetMultiGeom, sourceCrs, targetCrs))
             feature.setAttributes([filmNumber, source] + self.getAttributesForFilm(filmNumber))
             return feature
         else:

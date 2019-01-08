@@ -15,7 +15,7 @@ from qgis.core import (Qgis, QgsMessageLog, QgsLayout, QgsProject, QgsLayoutExpo
                        QgsLayoutMultiFrame, QgsLayoutTableColumn, QgsLayoutTable, QgsLayoutAligner, QgsLayoutItemGroup,
                        QgsLayoutItemPicture, QgsLayoutItemShape, QgsFillSymbol)
 
-from APIS.src.apis_utils import GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect
+from APIS.src.apis_utils import GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect, TransformGeometry
 
 import traceback, sys, os, errno, shutil, random, math
 
@@ -623,13 +623,11 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
         dataSource = shpDriver.Open(shpFile, 0)
         if not vectorLayer.hasFeatures() and dataSource and dataSource.GetLayer().GetFeatureCount() > 0:
             features = []
-            flightPathLayer = dataSource.GetLayer()
-            spatialRef = flightPathLayer.GetSpatialRef()
-            proj4String = spatialRef.ExportToProj4()
-            QMessageBox.information(None, "SpatialRef", proj4String)
-            for sourceFeature in flightPathLayer:
+            sourceCrs = QgsCoordinateReferenceSystem()
+            sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
+            for sourceFeature in dataSource.GetLayer():
                 feature = QgsFeature()
-                feature.setGeometry(QgsGeometry.fromWkt(sourceFeature.GetGeometryRef().ExportToWkt()))
+                feature.setGeometry(TransformGeometry(QgsGeometry.fromWkt(sourceFeature.GetGeometryRef().ExportToWkt()), sourceCrs, vectorLayer.crs()))
                 features.append(feature)
 
             vectorLayer.dataProvider().addFeatures(features)
@@ -643,11 +641,13 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
             ldefn = dataSource.GetLayer().GetLayerDefn()
             schema = [ldefn.GetFieldDefn(n).name for n in range(ldefn.GetFieldCount())]
         if not vectorLayer.hasFeatures() and dataSource and dataSource.GetLayer().GetFeatureCount() > 1 and "bildnr" in schema:
-
+            sourceCrs = QgsCoordinateReferenceSystem()
+            sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
             sortedFeatures = sorted(dataSource.GetLayer(), key=lambda f: f['bildnr'])
             pointList = []
             for feature in sortedFeatures:
-                pointList.append(QgsGeometry.fromWkt(feature.GetGeometryRef().ExportToWkt()).asPoint())
+                #pointList.append(QgsGeometry.fromWkt(feature.GetGeometryRef().ExportToWkt()).asPoint())
+                pointList.append(TransformGeometry(QgsGeometry.fromWkt(feature.GetGeometryRef().ExportToWkt()).asPoint(), sourceCrs, vectorLayer.crs()))
 
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromPolylineXY(pointList))

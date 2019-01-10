@@ -26,7 +26,8 @@ import os
 import requests
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtCore import QSettings
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_overpass_request.ui'), resource_suffix='')
@@ -41,6 +42,9 @@ class APISOverpassRequest(QDialog, FORM_CLASS):
 
         self.lon = None
         self.lat = None
+
+        # More Info about Overpass API: https://wiki.openstreetmap.org/wiki/Overpass_API
+        self.overpassUrl = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat).value("overpass_url", "https://overpass-api.de/api/interpreter")
 
         # Signals/Slot Connections
         self.rejected.connect(self.onReject)
@@ -58,8 +62,7 @@ class APISOverpassRequest(QDialog, FORM_CLASS):
 
     def executeRequest(self):
         if self.lon and self.lat:
-            #TODO Store OVERPASS URL in config file (https://overpass-api.de/api/interpreter, http://api.openstreetmap.fr/api/interpreter)
-            r = requests.get("""https://overpass-api.de/api/interpreter?data=[out:json];is_in({0},{1});area._[admin_level];out;""".format(self.lat, self.lon))
+            r = requests.get("""{0}?data=[out:json];is_in({1},{2});area._[admin_level];out;""".format(self.overpassUrl, self.lat, self.lon))
             if r.status_code == 200:
                 opJson = r.json()
                 result = [(el['tags']['admin_level'], el['tags']['name']) for el in opJson['elements']]

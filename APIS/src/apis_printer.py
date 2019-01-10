@@ -15,7 +15,8 @@ from qgis.core import (Qgis, QgsMessageLog, QgsLayout, QgsProject, QgsLayoutExpo
                        QgsLayoutMultiFrame, QgsLayoutTableColumn, QgsLayoutTable, QgsLayoutAligner, QgsLayoutItemGroup,
                        QgsLayoutItemPicture, QgsLayoutItemShape, QgsFillSymbol)
 
-from APIS.src.apis_utils import GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect, TransformGeometry
+from APIS.src.apis_utils import (GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect, TransformGeometry,
+                                SetExportPath, GetExportPath)
 
 import traceback, sys, os, errno, shutil, random, math
 
@@ -58,7 +59,7 @@ class APISPrinterQueue(QObject):
 
         if self.saveTo:
             QgsMessageLog().logMessage("SaveTo: {0}".format(self.printerQueue), 'APIS', Qgis.MessageLevel.Warning, notifyUser=True)
-            QSettings().setValue("APIS/latest_export_dir", os.path.dirname(os.path.abspath(self.saveTo)))
+            SetExportPath(os.path.dirname(os.path.abspath(self.saveTo)))
 
             # if outputMode is OutputMode.OneFile and more than one element in queue create a temporary folder in saveTo folder
             if self.outputMode == OutputMode.MergeAll or self.outputMode == OutputMode.MergeByGroup:
@@ -82,7 +83,7 @@ class APISPrinterQueue(QObject):
 
     def _requestTargetFileOrDir(self):
         self.saveTimestamp = QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")
-        saveDir = QSettings().value("APIS/latest_export_dir", self.settings.value("APIS/working_dir", QDir.home().dirName()))
+        saveDir = GetExportPath()
 
         if len(self.printerQueue) == 1:
             targetFileName = self._generateFileName(self.printerQueue[0]['type'], self.printerQueue[0]['idList'][0]) + "_{0}".format(self.saveTimestamp)
@@ -569,7 +570,7 @@ class APISTemplatePrinter:
         shape = QgsLayoutItemShape(layout)
         shape.setShapeType(s.shapeType())
         shape.setSymbol(s.symbol())
-        shape.attemptSetSceneRect(QRectF(s.pos().x(), s.pos().y(), s.rectWithFrame().width(), s.rectWithFrame().height()))
+        shape.attemptSetSceneRect(QRectF(s.pos().x(), s.pos().y(), s.rectWithFrame().width() - s.estimatedFrameBleed()*2.0, s.rectWithFrame().height() - s.estimatedFrameBleed()*2.0), includesFrame=False)
         shape.attemptMove(QgsLayoutPoint(shape.positionAtReferencePoint(QgsLayoutItem.UpperLeft)), useReferencePoint=False, page=currentPage)
         layout.addItem(shape)
 

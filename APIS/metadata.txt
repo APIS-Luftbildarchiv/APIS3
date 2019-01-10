@@ -10,7 +10,7 @@
 name=APIS
 qgisMinimumVersion=3.4
 description=APIS - Archaeological Prospection Information System - A QGIS Plugin
-version=3.0.1
+version=3.0.2
 author=Johannes Liem (digitalcartography.org) and Aerial Archive of the University of Vienna
 email=johannes.liem@digitalcartography.org
 

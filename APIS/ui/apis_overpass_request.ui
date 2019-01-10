@@ -29,7 +29,7 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Geogr. Länge:</string>
+        <string>Geografische Länge:</string>
        </property>
       </widget>
      </item>
@@ -60,7 +60,7 @@
      <item>
       <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>Geogr. Breite:</string>
+        <string>Geografische Breite:</string>
        </property>
       </widget>
      </item>

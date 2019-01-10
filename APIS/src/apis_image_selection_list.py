@@ -36,7 +36,7 @@ from qgis.core import (QgsRasterLayer, QgsProject, QgsVectorFileWriter,
                        QgsFields, QgsField, QgsFeature, QgsGeometry,
                        QgsCoordinateReferenceSystem, QgsWkbTypes)
 
-from APIS.src.apis_utils import OpenFileOrFolder, VersionToCome
+from APIS.src.apis_utils import OpenFileOrFolder, VersionToCome, SetExportPath, GetExportPath
 from APIS.src.apis_thumb_viewer import QdContactSheet
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
@@ -512,10 +512,10 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             QMessageBox.warning(None, "Bilder kopieren", u"Es sind keine Bilder vorhanden!")
             return
 
-        selectedDirName = QFileDialog.getExistingDirectory(None, u"Ziel Ordner auswählen", QSettings().value("APIS/latest_export_dir", self.settings.value("APIS/working_dir", QDir.home().dirName())))
+        selectedDirName = QFileDialog.getExistingDirectory(None, u"Ziel Ordner auswählen", GetExportPath())
 
         if selectedDirName:
-            QSettings().setValue("APIS/latest_export_dir", os.path.dirname(os.path.abspath(selectedDirName)))
+            SetExportPath(os.path.dirname(os.path.abspath(selectedDirName)))
             loRes = True
             hiRes = False
             if len(hiResImageList) > 0:

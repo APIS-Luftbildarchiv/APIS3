@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QCoreApplication, QDateTime
+from PyQt5.QtCore import QSettings, QCoreApplication, QDateTime, QDir, QSize, QPoint
 from PyQt5.QtSql import QSqlQuery
 from PyQt5.QtWidgets import QMessageBox, QPushButton
 from qgis.core import QgsProject, QgsCoordinateTransform
@@ -135,6 +135,22 @@ def GenerateWeatherDescription(db, weatherCode):
 def VersionToCome(version="3.1"):
     QMessageBox.information(None, "Version 3", "Diese Funktion steht ab Version {0} zur Verfügung.".format(version))
 
+def SetExportPath(path):
+    QSettings().setValue("APIS/latest_export_dir", path)
+
+def GetExportPath():
+    return QSettings().value("APIS/latest_export_dir",  QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat).value("APIS/working_dir", QDir.home().dirName()))
+
+def SetWindowSizeAndPos(window, size, pos):
+    QSettings().setValue("APIS/{0}_size".format(window), size)
+    QSettings().setValue("APIS/{0}_pos".format(window), pos)
+
+def GetWindowSize(window):
+    return QSettings().value("APIS/{0}_size".format(window), None)
+
+def GetWindowPos(window):
+    return QSettings().value("APIS/{0}_pos".format(window), None)
+
 # ---------------------------------------------------------------------------
 # Common Calculations
 # ---------------------------------------------------------------------------
@@ -143,6 +159,7 @@ def GetMeridianAndEpsgGK(lon):
     '''
     :param lon: float Longitude in Grad
     :return meridian, epsg: int/long Meridian Streifen, int/long epsg Gauß-Krüger Österreich
+    :rtype: int, int
     '''
     if lon < 11.8333333333:
         return 28, 31254
@@ -154,10 +171,11 @@ def GetMeridianAndEpsgGK(lon):
 
 def TransformGeometry(geom, srcCrs, destCrs):
     '''
-    :param geom: QgsGeometry Punktgeometrie
+    :param geom: QgsGeometry
     :param srcCrs: QgsCoordinateReferenceSystem Source CRS
     :param destCrs: QgsCoordinateReferenceSystem Destination CRS
-    :return:
+    :return: geom: Transformed QgsGeometry
+    :rtype: QgsGeometry
     '''
     geom.transform(QgsCoordinateTransform(srcCrs, destCrs, QgsProject.instance()))
     return geom

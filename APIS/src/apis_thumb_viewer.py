@@ -15,7 +15,7 @@ class QdGraphicsPixmapItem(QGraphicsPixmapItem):
         self._loaded = False
 
         self._text = QGraphicsTextItem(self)
-        self._text.setFont(QFont("Arial", 20))
+        self._text.setFont(QFont("Arial", 14))
         self._text.setPlainText(os.path.basename(path))
         self._text.setPos(0, size.height())
 
@@ -76,8 +76,8 @@ class QdThumbnailView(QGraphicsView):
         self._loader.imageLoaded.connect(self.imageLoaded)
         #self.connect(self._loader, SIGNAL('finished()'), self.finished)
         self._loader.loadFinished.connect(self.finished)
-    def imagesPerRow(self):
-        return 4
+
+        self._imagesPerRow = 5
 
     #def stopLoading(self):
         #self._loader.stopLoading()
@@ -123,7 +123,7 @@ class QdThumbnailView(QGraphicsView):
             if positionedImages and path in positionedImages:
                 x, y = positionedImages[path]
             else:
-                modresult = current % self.imagesPerRow()
+                modresult = current % self._imagesPerRow
                 padding = 10
                 if modresult == 0:
                     if current > 0:
@@ -175,15 +175,17 @@ class QdThumbnailView(QGraphicsView):
             # Most mouse types work in steps of 15 degrees
             # in which case the delta value is a multiple of 120;
             # i.e., 120 units * 1/8 = 15 degrees
+
             numDegrees = evt.angleDelta().y() / 8
             numSteps = numDegrees / 15
-
-            newScale = self._scale + ((5*numSteps)/100.0)
-            if newScale > 0.0 and newScale < 5.0:
+            scaleBy = (5*numSteps)/100.0
+            #newScale = self._scale + scaleBy
+            #QMessageBox.information(None, "degrees", "{0}".format(scaleBy))
+            #if newScale > 0.0 and newScale < 5.0:
                 #self.resetMatrix()
                 # self.centerOn(self.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos())))
-                self.scale(newScale, newScale)
-                self._scale = newScale
+            self.scale(1+scaleBy, 1+scaleBy)
+            self._scale += scaleBy
             return
         elif mods == Qt.ShiftModifier and self.scene().selectedItems():
             # TODO: scale individual images? show scale controls?

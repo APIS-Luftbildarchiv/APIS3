@@ -41,7 +41,7 @@ from APIS.src.apis_film_selection_list import APISFilmSelectionList
 from APIS.src.apis_flight_path import APISFlightPath
 from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_site_selection_list import APISSiteSelectionList
-from APIS.src.apis_utils import VersionToCome
+from APIS.src.apis_utils import VersionToCome, SetWindowSizeAndPos, GetWindowSize, GetWindowPos
 from APIS.src.apis_weather import APISWeather
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
@@ -72,8 +72,8 @@ class APISFilm(QDialog, FORM_CLASS):
         self.setupUi(self)
 
         # Initial window size/pos last saved. Use default values for first time
-        self.resize(QSettings().value("APIS/film_size", QSize(270, 225)))
-        self.move(QSettings().value("APIS/film_pos", QPoint(50, 50)))
+        self.resize(GetWindowSize("film"))
+        self.move(GetWindowPos("film"))
 
         self.printingOptionsDlg = None
 
@@ -126,7 +126,7 @@ class APISFilm(QDialog, FORM_CLASS):
 
         # Setup Sub-Dialogs
         self.filmSelectionDlg = APISFilmNumberSelection()
-        self.newFilmDlg = APISFilmNew()
+        self.newFilmDlg = APISFilmNew(parent=self)
         self.searchFilmDlg = APISFilmSearch(self.dbm)# (self.iface, self.dbm)
         self.editWeatherDlg = APISWeather(self.iface, self.dbm)
         self.flightPathDlg = APISFlightPath(self.iface, self.dbm, self)
@@ -509,8 +509,7 @@ class APISFilm(QDialog, FORM_CLASS):
 
     def closeEvent(self, e):
         # Write window size and position to config file
-        QSettings().setValue("APIS/film_size", self.size())
-        QSettings().setValue("APIS/film_pos", self.pos())
+        SetWindowSizeAndPos("film", self.size(), self.pos())
 
         e.accept()
 

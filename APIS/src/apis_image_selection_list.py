@@ -40,6 +40,7 @@ from APIS.src.apis_utils import OpenFileOrFolder, VersionToCome, SetExportPath, 
 from APIS.src.apis_thumb_viewer import QdContactSheet
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
+from APIS.src.apis_image2xmp import Image2Xmp
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_selection_list.ui'), resource_suffix='')
@@ -62,8 +63,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         aImageCopy = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Kopieren")
         aImageCopy.triggered.connect(self.copyImages)
         aImageExif = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'exif_export.png')), "EXIF Export")
-        #aImageExif.triggered.connect(self.image2Exif)
-        aImageExif.triggered.connect(lambda: VersionToCome("3.0.1"))
+        aImageExif.triggered.connect(self.image2Xmp)
+        #aImageExif.triggered.connect(lambda: VersionToCome("3.0.1"))
         self.uiImageTBtn.setMenu(mImage)
         self.uiImageTBtn.clicked.connect(self.uiImageTBtn.showMenu)
 
@@ -355,7 +356,6 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         widget.show()
         if widget.exec_():
             pass
-        #app.exec_()
 
     def loadOrthos(self):
         orthoList = self.getImageList(False, 6, "ja")
@@ -591,7 +591,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             else:
                 QMessageBox.warning(None, "Bilder kopieren", u"Das Ziel Verzeichnis {0} konnte in {1} nicht erstellt werden".format(newDirName, selectedDirName))
 
-    def image2Exif(self):
+    def image2Xmp(self):
 
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
@@ -630,9 +630,9 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         progressDlg.setWindowModality(Qt.WindowModal)
         progressDlg.show()
         query.seek(-1)
-        i = 0
+        counting = 0
         while query.next():
-            progressDlg.setValue(i)
+            progressDlg.setValue(counting)
             if progressDlg.wasCanceled():
                 break
 
@@ -644,14 +644,12 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     val = u"---"
                 metadataDict["APIS_" + rec.fieldName(i)] = val
 
-            #TODO RM if self.imageRegistry.hasImage(IdToIdLegacy(metadataDict["APIS_bildnummer"])):
             if self.imageRegistry.hasImage(metadataDict["APIS_bildnummer"]):
-                #TODO RM imagePath = imageDir + "\\" + IdToIdLegacy(metadataDict["APIS_bildnummer"][:10]) + "\\" + IdToIdLegacy(metadataDict["APIS_bildnummer"]).replace('.','_') + ".jpg"
                 imagePath = imageDir + "\\" + metadataDict["APIS_bildnummer"][:10] + "\\" + metadataDict["APIS_bildnummer"].replace('.','_') + ".jpg"
                 if os.path.isfile(imagePath):
-                    pass
-                    # QMessageBox.information(None, "Image", u"{0}".format(imagePath))
-                    Image2Exif(metadataDict, imagePath)
+                    #QMessageBox.information(None, "Image", u"{0}".format(imagePath))
+                    Image2Xmp(metadataDict, imagePath)
+                    counting += 1
                 else:
                     QMessageBox.information(None, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (FileSystem: {1}).".format(metadataDict["APIS_bildnummer"], imagePath))
             else:

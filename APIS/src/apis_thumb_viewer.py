@@ -65,16 +65,14 @@ class QdThumbnailView(QGraphicsView):
         self._height = 450
 
         self.scale(self._scale, self._scale)
-        self.setDragMode(QGraphicsView.NoDrag)
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
 
         imageOptions = QdImageOptions()
         imageOptions.setSize(self._width, self._height)
 
         self._loader = QdImageLoader(imageOptions, self, parent)
 
-        #self.connect(self._loader, SIGNAL('imageLoaded(QString, QImage)'), self.imageLoaded)
         self._loader.imageLoaded.connect(self.imageLoaded)
-        #self.connect(self._loader, SIGNAL('finished()'), self.finished)
         self._loader.loadFinished.connect(self.finished)
 
         self._imagesPerRow = 5
@@ -372,7 +370,7 @@ class QdContactSheet(QDialog):
     def __init__(self, parent=None):
         QDialog.__init__(self, parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         self._iconView = QdThumbnailView(self)
         self._progress = QProgressBar(self)
         self._progress.setFormat("Generating thumbnails: %v of %m")
@@ -381,9 +379,7 @@ class QdContactSheet(QDialog):
         layout.addWidget(self._iconView)
         layout.addWidget(self._progress)
 
-        #self.connect(self._iconView, SIGNAL('doubleClicked(QString)'), self._itemDoubleClicked)
         self._iconView.doubleClicked.connect(self._itemDoubleClicked)
-        #self.connect(self._iconView, SIGNAL('loading(int)'), self.updateProgress)
         self._iconView.loading.connect(self.updateProgress)
 
         #self.rejected.connect(self.onReject)

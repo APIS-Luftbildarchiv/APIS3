@@ -107,7 +107,7 @@
       <enum>Qt::DotLine</enum>
      </property>
      <property name="sortingEnabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
     </widget>
    </item>

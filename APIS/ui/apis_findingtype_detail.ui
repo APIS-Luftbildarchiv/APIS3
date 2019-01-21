@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>APIS Fundart Detail</string>
+   <string>APIS Befundart Detail</string>
   </property>
   <property name="windowIcon">
    <iconset resource="resource.qrc">
@@ -27,7 +27,7 @@
    <item row="0" column="0" colspan="3">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Fundart:</string>
+      <string>Befundart:</string>
      </property>
     </widget>
    </item>
@@ -44,7 +44,7 @@
    <item row="1" column="0" colspan="3">
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>Fundart Detail:</string>
+      <string>Befundart Detail:</string>
      </property>
     </widget>
    </item>

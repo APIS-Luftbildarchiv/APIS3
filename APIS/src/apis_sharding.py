@@ -25,12 +25,13 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QMessageBox
+from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QMessageBox, QMenu
 from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QDate, QTime, QDir
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
-from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator
+from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QIcon
 
 from APIS.src.apis_thumb_viewer import QdContactSheet
+from APIS.src.apis_utils import VersionToCome, OpenFileOrFolder
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_sharding.ui'), resource_suffix='')
@@ -61,8 +62,21 @@ class APISSharding(QDialog, FORM_CLASS):
         self.uiCancelBtn.clicked.connect(self.cancelEdit)
         self.uiSaveBtn.clicked.connect(self.saveEdits)
 
-        self.uiViewPicturesBtn.clicked.connect(self.viewPictures)
-        self.uiViewSketchesBtn.clicked.connect(self.viewSketches)
+        mViewPictures = QMenu()
+        aViewPicturesPreview = mViewPictures.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'image.png')), "in Vorschau")
+        aViewPicturesPreview.triggered.connect(self.viewPictures)
+        aViewPicturesFolder = mViewPictures.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'image.png')), "in Ordner")
+        aViewPicturesFolder.triggered.connect(self.openPictures)
+        self.uiViewPicturesTBtn.setMenu(mViewPictures)
+        self.uiViewPicturesTBtn.clicked.connect(self.uiViewPicturesTBtn.showMenu)
+
+        mViewSketches = QMenu()
+        aViewSketchesPreview = mViewSketches.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'sketch.png')), "in Vorschau")
+        aViewSketchesPreview.triggered.connect(self.viewSketches)
+        aViewSketchesFolder = mViewSketches.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'sketch.png')), "in Ordner")
+        aViewSketchesFolder.triggered.connect(self.openSketches)
+        self.uiViewSketchesTBtn.setMenu(mViewSketches)
+        self.uiViewSketchesTBtn.clicked.connect(self.uiViewSketchesTBtn.showMenu)
 
         self.initalLoad = False
 
@@ -389,6 +403,15 @@ class APISSharding(QDialog, FORM_CLASS):
 
         self.loadInImageViewer(path)
 
+    def openPictures(self):
+        dirName = self.settings.value("APIS/insp_image_dir")
+        folderNameType = self.settings.value("APIS/insp_image_foto_dir")
+        folderNameSite = self.getFolderNameSite(self.siteNumber)
+        path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
+
+        if not OpenFileOrFolder(path):
+            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+
     def viewSketches(self):
         dirName = self.settings.value("APIS/insp_image_dir")
         folderNameType = self.settings.value("APIS/insp_image_sketch_dir")
@@ -396,6 +419,15 @@ class APISSharding(QDialog, FORM_CLASS):
         path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
 
         self.loadInImageViewer(path)
+
+    def openSketches(self):
+        dirName = self.settings.value("APIS/insp_image_dir")
+        folderNameType = self.settings.value("APIS/insp_image_sketch_dir")
+        folderNameSite = self.getFolderNameSite(self.siteNumber)
+        path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
+
+        if not OpenFileOrFolder(path):
+            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
     def getFolderNameSite(self, siteNumber):
         query = QSqlQuery(self.dbm.db)

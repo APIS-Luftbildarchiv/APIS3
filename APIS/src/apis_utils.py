@@ -91,6 +91,9 @@ def OpenFileOrFolder(fileOrFolder):
             subprocess.call(["xdg-open", fileOrFolder])
         else:
             os.startfile(fileOrFolder)
+        return True
+    else:
+        return False
 
 def OpenFolderAndSelect(file):
     if os.path.exists(file):

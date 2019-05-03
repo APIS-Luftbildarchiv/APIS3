@@ -460,8 +460,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             # From Input (Radius, Höhe, Schlüsslewort, Beschreibung)
             if self.isOblique:
                 feat.setAttribute('radius', self.uiImageDiameterSpn.value()/2)
-                feat.setAttribute('keyword', self.uiImageKeywordEdit.text())
-                feat.setAttribute('description', self.uiImageDescriptionEdit.text())
+                feat.setAttribute('beschreibung', self.uiImageDescriptionEdit.text())
                 h = self.uiFlightHeightObliqueSpn.value()
                 for j in range(self.uiProjectObliqueList.count()):
                     items.append(self.uiProjectObliqueList.item(j))

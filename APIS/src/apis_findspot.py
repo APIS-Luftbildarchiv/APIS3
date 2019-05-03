@@ -39,6 +39,7 @@ from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger, VersionToCome
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
+from APIS.src.apis_thumb_viewer import QdContactSheet
 
 # QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
 # QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
@@ -93,8 +94,10 @@ class APISFindspot(QDialog, FORM_CLASS):
         mSharding = QMenu()
         aShardingOverview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'footprints.png')), "Begehungen Übersicht")
         aShardingOverview.triggered.connect(self.openShardingSelectionListDialog)
-        aShardingImages = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen")
-        aShardingImages.triggered.connect(lambda: VersionToCome())
+        aShardingImagesPreview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen in Vorschau anzeigen")
+        aShardingImagesPreview.triggered.connect(self.openShardingImagesInPreview)
+        aShardingImagesFolder = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen in Ordern anzeigen")
+        aShardingImagesFolder.triggered.connect(self.openShardingImagesInFolder)
         self.uiShardingTBtn.setMenu(mSharding)
         self.uiShardingTBtn.clicked.connect(self.uiShardingTBtn.showMenu)
 
@@ -277,7 +280,7 @@ class APISFindspot(QDialog, FORM_CLASS):
             "datum_abs_2": {
                 "editor": self.uiAbsoluteDatingToEdit
             },
-            "fundart_detail":{
+            "befundart_detail":{
                 "editor": self.uiFindingTypeDetailEdit
             },
             "literatur":{
@@ -292,7 +295,7 @@ class APISFindspot(QDialog, FORM_CLASS):
             "sonstiges": {
                 "editor": self.uiMiscellaneousPTxt
             },
-            "fundgeschichte": {
+            "befundgeschichte": {
                 "editor": self.uiFindingsHistoryPTxt
             },
             "befund": {
@@ -326,7 +329,7 @@ class APISFindspot(QDialog, FORM_CLASS):
                 "justshowcolumn": True,
                 "depend": None
             },
-            # "datierung_zeit": {
+            # "datierung_zeitstufe": {
             #     "editor": self.uiDatingTimeCombo,
             #     "table": "zeit",
             #     "modelcolumn": 0,
@@ -375,16 +378,16 @@ class APISFindspot(QDialog, FORM_CLASS):
                 "justshowcolumn": False,
                 "depend": None
             }#,
-            # "fundart": {
+            # "befundart": {
             #     "editor": self.uiFindingTypeCombo,
-            #     "table": "fundart",
+            #     "table": "befundart",
             #     "modelcolumn": 0,
             #     "justshowcolumn": True,
             #     "depend": None
             # },
-            # "fundart_detail": {
+            # "befundart_detail": {
             #     "editor": self.uiFindingTypeDetailCombo,
-            #     "table": "fundart",
+            #     "table": "befundart",
             #     "modelcolumn": 0,
             #     "justshowcolumn": False,
             #     "depend": None
@@ -396,16 +399,16 @@ class APISFindspot(QDialog, FORM_CLASS):
             item["editor"].editTextChanged.connect(self.onLineEditChanged)
 
 
-        #fundart
-        self.mapper.addMapping(self.uiFindingTypeCombo, self.model.fieldIndex("fundart"))
-        query = u"SELECT DISTINCT {0} FROM {0}".format("fundart")
+        #befundart
+        self.mapper.addMapping(self.uiFindingTypeCombo, self.model.fieldIndex("befundart"))
+        query = u"SELECT DISTINCT {0} FROM {0}".format("befundart")
         self.setupComboBoxByQuery(self.uiFindingTypeCombo, query)
         self.uiFindingTypeCombo.editTextChanged.connect(self.onLineEditChanged)
         self.uiFindingTypeCombo.currentIndexChanged.connect(self.resetFindingTypeDetail)
 
 
         #datierung
-        self.mapper.addMapping(self.uiDatingTimeCombo, self.model.fieldIndex("datierung_zeit"))
+        self.mapper.addMapping(self.uiDatingTimeCombo, self.model.fieldIndex("datierung_zeitstufe"))
         self.mapper.addMapping(self.uiDatingPeriodCombo, self.model.fieldIndex("datierung_periode"))
         self.mapper.addMapping(self.uiDatingPeriodDetailCombo, self.model.fieldIndex("datierung_periode_detail"))
 
@@ -712,6 +715,57 @@ class APISFindspot(QDialog, FORM_CLASS):
         if shardingDlg.exec_():
             pass
             #self.shardingDlg = None
+
+    #TODO: move Sharding opening stuff into utils (since it is now not only used in apis_sharding.py but also in site and findspot
+    def openShardingImagesInPreview(self):
+        dirName = self.settings.value("APIS/insp_image_dir")
+        folderNameType = self.settings.value("APIS/insp_image_foto_dir")
+        folderNameSite = self.getFolderNameSite(self.siteNumber)
+        path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
+
+        self.loadInImageViewer(path)
+
+    def openShardingImagesInFolder(self):
+        dirName = self.settings.value("APIS/insp_image_dir")
+        folderNameType = self.settings.value("APIS/insp_image_foto_dir")
+        folderNameSite = self.getFolderNameSite(self.siteNumber)
+        path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
+
+        if not OpenFileOrFolder(path):
+            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+
+    def getFolderNameSite(self, siteNumber):
+        query = QSqlQuery(self.dbm.db)
+        #qryStr = u"SELECT trim(katastralgemeinde) || ' ' || trim(katastralgemeindenummer) || '.' || substr('000' || fundortnummer_nn_legacy, -3, 3) AS folderName FROM fundort f WHERE f.fundortnummer='{0}'".format(siteNumber)
+        query.prepare(u"SELECT land || '\\'  || CASE WHEN land = 'AUT' THEN replace(replace(replace(replace(lower(trim(katastralgemeinde)), '.',''), '-', ' '), '(', ''), ')', '') || ' ' ELSE '' END || substr('000000' || fundortnummer_nn, -6, 6) AS folderName FROM fundort f WHERE f.fundortnummer='{0}'".format(siteNumber))
+        query.exec_()
+        query.first()
+        return query.value(0)
+
+    def loadInImageViewer(self, path):
+        dir = QDir(path)
+        if dir.exists():
+            entryList = dir.entryList(['*.jpg'], QDir.Files)
+            if len(entryList) > 0:
+                # load in thumb viewer
+                # QMessageBox.information(None, u"Begehung", u",".join(entryList))
+                imagePathList = []
+                for image in entryList:
+                    imagePathList.append(path + u'\\' + image)
+
+                widget = QdContactSheet()
+                widget.load(imagePathList)
+                widget.setWindowTitle("Apis Thumb Viewer")
+                widget.setModal(True)
+                widget.resize(1000, 600)
+                widget.show()
+                if widget.exec_():
+                    pass
+                    # app.exec_()
+            else:
+                QMessageBox.information(None, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
+        else:
+            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
 
     def cloneFindspot(self):

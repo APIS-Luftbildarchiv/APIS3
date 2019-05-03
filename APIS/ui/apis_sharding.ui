@@ -24,54 +24,36 @@
    <item row="2" column="0" colspan="2">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="uiViewPicturesBtn">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
+      <widget class="QToolButton" name="uiViewPicturesTBtn">
        <property name="text">
-        <string>Fotos Anzeigen</string>
+        <string>Fotos anzeigen ...</string>
        </property>
        <property name="icon">
         <iconset resource="resource.qrc">
          <normaloff>:/plugins/APIS/icons/image.png</normaloff>:/plugins/APIS/icons/image.png</iconset>
        </property>
-       <property name="iconSize">
-        <size>
-         <width>24</width>
-         <height>24</height>
-        </size>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
        </property>
-       <property name="autoDefault">
-        <bool>false</bool>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextBesideIcon</enum>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="uiViewSketchesBtn">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
+      <widget class="QToolButton" name="uiViewSketchesTBtn">
        <property name="text">
-        <string>Skizzen Anzeigen</string>
+        <string>Skizzen anzeigen ...</string>
        </property>
        <property name="icon">
         <iconset resource="resource.qrc">
          <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
        </property>
-       <property name="iconSize">
-        <size>
-         <width>24</width>
-         <height>24</height>
-        </size>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
        </property>
-       <property name="autoDefault">
-        <bool>false</bool>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextBesideIcon</enum>
        </property>
       </widget>
      </item>

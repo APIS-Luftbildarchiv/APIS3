@@ -38,13 +38,14 @@ from qgis.gui import QgsRubberBand
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
 from APIS.src.apis_overpass_request import APISOverpassRequest
-from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers,VersionToCome
+from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers, VersionToCome
 from APIS.src.apis_findspot import APISFindspot
 from APIS.src.apis_findspot_selection_list import APISFindspotSelectionList
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter
+from APIS.src.apis_thumb_viewer import QdContactSheet
 
 from functools import partial
 
@@ -110,8 +111,10 @@ class APISSite(QDialog, FORM_CLASS):
         mSharding = QMenu()
         aShardingOverview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'footprints.png')), "Begehungen Übersicht")
         aShardingOverview.triggered.connect(self.openShardingSelectionListDialog)
-        aShardingImages = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen")
-        aShardingImages.triggered.connect(lambda: VersionToCome())
+        aShardingImagesPreview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen in Vorschau anzeigen")
+        aShardingImagesPreview.triggered.connect(self.openShardingImagesInPreview)
+        aShardingImagesFolder = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Fotos der Begehungen in Ordern anzeigen")
+        aShardingImagesFolder.triggered.connect(self.openShardingImagesInFolder)
         self.uiShardingTBtn.setMenu(mSharding)
         self.uiShardingTBtn.clicked.connect(self.uiShardingTBtn.showMenu)
 
@@ -273,7 +276,7 @@ class APISSite(QDialog, FORM_CLASS):
             "literatur":{
                 "editor": self.uiLiteraturePTxt
             },
-            "detailinterpretation":{
+            "sonstiges":{
                 "editor": self.uiDetailinterpretationPTxt
             },
             "befund": {
@@ -364,7 +367,7 @@ class APISSite(QDialog, FORM_CLASS):
     def setupFindspotList(self):
 
         query = QSqlQuery(self.dbm.db)
-        query.prepare("SELECT fundstellenummer AS 'Nummer', datierung_zeit AS 'Datierung', fundart AS 'Fundart', fundart_detail AS 'Fundart Detail' FROM fundstelle WHERE fundortnummer = '{0}'".format(self.siteNumber))
+        query.prepare("SELECT fundstellenummer AS 'Nummer', datierung_zeitstufe AS 'Datierung', befundart AS 'Befundart', befundart_detail AS 'Befundart Detail' FROM fundstelle WHERE fundortnummer = '{0}'".format(self.siteNumber))
         query.exec_()
 
         model = self.dbm.queryToQStandardItemModel(query)
@@ -577,6 +580,57 @@ class APISSite(QDialog, FORM_CLASS):
         if self.shardingDlg.exec_():
             pass
             #self.shardingDlg = None
+
+    #TODO: move Sharding opening stuff into utils (since it is now not only used in apis_sharding.py but also in site and findspot
+    def openShardingImagesInPreview(self):
+        dirName = self.settings.value("APIS/insp_image_dir")
+        folderNameType = self.settings.value("APIS/insp_image_foto_dir")
+        folderNameSite = self.getFolderNameSite(self.siteNumber)
+        path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
+
+        self.loadInImageViewer(path)
+
+    def openShardingImagesInFolder(self):
+        dirName = self.settings.value("APIS/insp_image_dir")
+        folderNameType = self.settings.value("APIS/insp_image_foto_dir")
+        folderNameSite = self.getFolderNameSite(self.siteNumber)
+        path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
+
+        if not OpenFileOrFolder(path):
+            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+
+    def getFolderNameSite(self, siteNumber):
+        query = QSqlQuery(self.dbm.db)
+        #qryStr = u"SELECT trim(katastralgemeinde) || ' ' || trim(katastralgemeindenummer) || '.' || substr('000' || fundortnummer_nn_legacy, -3, 3) AS folderName FROM fundort f WHERE f.fundortnummer='{0}'".format(siteNumber)
+        query.prepare(u"SELECT land || '\\'  || CASE WHEN land = 'AUT' THEN replace(replace(replace(replace(lower(trim(katastralgemeinde)), '.',''), '-', ' '), '(', ''), ')', '') || ' ' ELSE '' END || substr('000000' || fundortnummer_nn, -6, 6) AS folderName FROM fundort f WHERE f.fundortnummer='{0}'".format(siteNumber))
+        query.exec_()
+        query.first()
+        return query.value(0)
+
+    def loadInImageViewer(self, path):
+        dir = QDir(path)
+        if dir.exists():
+            entryList = dir.entryList(['*.jpg'], QDir.Files)
+            if len(entryList) > 0:
+                # load in thumb viewer
+                # QMessageBox.information(None, u"Begehung", u",".join(entryList))
+                imagePathList = []
+                for image in entryList:
+                    imagePathList.append(path + u'\\' + image)
+
+                widget = QdContactSheet()
+                widget.load(imagePathList)
+                widget.setWindowTitle("Apis Thumb Viewer")
+                widget.setModal(True)
+                widget.resize(1000, 600)
+                widget.show()
+                if widget.exec_():
+                    pass
+                    # app.exec_()
+            else:
+                QMessageBox.information(None, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
+        else:
+            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
     def openImageSelectionListDialog(self):
         #layer = self.uiSiteMapCanvas.layers()

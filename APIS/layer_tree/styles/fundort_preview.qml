@@ -1,3 +1,4 @@
+
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
 <qgis version="2.16.0-Nødebo" simplifyAlgorithm="0" minimumScale="100000" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" simplifyMaxScale="1" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
   <edittypes>
@@ -141,7 +142,7 @@
         </layer>
         <layer pass="0" class="CentroidFill" locked="0">
           <prop k="point_on_all_parts" v="1"/>
-          <prop k="point_on_surface" v="0"/>
+          <prop k="point_on_surface" v="1"/>
           <symbol alpha="1" clip_to_extent="1" type="marker" name="@0@1">
             <layer pass="0" class="SimpleMarker" locked="0">
               <prop k="angle" v="0"/>

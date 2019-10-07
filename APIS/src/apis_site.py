@@ -28,7 +28,7 @@ from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView, QMessageBox, QPushButton, QFileDialog, QGraphicsScene, QGraphicsTextItem, QMenu
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QTime, QDate, QDateTime, QFile, QDir, QRectF
-from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QStandardItem, QStandardItemModel, QColor, QImage, QPixmap, QIcon
+from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QStandardItem, QStandardItemModel, QColor, QImage, QPixmap, QIcon, QFont
 
 from qgis.core import (QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
                        QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
@@ -82,6 +82,9 @@ class APISSite(QDialog, FORM_CLASS):
         self.isGeometryEditingSaved = False
         self.repImageLoaded = False
         self.repImagePath = None
+        self.repImagesPathList = None
+        self.currentRepImage = None
+
 
         self.rejected.connect(self.onReject)
 
@@ -104,6 +107,8 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiLoadSiteInterpretationInQGisBtn.clicked.connect(self.loadSiteInterpretationInQGis)
         self.uiListImagesOfSiteBtn.clicked.connect(self.openImageSelectionListDialog)
         self.uiSelectRepresentativeImageBtn.clicked.connect(self.openRepresentativeImageDialog)
+        self.uiPrevRepImageBtn.clicked.connect(self.loadNextRepImage)
+        self.uiNextRepImageBtn.clicked.connect(self.loadPrevRepImage)
         self.uiDeleteSiteBtn.clicked.connect(self.deleteSite)
 
         self.uiLoadFindspotInQGisBtn.clicked.connect(lambda: VersionToCome())
@@ -277,7 +282,7 @@ class APISSite(QDialog, FORM_CLASS):
                 "editor": self.uiLiteraturePTxt
             },
             "sonstiges":{
-                "editor": self.uiDetailinterpretationPTxt
+                "editor": self.uiMiscellaneousPTxt
             },
             "befund": {
                 "editor": self.uiFindingsPTxt
@@ -1306,6 +1311,44 @@ class APISSite(QDialog, FORM_CLASS):
         query.first()
         return str(query.value(0))
 
+    def loadRepresentativeImagesForSite(self):
+        # get path from settings
+        path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
+        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, u'{0}*.*'.format(self.siteNumber.replace('.', '_')))))
+        self.scene = QGraphicsScene()
+        self.uiSiteImageView.setScene(self.scene)
+        if self.repImagesPathList:
+            self.currentRepImage = 0
+            self.loadImage(self.repImagesPathList[self.currentRepImage])
+            self.uiRepImageNameLbl.setText(os.path.basename(self.repImagesPathList[self.currentRepImage]))
+            if len(self.repImagesPathList) > 1:
+                self.uiPrevRepImageBtn.setEnabled(True)
+                self.uiNextRepImageBtn.setEnabled(True)
+        else:
+            self.loadText(u"Kein repräsentatives Luftbild vorhanden ...")
+            self.uiRepImageNameLbl.setText("")
+
+        self.repImageLoaded = True
+
+        # QMessageBox.information(None, "RepImages", "{0}".format(os.path.normpath(os.path.join(path, u'{0}*.*'.format(self.siteNumber.replace('.', '_'))))))
+        # QMessageBox.information(None, "RepImages", "{0}".format(','.join(repImagesPathList)))
+
+    def loadNextRepImage(self):
+        if self.currentRepImage + 1 >= len(self.repImagesPathList):
+            self.currentRepImage = 0
+        else:
+            self.currentRepImage += 1
+        self.loadImage(self.repImagesPathList[self.currentRepImage])
+        self.uiRepImageNameLbl.setText(os.path.basename(self.repImagesPathList[self.currentRepImage]))
+
+    def loadPrevRepImage(self):
+        if self.currentRepImage - 1 < 0:
+            self.currentRepImage = len(self.repImagesPathList) - 1
+        else:
+            self.currentRepImage -= 1
+        self.loadImage(self.repImagesPathList[self.currentRepImage])
+        self.uiRepImageNameLbl.setText(os.path.basename(self.repImagesPathList[self.currentRepImage]))
+
     def loadRepresentativeImageForSite(self):
         # get path from settings
         path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
@@ -1338,7 +1381,6 @@ class APISSite(QDialog, FORM_CLASS):
 
     def copyNewImageToDestination(self, sourceFileName):
         destinationDir = QDir(self.settings.value("APIS/repr_image_dir"))
-        #TODO RM: destinationFileName = self.getSiteNumberLegacy(self.siteNumber).replace('.', '_')
         destinationFileName = self.siteNumber.replace('.', '_')
         destinationFilePath = os.path.normpath(os.path.normpath(destinationDir.absolutePath() + "\\{0}.jpg".format(destinationFileName)))
 
@@ -1400,7 +1442,6 @@ class APISSite(QDialog, FORM_CLASS):
         self.scene.setSceneRect(self.rect)
         self.uiSiteImageView.fitInView(self.rect, Qt.KeepAspectRatio)
 
-
     def openSiteEditFindspotHandlingDialog(self):
         if self.findspotHandlingDlg == None:
             self.findspotHandlingDlg = APISSiteEditFindspotConflictHandling(self.iface, self.dbm, {self.siteNumber: [self.newPolygon, self.oldPolygon, self.newPolygon.buffer(0.0001, 12)]})
@@ -1417,7 +1458,8 @@ class APISSite(QDialog, FORM_CLASS):
 
 
     def showEvent(self, event):
-        self.loadRepresentativeImageForSite()
+        # self.loadRepresentativeImageForSite()
+        self.loadRepresentativeImagesForSite()
         #self.isActive = True
         if self.addMode and self.isFilmBased:
             self.openRepresentativeImageDialog()

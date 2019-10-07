@@ -471,7 +471,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="uiPrevRepImageBtn">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -488,7 +488,14 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QLabel" name="uiRepImageNameLbl">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uiNextRepImageBtn">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -858,7 +865,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPlainTextEdit" name="uiDetailinterpretationPTxt"/>
+      <widget class="QPlainTextEdit" name="uiMiscellaneousPTxt"/>
      </item>
     </layout>
    </item>
@@ -891,7 +898,7 @@
   <tabstop>uiCommentBtn</tabstop>
   <tabstop>uiCommentEdit</tabstop>
   <tabstop>uiElevationEdit</tabstop>
-  <tabstop>uiDetailinterpretationPTxt</tabstop>
+  <tabstop>uiMiscellaneousPTxt</tabstop>
   <tabstop>uiFindingsPTxt</tabstop>
   <tabstop>uiLiteraturePTxt</tabstop>
   <tabstop>uiAddNewFindspotBtn</tabstop>

@@ -72,8 +72,10 @@ class APISFilm(QDialog, FORM_CLASS):
         self.setupUi(self)
 
         # Initial window size/pos last saved. Use default values for first time
-        self.resize(GetWindowSize("film"))
-        self.move(GetWindowPos("film"))
+        if GetWindowSize("film"):
+            self.resize(GetWindowSize("film"))
+        if GetWindowPos("film"):
+            self.move(GetWindowPos("film"))
 
         self.printingOptionsDlg = None
 
@@ -508,9 +510,8 @@ class APISFilm(QDialog, FORM_CLASS):
             self.close()
 
     def closeEvent(self, e):
-        # Write window size and position to config file
+        # Write window size and position to QSettings
         SetWindowSizeAndPos("film", self.size(), self.pos())
-
         e.accept()
 
     def extractGpsFromImages(self):

@@ -792,9 +792,9 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
 
     def adjustItems(self):
         adjustItemHight = ["parzelle", "flur", "hoehe", "flaeche", "kommentar_lage", "kgs_lage", "befund",
-                              "literatur", "detailinterpretation"]
+                              "literatur", "sonstiges"]
         adjustItemsPos = ["parzelle", "flur", "hoehe", "flaeche", "kommentar_lage", "kgs_lage", "media", "befund",
-                       "literatur", "detailinterpretation"]
+                       "literatur", "sonstiges"]
         self.adjustItemsHightAndPos(adjustItemHight, adjustItemsPos)
 
     def loadRepresentativeImage(self):
@@ -846,8 +846,8 @@ class APISFindspotTemplatePrinter(APISTemplatePrinter):
         return substituteDict
 
     def adjustItems(self):
-        adjustItemHight = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "fundgeschichte", "literatur", "sonstiges"]
-        adjustItemsPos = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "fundgeschichte",
+        adjustItemHight = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte", "literatur", "sonstiges"]
+        adjustItemsPos = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte",
                            "literatur", "sonstiges"]
         self.adjustItemsHightAndPos(adjustItemHight, adjustItemsPos)
 
@@ -1093,7 +1093,7 @@ class APISFindspotListPrinter(APISListPrinter):
         # define orientation
 
         # define query
-        qryStr = "SELECT fs.fundortnummer || '.' || fs.fundstellenummer AS Fundstellenummer, fo.katastralgemeindenummer AS 'KG Nummer', fo.katastralgemeinde AS 'KG Name', datierung_zeit || ',' || datierung_periode || ',' || datierung_periode_detail || ',' || phase_von || '-' || phase_bis AS Datierung, fundart AS Fundart FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND fs.fundortnummer || '.' || fs.fundstellenummer IN ({0}) ORDER BY {1}".format(",".join("'{0}'".format(findspot) for findspot in idList),  ",".join("fs.fundortnummer || '.' || fs.fundstellenummer='{0}' DESC".format(findspot) for findspot in idList))
+        qryStr = "SELECT fs.fundortnummer || '.' || fs.fundstellenummer AS Fundstellenummer, fo.katastralgemeindenummer AS 'KG Nummer', fo.katastralgemeinde AS 'KG Name', datierung_zeitstufe || ',' || datierung_periode || ',' || datierung_periode_detail || ',' || phase_von || '-' || phase_bis AS Datierung, befundart AS Befundart FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND fs.fundortnummer || '.' || fs.fundstellenummer IN ({0}) ORDER BY {1}".format(",".join("'{0}'".format(findspot) for findspot in idList),  ",".join("fs.fundortnummer || '.' || fs.fundstellenummer='{0}' DESC".format(findspot) for findspot in idList))
 
         APISListPrinter.__init__(self, fileName, qryStr)
 

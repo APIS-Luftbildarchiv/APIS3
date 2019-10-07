@@ -155,8 +155,8 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
         self.setupSearchComboBox(self.uiCultureCombo, "kultur", "name", "name")
 
-        # Fundart
-        self.setupSearchComboBox(self.uiFindTypeCombo, "fundart", "fundart", "fundart")
+        # Befundart
+        self.setupSearchComboBox(self.uiFindTypeCombo, "befundart", "befundart", "befundart")
         self.uiFindTypeCombo.currentIndexChanged.connect(self.loadFindTypeDtailsContent)
 
         self.uiFindTypeDetailsChk.setCheckState(Qt.Unchecked)
@@ -176,7 +176,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
     def loadFindTypeDtailsContent(self, idx):
         findType = self.uiFindTypeCombo.currentText()
-        self.setupSearchComboBoxByQuery(self.uiFindTypeDetailsCombo, u"SELECT DISTINCT fundart_detail FROM fundart WHERE fundart ='{0}'".format(findType))
+        self.setupSearchComboBoxByQuery(self.uiFindTypeDetailsCombo, u"SELECT DISTINCT befundart_detail FROM befundart WHERE befundart ='{0}'".format(findType))
 
     def onPeriodChkChanged(self, state):
         if state:
@@ -274,7 +274,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
             elif self.uiSearchFindspotRBtn.isChecked():
                 #Fundstellensuche
-                query.prepare("SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeit, datierung_periode, datierung_periode_detail, fundart, fundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND {2}(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1}))) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(searchGeometry.asWkt(), epsg, mode))
+                query.prepare("SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND {2}(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1}))) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(searchGeometry.asWkt(), epsg, mode))
 
                 query.exec_()
                 self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
@@ -343,7 +343,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
         elif self.uiSearchFindspotRBtn.isChecked():
             #Fundstellen
-            query.prepare(u"SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeit, datierung_periode, datierung_periode_detail, fundart, fundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst, ({0}) cc WHERE NOT IsEmpty(fst.geometry) AND Intersects(cc.geometry, fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = cc.geometry)) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(ccSearchStr))
+            query.prepare(u"SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst, ({0}) cc WHERE NOT IsEmpty(fst.geometry) AND Intersects(cc.geometry, fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = cc.geometry)) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(ccSearchStr))
             query.exec_()
             self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
             res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query)
@@ -441,15 +441,15 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
     def attributeSearchFindspot(self):
         query = QSqlQuery(self.dbm.db)
-        #query.prepare("SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung, fundart, fundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1}))) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(searchGeometry.asWkt(), epsg))
-        # query.prepare("SELECT fundortnummer, fundstellenummer, datierung, fundart, fundart_detail, sicherheit, kultur FROM fundstelle WHERE (fundortnummer || '.' || fundstellenummer) as id1 IN (SELECT DISTINCT (fs.fundortnummer || '.' || fs.fundstellenummer) as id2 FROM fundstelle fs WHERE NOT IsEmpty(fs.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}',{1}), fs.geometry) AND fs.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}',{1}) ) )".format(searchGeometry.asWkt(), epsg))
+        #query.prepare("SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1}))) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(searchGeometry.asWkt(), epsg))
+        # query.prepare("SELECT fundortnummer, fundstellenummer, datierung, befundart, befundart_detail, sicherheit, kultur FROM fundstelle WHERE (fundortnummer || '.' || fundstellenummer) as id1 IN (SELECT DISTINCT (fs.fundortnummer || '.' || fs.fundstellenummer) as id2 FROM fundstelle fs WHERE NOT IsEmpty(fs.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}',{1}), fs.geometry) AND fs.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}',{1}) ) )".format(searchGeometry.asWkt(), epsg))
 
 
         whereClause = []
         whereClause.append(u"fs.fundortnummer = fo.fundortnummer")
         if self.uiDatingGrp.isChecked() and self.uiTimeCombo.currentIndex() >= 0:
             #whereClause.append(u"substr(datierung, 1, pos1-1) = '{0}'".format(self.uiTimeCombo.currentText()))  # zeit
-            whereClause.append(u"datierung_zeit = '{0}'".format(self.uiTimeCombo.currentText()))
+            whereClause.append(u"datierung_zeitstufe = '{0}'".format(self.uiTimeCombo.currentText()))
             if self.uiPeriodChk.isChecked() and self.uiPeriodCombo.currentIndex() >= 0:
                 #whereClause.append(u"substr(datierung, pos1+1, pos2-1) = '{0}'".format(self.uiPeriodCombo.currentText()))  # periode
                 whereClause.append(u"datierung_periode = '{0}'".format(self.uiPeriodCombo.currentText()))
@@ -459,9 +459,9 @@ class APISSearch(QDockWidget, FORM_CLASS):
         if self.uiCultureGrp.isChecked() and self.uiCultureCombo.currentIndex() >= 0:
             whereClause.append(u"kultur = '{0}'".format(self.uiCultureCombo.currentText()))  # kultur
         if self.uiFindTypeGrp.isChecked() and self.uiFindTypeCombo.currentIndex() >= 0:
-            whereClause.append(u"fundart = '{0}'".format(self.uiFindTypeCombo.currentText()))  # fundart
+            whereClause.append(u"befundart = '{0}'".format(self.uiFindTypeCombo.currentText()))  # befundart
             if self.uiFindTypeDetailsChk.isChecked() and self.uiFindTypeDetailsCombo.currentIndex() >= 0:
-                whereClause.append(u"instr(fundart_detail, '{0}')".format(self.uiFindTypeDetailsCombo.currentText()))  # fundart_detail; je fundart_detail
+                whereClause.append(u"instr(befundart_detail, '{0}')".format(self.uiFindTypeDetailsCombo.currentText()))  # befundart_detail; je befundart_detail
 
         if self.uiSpatialFilterGrp.isChecked() and self.uiFilterByMapLayerCombo.count() > 0 and self.uiFilterByMapLayerCombo.currentIndex() >= 0:
             #QMessageBox.warning(None, self.tr(u"findspot search"), u"{0}".format("Spatial Filter Activ"))
@@ -488,9 +488,9 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
         whereStr = u" AND ".join(whereClause)
 
-        #qryStr = u"SELECT fundortnummer, fundstellenummer, datierung_zeit, datierung_periode, datierung_periode_detail, fundart, fundart_detail, sicherheit, kultur FROM (SELECT *, instr(datierung,',') AS pos1, instr(substr(datierung, instr(datierung,',')+1), ',') AS pos2, instr(substr(datierung, instr(datierung,',')+instr(substr(datierung, instr(datierung,',')+1), ',')+1),  ',') AS pos3 FROM fundstelle) WHERE {0}".format(whereStr)
-        #qryStr = u"SELECT fundortnummer, fundstellenummer, datierung_zeit, datierung_periode, datierung_periode_detail, fundart, fundart_detail, sicherheit, kultur FROM fundstelle WHERE {0}".format(whereStr)
-        qryStr = u"SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeit, datierung_periode, datierung_periode_detail, fundart, fundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE {0} ORDER BY fo.land, fo.katastralgemeindenummer, fo.fundortnummer_nn, fs.fundstellenummer".format(whereStr)
+        #qryStr = u"SELECT fundortnummer, fundstellenummer, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, sicherheit, kultur FROM (SELECT *, instr(datierung,',') AS pos1, instr(substr(datierung, instr(datierung,',')+1), ',') AS pos2, instr(substr(datierung, instr(datierung,',')+instr(substr(datierung, instr(datierung,',')+1), ',')+1),  ',') AS pos3 FROM fundstelle) WHERE {0}".format(whereStr)
+        #qryStr = u"SELECT fundortnummer, fundstellenummer, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, sicherheit, kultur FROM fundstelle WHERE {0}".format(whereStr)
+        qryStr = u"SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE {0} ORDER BY fo.land, fo.katastralgemeindenummer, fo.fundortnummer_nn, fs.fundstellenummer".format(whereStr)
 
 
         #QMessageBox.warning(None, self.tr(u"findspot search"), u"{0}".format(qryStr))

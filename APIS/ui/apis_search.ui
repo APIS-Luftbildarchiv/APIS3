@@ -566,7 +566,7 @@
                <item row="0" column="0">
                 <widget class="QLabel" name="label_3">
                  <property name="text">
-                  <string>Zeit:</string>
+                  <string>Zeitstufe:</string>
                  </property>
                 </widget>
                </item>
@@ -614,7 +614,7 @@
                <bool>true</bool>
               </property>
               <property name="title">
-               <string>Fundart</string>
+               <string>Befundart</string>
               </property>
               <property name="checkable">
                <bool>true</bool>
@@ -626,7 +626,7 @@
                <item row="0" column="0">
                 <widget class="QLabel" name="label_11">
                  <property name="text">
-                  <string>Fundart:</string>
+                  <string>Befundart:</string>
                  </property>
                 </widget>
                </item>

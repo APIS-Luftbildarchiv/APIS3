@@ -36,7 +36,7 @@ from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature)
 from APIS.src.apis_findingtype_detail import APISFindingTypeDetail
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_text_editor import APISTextEditor
-from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger, VersionToCome
+from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger, VersionToCome, SetWindowSizeAndPos, GetWindowSize, GetWindowPos
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
 from APIS.src.apis_thumb_viewer import QdContactSheet
@@ -64,6 +64,12 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.apisLayer = apisLayer
 
         self.setupUi(self)
+
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("findspot"):
+            self.resize(GetWindowSize("findspot"))
+        if GetWindowPos("findspot"):
+            self.move(GetWindowPos("findspot"))
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
@@ -620,6 +626,10 @@ class APISFindspot(QDialog, FORM_CLASS):
         else:
             self.close()
 
+    def closeEvent(self, e):
+        # Write window size and position to QSettings
+        SetWindowSizeAndPos("findspot", self.size(), self.pos())
+        e.accept()
 
     def loadFindspotInQGis(self):
 

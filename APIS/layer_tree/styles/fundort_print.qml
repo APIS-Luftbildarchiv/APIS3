@@ -141,7 +141,7 @@
         </layer>
         <layer pass="0" class="CentroidFill" locked="0">
           <prop k="point_on_all_parts" v="1"/>
-          <prop k="point_on_surface" v="0"/>
+          <prop k="point_on_surface" v="1"/>
           <symbol alpha="1" clip_to_extent="1" type="marker" name="@0@1">
             <layer pass="0" class="SimpleMarker" locked="0">
               <prop k="angle" v="0"/>

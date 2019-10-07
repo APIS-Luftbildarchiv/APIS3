@@ -60,13 +60,13 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
 
     def loadListForFindingType(self, findingType):
         model = QSqlRelationalTableModel(self, self.dbm.db)
-        model.setTable(u"fundart")
+        model.setTable(u"befundart")
         model.removeColumn(0)
-        model.setFilter(u"fundart = '{0}' AND fundart_detail IS NOT NULL".format(findingType))
+        model.setFilter(u"befundart = '{0}' AND befundart_detail IS NOT NULL".format(findingType))
         model.select()
 
         if model.rowCount() < 1:
-            QMessageBox.warning(None, "Result", u"Für die Fundart '{0}' wurden keine Detail Einträge gefunden.".format(findingType))
+            QMessageBox.warning(None, "Result", u"Für die Befundart '{0}' wurden keine Detail Einträge gefunden.".format(findingType))
             return False
 
         self.uiFindingTypeDetailTableV.setModel(model)
@@ -104,7 +104,7 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
             for detail in findingTypeDetailList:
                 found = False
                 for r in range(rC):
-                    mIdx = m.createIndex(r, m.fieldIndex("fundart_detail"))
+                    mIdx = m.createIndex(r, m.fieldIndex("befundart_detail"))
                     # QMessageBox.warning(None, "WeatherCode", "{0}={1}".format(m.data(mIdx), weatherCode[i]))
                     if m.data(mIdx).lower() == detail.lower():
                         lIdx = m.createIndex(r, 0)
@@ -118,7 +118,7 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
                 sm.select(selection, QItemSelectionModel.Select)
             #QMessageBox.warning(None, "not found", u"{0}".format(len(notFound)))
             if len(notFound) > 0:
-                QMessageBox.warning(None, u"Fundart Details", u"Die folgenden Einträge wurden nicht gefunden. Bitte wählen Sie von den verfügbaren Einträgen aus oder fügen Sie diese manuell zur Tabelle 'fundart' hinzu. [{0}]".format(u", ".join(notFound)))
+                QMessageBox.warning(None, u"Befundart Details", u"Die folgenden Einträge wurden nicht gefunden. Bitte wählen Sie von den verfügbaren Einträgen aus oder fügen Sie diese manuell zur Tabelle 'befundart' hinzu. [{0}]".format(u", ".join(notFound)))
 
         self.setMode = False
 
@@ -128,7 +128,7 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
         sm = e.selectionModel()
         details = []
         if sm.hasSelection():
-            selIdcs = sm.selectedRows(e.model().fieldIndex("fundart_detail"))
+            selIdcs = sm.selectedRows(e.model().fieldIndex("befundart_detail"))
             for i in selIdcs:
                 details.append(e.model().data(i))
             details.sort()

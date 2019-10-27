@@ -30,6 +30,8 @@ from PyQt5.QtCore import QDate, Qt
 from PyQt5.QtSql import QSqlQueryModel
 from PyQt5.QtGui import QIntValidator
 
+from APIS.src.apis_utils import SetWindowSize, GetWindowSize
+
 from functools import partial
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -44,6 +46,11 @@ class APISFilmSearch(QDialog, FORM_CLASS):
         self.dbm = dbm
 
         self.setupUi(self)
+        if GetWindowSize("film_search"):
+            self.resize(GetWindowSize("film_search"))
+
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
         now = QDate.currentDate()
         self.uiSearchDate.setDate(now)
@@ -239,3 +246,6 @@ class APISFilmSearch(QDialog, FORM_CLASS):
             self.uiSearchModeTBox.setEnabled(True)
             self.uiVerticalChk.setTristate(True)
             self.uiObliqueChk.setTristate(True)
+
+    def onClose(self):
+        SetWindowSize("film_search", self.size())

@@ -30,7 +30,7 @@ from PyQt5.QtCore import QSettings, Qt, QDate, QTime, QPoint, QSize
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtWidgets import (QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QMessageBox,
-                             QCompleter)
+                             QCompleter, QStyle, QApplication)
 
 from PyQt5.uic import loadUiType
 
@@ -127,13 +127,13 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiRemoveProjectBtn.clicked.connect(self.removeProject)
 
         # Setup Sub-Dialogs
-        self.filmSelectionDlg = APISFilmNumberSelection()
+        self.filmSelectionDlg = APISFilmNumberSelection(self)
         self.newFilmDlg = APISFilmNew(parent=self)
-        self.searchFilmDlg = APISFilmSearch(self.dbm)# (self.iface, self.dbm)
-        self.editWeatherDlg = APISWeather(self.iface, self.dbm)
-        self.flightPathDlg = APISFlightPath(self.iface, self.dbm, self)
-        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
-        self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self)
+        self.searchFilmDlg = APISFilmSearch(self.dbm, self)# (self.iface, self.dbm)
+        self.editWeatherDlg = APISWeather(self.iface, self.dbm, self)
+        self.flightPathDlg = APISFlightPath(self.iface, self.dbm, self.apisLayer, self)
+        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self)
+        self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry,  self.apisLayer, parent=self)
         self.systemTableEditorDlg = None
 
         # Setup film model
@@ -300,6 +300,20 @@ class APISFilm(QDialog, FORM_CLASS):
 
         self.mapper.addMapping(self.uiProjectList, self.model.fieldIndex("projekt"))
 
+    def fixComboBoxDropDownListSizeAdjustemnt(self, cb):
+        scroll = 0 if cb.count() <= cb.maxVisibleItems() else QApplication.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        iconWidth = cb.iconSize().width()
+        max = 0
+
+        for i in range(cb.count()):
+            width = cb.view().fontMetrics().width(cb.itemText(i))
+            if max < width:
+                max = width
+
+        QMessageBox.information(self, "info", "scroll: {0}, max: {1}, icon: {2}".format(scroll, max, iconWidth))
+
+        #cb.view().setMinimumWidth(scroll + max)
+
     def setupComboBox(self, editor, table, modelColumn, depend):
         model = QSqlRelationalTableModel(self, self.dbm.db)
         model.setTable(table)
@@ -323,10 +337,13 @@ class APISFilm(QDialog, FORM_CLASS):
         tv.resizeRowsToContents()
         tv.verticalHeader().setVisible(False)
         tv.horizontalHeader().setVisible(True)
-        tv.setMinimumWidth(tv.horizontalHeader().length())
+        #tv.setMinimumWidth(tv.horizontalHeader().length())
         tv.horizontalHeader().setStretchLastSection(True)
         #tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         tv.resizeColumnsToContents()
+        scroll = 0 if editor.count() <= editor.maxVisibleItems() else QApplication.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        tv.setMinimumWidth(tv.horizontalHeader().length() + scroll)
+        #self.fixComboBoxDropDownListSizeAdjustemnt(editor)
 
         #editor.resize(tv.horizontalHeader().sizeHint())
 
@@ -511,27 +528,35 @@ class APISFilm(QDialog, FORM_CLASS):
 
     def closeEvent(self, e):
         # Write window size and position to QSettings
-        SetWindowSizeAndPos("film", self.size(), self.pos())
-        e.accept()
+        if self.editMode:
+            self.onReject()
+        else:
+            SetWindowSizeAndPos("film", self.size(), self.pos())
+            e.accept()
 
     def extractGpsFromImages(self):
         key = self.uiCurrentFilmNumberEdit.text()
         e2p = Exif2Points(self.iface, key)
         layer = e2p.run()
         if layer:
-            self.iface.addVectorLayer(layer, "flugstrecke {0} gps p".format(key), 'ogr')
+            #self.apisLayer.addLayerToCanvas(layer, "Flugwege")
+            self.apisLayer.requestShapeFile(layer, groupName="Flugwege", addToCanvas=True)
+
+            #requestShapeFile(self, shapeFilePath, epsg=None, layerName=None, groupName=None, useLayerFromTree=True,
+             #                    addToCanvas=False):
+            #self.iface.addVectorLayer(layer, "flugstrecke {0} gps p".format(key), 'ogr')
 
     def exportDetailsPdf(self):
         if self.printingOptionsDlg is None:
             self.printingOptionsDlg = APISPrintingOptions(self)
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film")
-            self.printingOptionsDlg.configure(False, False)
+            self.printingOptionsDlg.configure(False, False, visPersonalDataChk=True)
 
         self.printingOptionsDlg.show()
 
         if self.printingOptionsDlg.exec_():
-
-            APISPrinterQueue([{'type': APISTemplatePrinter.FILM, 'idList': [self.uiCurrentFilmNumberEdit.text()]}],
+            printPersonalData = self.printingOptionsDlg.printPersonalData()
+            APISPrinterQueue([{'type': APISTemplatePrinter.FILM, 'idList': [self.uiCurrentFilmNumberEdit.text()], 'options': {'personalData': printPersonalData}}],
                              OutputMode.MergeNone,
                              openFile=self.printingOptionsDlg.uiOpenFilesChk.isChecked(),
                              openFolder=self.printingOptionsDlg.uiOpenFolderChk.isChecked(),
@@ -567,7 +592,7 @@ class APISFilm(QDialog, FORM_CLASS):
                     #QMessageBox.warning(None, "FilmNumber", unicode(searchListDlg.filmNumberToLoad))
                     self.loadRecordByKeyAttribute("filmnummer", searchListDlg.filmNumberToLoad)
             else:
-                QMessageBox.warning(None, u"Film Suche", u"Keine Ergebnisse mit den angegebenen Suchkriterien.")
+                QMessageBox.warning(self, u"Film Suche", u"Keine Ergebnisse mit den angegebenen Suchkriterien.")
                 self.openSearchFilmDialog()
 
             #QMessageBox.warning(None, "FilmNumber", u"{0}, rows: {1}".format(self.searchFilmDlg.generateSearchQuery(), model.rowCount()))
@@ -775,7 +800,7 @@ class APISFilm(QDialog, FORM_CLASS):
                 #else:
                     #mEditor.setStyleSheet("")
         if flag:
-            QMessageBox.warning(None, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
+            QMessageBox.warning(self, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
             return False
 
         #saveToModel
@@ -789,7 +814,7 @@ class APISFilm(QDialog, FORM_CLASS):
 
         if not res:
             sqlError = self.mapper.model().lastError()
-            QMessageBox.information(None, "Submit", u"Errpr: {0}, {1}".format(res, sqlError.text()))
+            QMessageBox.information(self, "Submit", u"Error: {0}, {1}".format(res, sqlError.text()))
 
         while (self.model.canFetchMore()):
             self.model.fetchMore()
@@ -800,7 +825,7 @@ class APISFilm(QDialog, FORM_CLASS):
 
     def cancelEdit(self):
         if self.editMode:
-            result = QMessageBox.question(None,
+            result = QMessageBox.question(self,
                                           self.tr(u"Änderungen wurden vorgenommen!"),
                                           self.tr(u"Möchten Sie die Änerungen speichern?"),
                                           QMessageBox.Yes | QMessageBox.No ,

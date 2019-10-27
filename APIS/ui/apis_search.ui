@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>623</width>
-    <height>1186</height>
+    <width>315</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowIcon">
@@ -121,18 +121,6 @@
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
            <widget class="QgsMapLayerComboBox" name="uiSearchByMapLayerCombo">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
             <property name="sizeAdjustPolicy">
              <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
             </property>
@@ -417,15 +405,15 @@
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="displayFormat">
+                 <string>yyyy</string>
+                </property>
                 <property name="date">
                  <date>
                   <year>2016</year>
                   <month>1</month>
                   <day>1</day>
                  </date>
-                </property>
-                <property name="displayFormat">
-                 <string>yyyy</string>
                 </property>
                </widget>
               </item>
@@ -750,7 +738,7 @@
   <customwidget>
    <class>QgsMapLayerComboBox</class>
    <extends>QComboBox</extends>
-   <header>qgis.gui</header>
+   <header>qgsmaplayercombobox.h</header>
   </customwidget>
  </customwidgets>
  <resources>

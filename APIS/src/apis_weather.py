@@ -29,6 +29,8 @@ from PyQt5.QtWidgets import QDialog, QTableView, QAbstractItemView, QComboBox
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery
 from PyQt5.QtCore import QItemSelection, QItemSelectionModel, Qt
 
+from APIS.src.apis_utils import SetWindowSize, GetWindowSize
+
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_weather.ui'), resource_suffix='')
 
@@ -43,9 +45,14 @@ class APISWeather(QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("weather"):
+            self.resize(GetWindowSize("weather"))
+
         self.setMode = False
 
-        #self.accepted.connect(self.onAccepted)
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
         self.comboBoxMaps = {
             "lowcloudamount": {
@@ -258,5 +265,5 @@ class APISWeather(QDialog, FORM_CLASS):
         #editor.lineEdit().setValidator(InListValidator([editor.itemText(i) for i in range(editor.count())], editor.lineEdit(), self))
         #self.uiProducerCombo.lineEdit().editingFinished.connect(self.cbValidate)
 
-    def onAccepted(self):
-        self.accept()
+    def onClose(self):
+        SetWindowSize("weather", self.size())

@@ -310,7 +310,7 @@ class UpdateRegistryWorker(QObject):
                 # kill request received, exit loop early
                 break
             iDir = QDir(self.imageDir.path() + '\\' + i)
-            #FIXME implement solution for not just jpg but values from ini
+            # FIXME implement solution for not just jpg but values from ini
             iEntryList = iDir.entryList([i + '_???.jpg'], QDir.Files)
             self.imageRegistry = self.imageRegistry + iEntryList
 
@@ -325,8 +325,8 @@ class UpdateRegistryWorker(QObject):
                 self.hiResRegistry = self.hiResRegistry + hrEntryList
 
         if self.killed is False:
-            self.imageRegistryNE = [img[:14].replace('_','.') for img in self.imageRegistry]
-            self.hiResRegistryNE = [img[:14].replace('_','.') for img in self.hiResRegistry]
+            self.imageRegistryNE = [img[:14].replace('_', '.') for img in self.imageRegistry]
+            self.hiResRegistryNE = [img[:14].replace('_', '.') for img in self.hiResRegistry]
 
     def updateOrthoRegistry(self):
         import glob, os
@@ -338,8 +338,8 @@ class UpdateRegistryWorker(QObject):
                 # kill request received, exit loop early
                 break
             orthoFilters = [o + '_???_op*.' + ext for ext in self.orthoFormats]
-            oDir = QDir(self.orthoDir.path() +'\\' + o)
+            oDir = QDir(self.orthoDir.path() + '\\' + o)
             oEntryList = oDir.entryList(orthoFilters, QDir.Files)
             self.orthoRegistry = self.orthoRegistry + oEntryList
         if self.killed is False:
-            self.orthoRegistryNE = [img[:14].replace('_','.')  for img in self.orthoRegistry]
+            self.orthoRegistryNE = [img[:14].replace('_', '.') for img in self.orthoRegistry]

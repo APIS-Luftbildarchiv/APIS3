@@ -5,7 +5,7 @@ from PyQt5.QtGui import QFont, QPixmap, QPainter, QBrush, QImage
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsTextItem, QGraphicsItem, QMessageBox, QGraphicsView, QGraphicsScene, QDialog, QProgressBar, QVBoxLayout, QApplication
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QSize, QObject, QMutex, QMutexLocker, QThread
 
-from APIS.src.apis_utils import OpenFileOrFolder
+from APIS.src.apis_utils import OpenFileOrFolder, GetWindowSize, GetWindowPos, SetWindowSizeAndPos
 
 class QdGraphicsPixmapItem(QGraphicsPixmapItem):
 
@@ -43,7 +43,7 @@ class QdGraphicsPixmapItem(QGraphicsPixmapItem):
             OpenFileOrFolder(self._path)
 
         else:
-            QMessageBox.warning(None, "Bild", u"Bild unter {0} nicht vorhanden".format(self._path))
+            QMessageBox.warning(self, "Bild", u"Bild unter {0} nicht vorhanden".format(self._path))
 
 class QdThumbnailView(QGraphicsView):
 
@@ -61,7 +61,7 @@ class QdThumbnailView(QGraphicsView):
 
         self._scale = 0.45
 
-        self._width  = 400
+        self._width = 450
         self._height = 450
 
         self.scale(self._scale, self._scale)
@@ -363,7 +363,7 @@ class QdImageLoaderThread(QThread):
         self.finished.emit()
 
 
-class QdContactSheet(QDialog):
+class APISThumbViewer(QDialog):
 
     #doubleClicked = pyqtSignal(str)
 
@@ -382,7 +382,17 @@ class QdContactSheet(QDialog):
         self._iconView.doubleClicked.connect(self._itemDoubleClicked)
         self._iconView.loading.connect(self.updateProgress)
 
-        #self.rejected.connect(self.onReject)
+        self.setWindowTitle("Apis Thumb Viewer")
+        self.setModal(True)
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("thumb_viewer"):
+            self.resize(GetWindowSize("thumb_viewer"))
+        else:
+            self.resize(1000, 600)
+        if GetWindowPos("thumb_viewer"):
+            self.move(GetWindowPos("thumb_viewer"))
+
+        self.rejected.connect(self.onClose)
 
     def load(self, images, positionedImages={}):
         self._iconView.load(images, positionedImages)
@@ -399,16 +409,15 @@ class QdContactSheet(QDialog):
         #self.emit(SIGNAL('doubleClicked(QString)'), path)
         self.doubleClicked.emit(path)
 
-    #def onReject(self):
-        #QtGui.QMessageBox.warning(None, "Thumbs", u"StopLoadingBeforeClosing")
-        #self._iconView.stopLoading()
+    def onClose(self):
+        SetWindowSizeAndPos("thumb_viewer", self.size(), self.pos())
 
 
 if __name__ == '__main__':
     import sys, glob
 
     app = QApplication([])
-    widget = QdContactSheet()
+    widget = APISThumbViewer()
     #images = # list of images you want to view as thumbnails
     filmid = '01850205'
     imagePath = os.path.normpath("C:\\apis\\daten\\luftbild")
@@ -417,7 +426,6 @@ if __name__ == '__main__':
     images.sort()
     widget.load(images)
 
-    widget.setWindowTitle("Contact Sheet")
     widget.resize(1000, 600)
     widget.show()
     app.exec_()

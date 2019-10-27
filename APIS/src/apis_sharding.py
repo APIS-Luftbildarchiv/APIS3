@@ -30,8 +30,8 @@ from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QDate, QTime, QDir
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QIcon
 
-from APIS.src.apis_thumb_viewer import QdContactSheet
-from APIS.src.apis_utils import VersionToCome, OpenFileOrFolder
+from APIS.src.apis_thumb_viewer import APISThumbViewer
+from APIS.src.apis_utils import VersionToCome, OpenFileOrFolder, GetWindowSize, SetWindowSize
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_sharding.ui'), resource_suffix='')
@@ -48,6 +48,9 @@ class APISSharding(QDialog, FORM_CLASS):
         self.dbm = dbm
         self.setupUi(self)
 
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("sharding"):
+            self.resize(GetWindowSize("sharding"))
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
@@ -215,6 +218,7 @@ class APISSharding(QDialog, FORM_CLASS):
         Update Plugin Status
         '''
         # Save Settings
+        SetWindowSize("sharding", self.size())
         self.accept()
 
     def onReject(self):
@@ -225,10 +229,12 @@ class APISSharding(QDialog, FORM_CLASS):
         if self.editMode:
             res = self.cancelEdit()
             if res:
-               self.close()
+                SetWindowSize("sharding", self.size())
+                self.close()
             else:
                 self.show()
         else:
+            SetWindowSize("sharding", self.size())
             self.close()
 
     def addNewSharding(self, siteNumber):
@@ -319,7 +325,7 @@ class APISSharding(QDialog, FORM_CLASS):
                 #else:
                     #mEditor.setStyleSheet("")
         if flag:
-            QMessageBox.warning(None, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
+            QMessageBox.warning(self, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
             return False
 
         #saveToModel
@@ -340,7 +346,7 @@ class APISSharding(QDialog, FORM_CLASS):
     def cancelEdit(self):
         currIdx = self.mapper.currentIndex()
         if self.editMode:
-            result = QMessageBox.question(None,
+            result = QMessageBox.question(self,
                                           self.tr(u"Änderungen wurden vorgenommen!"),
                                           self.tr(u"Möchten Sie die Änerungen speichern?"),
                                           QMessageBox.Yes | QMessageBox.No ,
@@ -410,7 +416,7 @@ class APISSharding(QDialog, FORM_CLASS):
         path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
 
         if not OpenFileOrFolder(path):
-            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+            QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
     def viewSketches(self):
         dirName = self.settings.value("APIS/insp_image_dir")
@@ -448,19 +454,16 @@ class APISSharding(QDialog, FORM_CLASS):
                 for image in entryList:
                     imagePathList.append(path + u'\\' + image)
 
-                widget = QdContactSheet()
+                widget = APISThumbViewer()
                 widget.load(imagePathList)
-                widget.setWindowTitle("Apis Thumb Viewer")
-                widget.setModal(True)
-                widget.resize(1000, 600)
                 widget.show()
                 if widget.exec_():
                     pass
                     # app.exec_()
             else:
-                QMessageBox.information(None, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
+                QMessageBox.information(self, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
         else:
-            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+            QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
 class ShardingDelegate(QSqlRelationalDelegate):
     def __init__(self):

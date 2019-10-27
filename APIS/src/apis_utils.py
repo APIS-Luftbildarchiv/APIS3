@@ -23,9 +23,9 @@
 from PyQt5.QtCore import QSettings, QCoreApplication, QDateTime, QDir, QSize, QPoint
 from PyQt5.QtSql import QSqlQuery
 from PyQt5.QtWidgets import QMessageBox, QPushButton
-from qgis.core import QgsProject, QgsCoordinateTransform
+from qgis.core import QgsProject, QgsCoordinateTransform, QgsVectorLayer, QgsFeature
 
-import os.path, sys, subprocess
+import os.path, sys, subprocess, exifread
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -103,13 +103,42 @@ def OpenFolderAndSelect(file):
 # Recurring Tasks
 # ---------------------------------------------------------------------------
 
-def SelectionOrAll():
-    msgBox = QMessageBox()
-    msgBox.setWindowTitle(u'Auswahl oder alle Einträge')
+def SelectionOrAll(parent=None):
+    msgBox = QMessageBox(parent)
+    msgBox.setWindowTitle(u'Auswahl oder alle Einträge?')
     msgBox.setText(u'Wollen Sie die Auswahl oder alle Einträge verwenden?')
     msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
     msgBox.addButton(QPushButton(u'Alle Einträge'), QMessageBox.NoRole)
     msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
+    return msgBox.exec_()
+
+def PolygonOrPoint(parent=None):
+    msgBox = QMessageBox(parent)
+    msgBox.setWindowTitle(u'Polygone, Punkte oder Beides?')
+    msgBox.setText(u'Wollen Sie Polygone, Punkte oder beide Layer verwenden?')
+    msgBox.addButton(QPushButton(u'Polygone'), QMessageBox.ActionRole)
+    msgBox.addButton(QPushButton(u'Punkte'), QMessageBox.ActionRole)
+    msgBox.addButton(QPushButton(u'Polygone und Punkte'), QMessageBox.ActionRole)
+    msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
+    ret = msgBox.exec_()
+    if ret == 0:
+        return True, False
+    elif ret == 1:
+        return False, True
+    elif ret == 2:
+        return True, True
+    else:
+        return None, None
+
+def FileOrFolder(parent=None, title="APIS", text="Bitte wählen Sie eine Option", rejectText="OK"):
+    msgBox = QMessageBox(parent)
+    msgBox.setWindowTitle(title)
+    msgBox.setText(text)
+    #msgBox.setText(u"Die ausgewählten Daten wurden in eine SHP Datei exportiert.")
+    msgBox.addButton(QPushButton(u'In QGIS laden'), QMessageBox.ActionRole)
+    msgBox.addButton(QPushButton(u'Verzeichnis öffnen'), QMessageBox.ActionRole)
+    msgBox.addButton(QPushButton(u'Laden und öffnen'), QMessageBox.ActionRole)
+    msgBox.addButton(QPushButton(rejectText), QMessageBox.AcceptRole)
     return msgBox.exec_()
 
 def GenerateWeatherDescription(db, weatherCode):
@@ -145,7 +174,13 @@ def GetExportPath():
     return QSettings().value("APIS/latest_export_dir",  QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat).value("APIS/working_dir", QDir.home().dirName()))
 
 def SetWindowSizeAndPos(window, size, pos):
+    SetWindowSize(window, size)
+    SetWindowPos(window, pos)
+
+def SetWindowSize(window, size):
     QSettings().setValue("APIS/{0}_size".format(window), size)
+
+def SetWindowPos(window, pos):
     QSettings().setValue("APIS/{0}_pos".format(window), pos)
 
 def GetWindowSize(window):
@@ -266,6 +301,10 @@ def ApisLogger(db, action, fromTable, primaryKeysWhere):
         if not res:
             QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
 
+# ---------------------------------------------------------------------------
+# Translation
+# ---------------------------------------------------------------------------
+
 # noinspection PyMethodMayBeStatic
 def tr(message):
     """Get the translation for a string using Qt translation API.
@@ -280,3 +319,96 @@ def tr(message):
     """
     # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
     return QCoreApplication.translate('APIS', message)
+
+# ---------------------------------------------------------------------------
+# Reading EXIF
+# ---------------------------------------------------------------------------
+# https: // gist.github.com / snakeye / fdc372dbf11370fe29eb
+def GetExifDataIfExist(data, key):
+    return data[key] if key in data else None
+
+def ConvertToDegress(value):
+    """
+    Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
+    :param value:
+    :type value: exifread.utils.Ratio
+    :rtype: float
+    """
+    return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
+
+def GetExifForImage(image, altitude=False, longitude=False, latitude=False, exposure_time=False, focal_length=False, fnumber=False):
+    # altitude, longitude, latitude, exposure time, focal length, fnumber
+    # exif = [None, None, None, None, None, None]
+    exif = {}
+    if os.path.isfile(image):
+        with open(image, 'rb') as f:
+            tags = exifread.process_file(f, details=False)
+
+            if altitude:
+                gps_altitude = GetExifDataIfExist(tags, 'GPS GPSAltitude')
+                gps_altitude_ref = GetExifDataIfExist(tags, 'GPS GPSAltitudeRef')
+                if gps_altitude and gps_altitude_ref:
+                    alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
+                    if gps_altitude_ref.values[0] == 1:
+                        alt *= -1
+                    exif["altitude"] = alt
+                else:
+                    exif["altitude"] = None
+
+            if longitude:
+                gps_longitude = GetExifDataIfExist(tags, 'GPS GPSLongitude')
+                gps_longitude_ref = GetExifDataIfExist(tags, 'GPS GPSLongitudeRef')
+                if gps_longitude and gps_longitude_ref:
+                    lon = ConvertToDegress(gps_longitude)
+                    if gps_longitude_ref.values[0] != 'E':
+                        lon = 0 - lon
+                    exif["longitude"] = lon
+                else:
+                    exif["longitude"] = None
+
+            if latitude:
+                gps_latitude = GetExifDataIfExist(tags, 'GPS GPSLatitude')
+                gps_latitude_ref = GetExifDataIfExist(tags, 'GPS GPSLatitudeRef')
+                if gps_latitude and gps_latitude_ref:
+                    lat = ConvertToDegress(gps_latitude)
+                    if gps_latitude_ref.values[0] != 'N':
+                        lat = 0 - lat
+                    exif["latitude"] = lat
+                else:
+                    exif["latitude"] = None
+
+            if exposure_time:
+                exif_exposure_time = GetExifDataIfExist(tags, 'EXIF ExposureTime')
+                if exif_exposure_time:
+                    exif["exposure_time"] = float(exif_exposure_time.values[0].num / exif_exposure_time.values[0].den)
+                else:
+                    exif["exposure_time"] = None
+
+            if focal_length:
+                exif_focal_length = GetExifDataIfExist(tags, 'EXIF FocalLength')
+                if exif_focal_length:
+                    exif["focal_length"] = float(exif_focal_length.values[0].num / exif_focal_length.values[0].den)
+                else:
+                    exif["focal_length"] = None
+
+            if fnumber:
+                exif_fnumber = GetExifDataIfExist(tags, 'EXIF FNumber')
+                if exif_fnumber:
+                    exif["fnumber"] = float(exif_fnumber.values[0].num / exif_fnumber.values[0].den)
+                else:
+                    exif["fnumber"] = None
+    else:
+        if altitude:
+            exif["altitude"] = None
+        if longitude:
+            exif["longitude"] = None
+        if latitude:
+            exif["latitude"] = None
+        if exposure_time:
+            exif["exposure_time"] = None
+        if focal_length:
+            exif["focal_length"] = None
+        if fnumber:
+            exif["fnumber"] = None
+
+    return exif

@@ -32,7 +32,8 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QIcon
 from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature, QgsVectorFileWriter)
 
 from APIS.src.apis_findspot import APISFindspot
-from APIS.src.apis_utils import OpenFileOrFolder
+from APIS.src.apis_utils import (OpenFileOrFolder, GetWindowSize, GetWindowPos, SetWindowSizeAndPos,
+                                 SelectionOrAll, PolygonOrPoint, FileOrFolder)
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 
@@ -51,7 +52,16 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
         self.setupUi(self)
 
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("findspot_selection_list"):
+            self.resize(GetWindowSize("findspot_selection_list"))
+        if GetWindowPos("findspot_selection_list"):
+            self.move(GetWindowPos("findspot_selection_list"))
+
         self.query = None
+
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
         self.uiFindspotListTableV.doubleClicked.connect(self.openFindspotDialog)
 
@@ -98,7 +108,7 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         if self.model is None or self.model.rowCount() < 1:
             if not update:
-                QMessageBox.warning(None, "Fundstellen Auswahl", u"Es wurden keine Fundstellen gefunden!")
+                QMessageBox.warning(self, "Fundstellen Auswahl", u"Es wurden keine Fundstellen gefunden!")
             self.query = None
             self.done(1)
             return False
@@ -160,27 +170,22 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         findspotList = self.askForFindspotList()
         if findspotList:
             # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}".format(u", ".join(siteList)))
-            polygon, point = self.askForGeometryType()
+            polygon, point = PolygonOrPoint(parent=self)
             if polygon or point:
                 # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}, {1}".format(polygon, point))
-
-                # get PolygonLayer
-                subsetString = u'"fundortnummer"  || \'.\' || "fundstellenummer" IN ('
-                for findspotNumber in findspotList:
-                    subsetString += u'\'{0}\','.format(findspotNumber)
-                subsetString = subsetString[:-1]
-                subsetString += u')'
-                findspotLayer = self.getSpatialiteLayer('fundstelle', subsetString)
-
-                if polygon:
+                subsetString = '"fundortnummer"  || \'.\' || "fundstellenummer" IN (' + ','.join(['\'{0}\''.format(findspotNumber) for findspotNumber in findspotList]) + ')'
+                findspotLayer = self.apisLayer.getSpatialiteLayer('fundstelle', subsetString)
+                if polygon and findspotLayer:
+                    findspotLayerMemory = self.apisLayer.createMemoryLayer(findspotLayer, "fundstelle polygon")
+                    findspotLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("find_spots_fp"))
                     # load PolygonLayer
-                    self.loadLayer(findspotLayer)
-
-                if point:
+                    self.apisLayer.addLayerToCanvas(findspotLayerMemory, "Temp")
+                if point and findspotLayer:
                     # generate PointLayer
-                    centerPointLayer = self.generateCenterPointLayer(findspotLayer)
+                    centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(findspotLayer, "fundstelle punkt")
+                    centerPointLayer.loadNamedStyle(self.apisLayer.getStylePath("find_spots_cp"))
                     # load PointLayer
-                    self.loadLayer(centerPointLayer)
+                    self.apisLayer.addLayerToCanvas(centerPointLayer, "Temp")
 
                 self.close()
 
@@ -188,29 +193,22 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         findspotList = self.askForFindspotList()
         if findspotList:
             # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}".format(u", ".join(siteList)))
-            polygon, point = self.askForGeometryType()
+            polygon, point = PolygonOrPoint(parent=self)
             if polygon or point:
                 # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}, {1}".format(polygon, point))
-
-                # get PolygonLayer
-                subsetString = u'"fundortnummer"  || \'.\' || "fundstellenummer" IN ('
-                for findspotNumber in findspotList:
-                    subsetString += u'\'{0}\','.format(findspotNumber)
-                subsetString = subsetString[:-1]
-                subsetString += u')'
-                findspotLayer = self.getSpatialiteLayer('fundstelle', subsetString)
+                subsetString = '"fundortnummer"  || \'.\' || "fundstellenummer" IN (' + ','.join(['\'{0}\''.format(findspotNumber) for findspotNumber in findspotList]) + ')'
+                findspotLayer = self.apisLayer.getSpatialiteLayer('fundstelle', subsetString)
 
                 now = QDateTime.currentDateTime()
                 time = now.toString("yyyyMMdd_hhmmss")
-                if polygon:
+                if polygon and findspotLayer:
                     # save PolygonLayer
-                    self.exportLayer(findspotLayer, time)
-
-                if point:
+                    self.apisLayer.exportLayerAsShp(findspotLayer, time, name="Fundstelle_Polygon", groupName="Temp", styleName="find_spots_fp", parent=self)
+                if point and findspotLayer:
                     # generate PointLayer
-                    centerPointLayer = self.generateCenterPointLayer(findspotLayer)
+                    centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(findspotLayer)
                     # save PointLayer
-                    self.exportLayer(centerPointLayer, time)
+                    self.apisLayer.exportLayerAsShp(centerPointLayer, time, name="Fundstelle_Punkt", groupName="Temp", styleName="find_spots_cp", parent=self)
 
     def exportAsPdf(self, tab_list=False, detail=False, parentDetail=False):
         if self.printingOptionsDlg is None:
@@ -218,29 +216,39 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         if tab_list and not detail and not parentDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstellenliste")
+            personalData = False
+            filmProject = False
         elif detail and not tab_list and not parentDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
+            personalData = True
+            filmProject = False
         elif detail and parentDetail and not tab_list:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle und Fundort")
+            personalData = True
+            filmProject = True
         else:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstellen Auswahl")
+            personalData = False
+            filmProject = False
 
         if self.uiFindspotListTableV.model().rowCount() == 1:
-            self.printingOptionsDlg.configure(False, False)
+            self.printingOptionsDlg.configure(False, False, visPersonalDataChk=personalData, visFilmProjectChk=filmProject)
         elif not self.uiFindspotListTableV.selectionModel().hasSelection():
-            self.printingOptionsDlg.configure(False, detail)
+            self.printingOptionsDlg.configure(False, detail, visPersonalDataChk=personalData, visFilmProjectChk=filmProject)
         else:
             if len(self.uiFindspotListTableV.selectionModel().selectedRows()) == 1:
-                self.printingOptionsDlg.configure(True, detail)
+                self.printingOptionsDlg.configure(True, detail, visPersonalDataChk=personalData, visFilmProjectChk=filmProject)
             elif len(self.uiFindspotListTableV.selectionModel().selectedRows()) == self.uiFindspotListTableV.model().rowCount():
-                self.printingOptionsDlg.configure(False, detail)
+                self.printingOptionsDlg.configure(False, detail, visPersonalDataChk=personalData, visFilmProjectChk=filmProject)
             else:
-                self.printingOptionsDlg.configure(True, detail)
+                self.printingOptionsDlg.configure(True, detail, visPersonalDataChk=personalData, visFilmProjectChk=filmProject)
 
         self.printingOptionsDlg.show()
 
         if self.printingOptionsDlg.exec_():
             # get settings from dialog
+            printPersonalData = self.printingOptionsDlg.printPersonalData()
+            printFilmProject = self.printingOptionsDlg.printFilmProject()
             selectionModeIsAll = self.printingOptionsDlg.selectionModeIsAll()
             outputMode = self.printingOptionsDlg.outputMode()
 
@@ -253,8 +261,8 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                 if detail:
                     for findspot in findspotList:
                         if parentDetail:
-                            pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot[:8]]})
-                        pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [findspot]})
+                            pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot[:8]], 'options': {'filmProject': printFilmProject}})
+                        pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [findspot], 'options': {'personalData': printPersonalData}})
 
                 if pdfsToPrint:
                     APISPrinterQueue(pdfsToPrint,
@@ -267,24 +275,15 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
     def askForFindspotList(self):
         if self.uiFindspotListTableV.selectionModel().hasSelection():
             # Abfrage ob Fundorte der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Fundstellen')
-            msgBox.setText(u'Wollen Sie die ausgewählten Funstellen oder die gesamte Liste verwenden?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
-
+            ret = SelectionOrAll(parent=self)
             if ret == 0:
-                findspotList = self.getFindspotList(False)
+                return self.getFindspotList(False)
             elif ret == 1:
-                findspotList = self.getFindspotList(True)
+                return self.getFindspotList(True)
             else:
                 return None
         else:
-            findspotList = self.getFindspotList(True)
-
-        return findspotList
+            return self.getFindspotList(True)
 
     def getFindspotList(self, getAll):
         findspotList = []
@@ -300,114 +299,5 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
 
         return findspotList
 
-    def askForGeometryType(self):
-        # Abfrage ob Fundstellen der selektierten Bilder Exportieren oder alle
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle(u'Fundstellen')
-        msgBox.setText(u'Wollen Sie für die Fundstellen Polygone, Punkte oder beide Layer verwenden?')
-        msgBox.addButton(QPushButton(u'Polygone'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Punkte'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Polygone und Punkte'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-        ret = msgBox.exec_()
-
-        if ret == 0:
-            polygon = True
-            point = False
-        elif ret == 1:
-            polygon = False
-            point = True
-        elif ret == 2:
-            polygon = True
-            point = True
-        else:
-            return None, None
-
-        return polygon, point
-
-    def getSpatialiteLayer(self, layerName, subsetString=None, displayName=None):
-        if not displayName:
-            displayName = layerName
-        uri = QgsDataSourceUri()
-        uri.setDatabase(self.dbm.db.databaseName())
-        uri.setDataSource('', layerName, 'geometry')
-        layer = QgsVectorLayer(uri.uri(), displayName, 'spatialite')
-        if subsetString:
-            layer.setSubsetString(subsetString)
-
-        return layer
-
-        # symbol_layer = QgsSimpleLineSymbolLayerV2()
-        # symbol_layer.setWidth(0.6)
-        # symbol_layer.setColor(QColor(100, 50, 140, 255))
-        # self.siteLayer.rendererV2().symbols()[0].changeSymbolLayer(0, symbol_layer)
-
-    def loadLayer(self, layer):
-        QgsProject.instance().addMapLayer(layer)
-
-    def exportLayer(self, layer, time):
-        geomType = "Punkt" if layer.geometryType() == 0 else "Polygon"
-        saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-        layerName = QFileDialog.getSaveFileName(self, u'Fundstellen {0} Export Speichern'.format(geomType), saveDir + "\\" + 'Fundstellen_{0}_{1}'.format(geomType, time), '*.shp')[0]
-        if layerName:
-            check = QFile(layerName)
-            if check.exists():
-                if not QgsVectorFileWriter.deleteShapeFile(layerName):
-                    QMessageBox.warning(None, "Fundstelle Export",
-                                        u"Es ist nicht möglich die SHP Datei {0} zu überschreiben!".format(layerName))
-                    return
-
-            error = QgsVectorFileWriter.writeAsVectorFormat(layer, layerName, "UTF-8", layer.crs(), "ESRI Shapefile")
-
-            if error == QgsVectorFileWriter.NoError:
-                # QMessageBox.information(None, "Fundorte Export", u"Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.")
-                msgBox = QMessageBox()
-                msgBox.setWindowTitle(u'Fundtelle Export')
-                msgBox.setText(u"Die ausgewählten Fundstellen wurden in eine SHP Datei exportiert.")
-                msgBox.addButton(QPushButton(u'SHP Datei laden'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'Ordner öffnen'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'SHP Datei laden und Ordner öffnen'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'OK'), QMessageBox.AcceptRole)
-                ret = msgBox.exec_()
-
-                if ret == 0 or ret == 2:
-                    # Load Shp File in QGIS
-                    self.iface.addVectorLayer(layerName, "", 'ogr')
-
-                if ret == 1 or ret == 2:
-                    # Open Folder
-                    OpenFileOrFolder(os.path.split(layerName)[0])
-
-            else:
-                QMessageBox.warning(None, "Fundstelle Export", u"Beim erstellen der SHP Datei ist ein Fehler aufgetreten.")
-
-    def generateCenterPointLayer(self, polygonLayer, displayName=None):
-        if not displayName:
-            displayName = polygonLayer.name()
-        epsg = polygonLayer.crs().authid()
-        # QMessageBox.warning(None, "EPSG", u"{0}".format(epsg))
-        layer = QgsVectorLayer("Point?crs={0}".format(epsg), displayName, "memory")
-        layer.setCrs(polygonLayer.crs())
-        provider = layer.dataProvider()
-        provider.addAttributes(polygonLayer.dataProvider().fields())
-
-        layer.updateFields()
-
-        pointFeatures = []
-        for polygonFeature in polygonLayer.getFeatures():
-            polygonGeom = polygonFeature.geometry()
-            pointGeom = polygonGeom.centroid()
-            # if center point is not on polygon get the nearest Point
-            if not polygonGeom.contains(pointGeom):
-                pointGeom = polygonGeom.pointOnSurface()
-
-            pointFeature = QgsFeature()
-            pointFeature.setGeometry(pointGeom)
-            pointFeature.setAttributes(polygonFeature.attributes())
-            pointFeatures.append(pointFeature)
-
-        provider.addFeatures(pointFeatures)
-
-        layer.updateExtents()
-
-        return layer
+    def onClose(self):
+        SetWindowSizeAndPos("findspot_selection_list", self.size(), self.pos())

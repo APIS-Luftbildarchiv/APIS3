@@ -4,11 +4,13 @@
     <file>icons/apis.png</file>
     <file>icons/cancel.png</file>
     <file>icons/center_point.png</file>
+    <file>icons/deselection.png</file>
     <file>icons/edit_geometry_polygon.png</file>
     <file>icons/edit_geometry_square.png</file>
     <file>icons/exif_export.png</file>
     <file>icons/film.png</file>
     <file>icons/film_selection.png</file>
+    <file>icons/film_sorting.png</file>
     <file>icons/findspot.png</file>
     <file>icons/findspot_clone.png</file>
     <file>icons/findspot_delete.png</file>

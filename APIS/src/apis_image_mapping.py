@@ -37,7 +37,7 @@ from qgis.core import (QgsProject, Qgis, QgsDataSourceUri, QgsVectorDataProvider
 from qgis.gui import (QgsMapToolEmitPoint, QgsVertexMarker)
 
 from APIS.src.apis_film_number_selection import APISFilmNumberSelection
-from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry, VersionToCome
+from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry, VersionToCome, GetExifForImage
 from APIS.src.apis_image_digital_auto_import import APISDigitalImageAutoImport
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -508,24 +508,27 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                 f.setAttribute('bildnummer', bn)
 
                 if self.isOblique:
-                    exif = self.getExifForImage(bn)
+                    # TODO remove
+                    # exif = self.getExifForImage(bn)
+                    image = os.path.normpath(self.settings.value("APIS/image_dir") + '\\' + self.currentFilmNumber + '\\' + bn.replace('.', '_') + '.jpg')
+                    exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True, exposure_time=True, focal_length=True, fnumber=True)
 
-                    if exif[0]:
-                        f.setAttribute('hoehe', exif[0])
-                    f.setAttribute('gps_longitude', exif[1])
-                    f.setAttribute('gps_latitude', exif[2])
+                    if "altitude" in exif and exif["altitude"]:
+                        f.setAttribute('hoehe', exif["altitude"])
+                    f.setAttribute('gps_longitude', exif["longitude"] if "longitude" in exif else None)
+                    f.setAttribute('gps_latitude', exif["latitude"] if "latitude" in exif else None)
 
-                    if exif[1] and exif[2]:
-                        capturePoint = QgsPointXY(exif[1], exif[2])
+                    if "longitude" in exif and "latitude" in exif and exif["longitude"] and exif["latitude"]:
+                        capturePoint = QgsPointXY(exif["longitude"], exif["latitude"])
                         kappa = capturePoint.azimuth(self.imageCenterPoint)
                     else:
                         kappa = None
                     f.setAttribute('kappa', kappa)
 
-                    f.setAttribute('belichtungszeit', exif[3])
-                    f.setAttribute('fokus', exif[4]) # FocalLength
-                    if exif[4] and exif[5]:
-                        blende = exif[4]/exif[5] #effecitve aperture (diameter of entrance pupil) = focalLength / fNumber
+                    f.setAttribute('belichtungszeit', exif["exposure_time"] if "exposure_time" in exif else None)
+                    f.setAttribute('fokus', exif["focal_length"] if "focal_length" in exif else None) # FocalLength
+                    if "focal_length" in exif and "fnumber" in exif and exif["focal_length"] and exif["fnumber"]:
+                        blende = exif["focal_length"]/exif["fnumber"] #effecitve aperture (diameter of entrance pupil) = focalLength / fNumber
                     else:
                         blende = None
                     f.setAttribute('blende', blende)
@@ -560,9 +563,11 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         else:
             return query.value(0)
 
+    # TODO remove
     def _get_if_exist(self, data, key):
         return data[key] if key in data else None
 
+    # TODO remove
     def _convert_to_degress(self, value):
         """
         Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
@@ -572,7 +577,9 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         """
         return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
 
+    # TODO remove
     def getExifForImage(self, imageNumber):
+        # altitude, longitude, latitude, exposure time, focal length, fnumber
         exif = [None, None, None, None, None, None]
 
         dirName = self.settings.value("APIS/image_dir")
@@ -620,6 +627,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
         return exif
 
+    # TODO remove
     def OLDgetExifForImage(self, imageNumber):
         exif = [None, None, None, None, None, None]
         dirName = self.settings.value("APIS/image_dir")

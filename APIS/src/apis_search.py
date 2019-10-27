@@ -253,7 +253,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
                 # LuftbildSuche
                 query.prepare("SELECT cp.bildnummer AS bildnummer, cp.filmnummer AS filmnummer, cp.radius AS mst_radius, f.weise AS weise, f.art_ausarbeitung AS art FROM film AS f, luftbild_schraeg_cp AS cp WHERE f.filmnummer = cp.filmnummer AND cp.bildnummer IN (SELECT fp.bildnummer FROM luftbild_schraeg_fp AS fp WHERE NOT IsEmpty(fp.geometry) AND {2}(GeomFromText('{0}',{1}), fp.geometry) AND rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_schraeg_fp' AND search_frame = GeomFromText('{0}',{1}) )) UNION ALL SELECT  cp_s.bildnummer AS bildnummer, cp_S.filmnummer AS filmnummer, cp_s.massstab, f_s.weise, f_s.art_ausarbeitung FROM film AS f_s, luftbild_senk_cp AS cp_s WHERE f_s.filmnummer = cp_s.filmnummer AND cp_s.bildnummer IN (SELECT fp_s.bildnummer FROM luftbild_senk_fp AS fp_s WHERE NOT IsEmpty(fp_s.geometry) AND {2}(GeomFromText('{0}',{1}), fp_s.geometry) AND rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_senk_fp' AND search_frame = GeomFromText('{0}',{1}) ) ) ORDER BY filmnummer, bildnummer".format(searchGeometry.asWkt(), epsg, mode))
                 query.exec_()
-                self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self.iface.mainWindow())
+                self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
                 res = self.imageSelectionListDlg.loadImageListBySqlQuery(query)
                 if res:
                     self.imageSelectionListDlg.show()
@@ -277,7 +277,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
                 query.prepare("SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND {2}(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1}))) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(searchGeometry.asWkt(), epsg, mode))
 
                 query.exec_()
-                self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+                self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
                 res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query)
                 if res:
                     self.findspotSelectionListDlg.show()
@@ -321,7 +321,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
             # LuftbildSuche
             query.prepare(u"SELECT cp.bildnummer AS bildnummer, cp.filmnummer AS filmnummer, cp.radius AS mst_radius, f.weise AS weise, f.art_ausarbeitung AS art FROM film f, luftbild_schraeg_cp cp WHERE f.filmnummer = cp.filmnummer AND cp.bildnummer IN (SELECT fp.bildnummer FROM luftbild_schraeg_fp fp, ({0}) cc WHERE NOT IsEmpty(fp.geometry) AND Intersects(cc.geometry, fp.geometry) AND fp.rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_schraeg_fp' AND search_frame = cc.geometry )) UNION ALL SELECT  cp_s.bildnummer AS bildnummer, cp_S.filmnummer AS filmnummer, cp_s.massstab, f_s.weise, f_s.art_ausarbeitung FROM film f_s, luftbild_senk_cp cp_s WHERE f_s.filmnummer = cp_s.filmnummer AND cp_s.bildnummer IN (SELECT fp_s.bildnummer FROM luftbild_senk_fp fp_s, ({0}) cc WHERE NOT IsEmpty(fp_s.geometry) AND Intersects(cc.geometry, fp_s.geometry) AND fp_s.rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_senk_fp' AND search_frame = cc.geometry ) ) ORDER BY filmnummer, bildnummer".format(ccSearchStr))
             query.exec_()
-            self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry)
+            self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
             res = self.imageSelectionListDlg.loadImageListBySqlQuery(query)
             if res:
                 self.imageSelectionListDlg.show()
@@ -345,7 +345,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
             #Fundstellen
             query.prepare(u"SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst, ({0}) cc WHERE NOT IsEmpty(fst.geometry) AND Intersects(cc.geometry, fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = cc.geometry)) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(ccSearchStr))
             query.exec_()
-            self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
+            self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
             res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query)
             if res:
                 self.findspotSelectionListDlg.show()
@@ -444,25 +444,30 @@ class APISSearch(QDockWidget, FORM_CLASS):
         #query.prepare("SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE fs.fundortnummer = fo.fundortnummer AND (fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1}))) ORDER BY fo.katastralgemeindenummer, fo.land, fo.fundortnummer_nn, fs.fundstellenummer".format(searchGeometry.asWkt(), epsg))
         # query.prepare("SELECT fundortnummer, fundstellenummer, datierung, befundart, befundart_detail, sicherheit, kultur FROM fundstelle WHERE (fundortnummer || '.' || fundstellenummer) as id1 IN (SELECT DISTINCT (fs.fundortnummer || '.' || fs.fundstellenummer) as id2 FROM fundstelle fs WHERE NOT IsEmpty(fs.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}',{1}), fs.geometry) AND fs.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}',{1}) ) )".format(searchGeometry.asWkt(), epsg))
 
-
+        info = "gefunden"
         whereClause = []
         whereClause.append(u"fs.fundortnummer = fo.fundortnummer")
         if self.uiDatingGrp.isChecked() and self.uiTimeCombo.currentIndex() >= 0:
             #whereClause.append(u"substr(datierung, 1, pos1-1) = '{0}'".format(self.uiTimeCombo.currentText()))  # zeit
             whereClause.append(u"datierung_zeitstufe = '{0}'".format(self.uiTimeCombo.currentText()))
+            info += " | Zeitstufe='{0}'".format(self.uiTimeCombo.currentText())
             if self.uiPeriodChk.isChecked() and self.uiPeriodCombo.currentIndex() >= 0:
                 #whereClause.append(u"substr(datierung, pos1+1, pos2-1) = '{0}'".format(self.uiPeriodCombo.currentText()))  # periode
                 whereClause.append(u"datierung_periode = '{0}'".format(self.uiPeriodCombo.currentText()))
+                info += ", Periode='{0}'".format(self.uiPeriodCombo.currentText())
                 if self.uiPeriodDetailsChk.isChecked() and self.uiPeriodDetailsCombo.currentIndex() >= 0:
                     #whereClause.append(u"substr(datierung, pos1+pos2+1, pos3-1) = '{0}'".format(self.uiPeriodDetailsCombo.currentText()))  # periode_detail
                     whereClause.append(u"datierung_periode_detail = '{0}'".format(self.uiPeriodDetailsCombo.currentText()))
+                    info += ", Detail='{0}'".format(self.uiPeriodDetailsCombo.currentText())
         if self.uiCultureGrp.isChecked() and self.uiCultureCombo.currentIndex() >= 0:
             whereClause.append(u"kultur = '{0}'".format(self.uiCultureCombo.currentText()))  # kultur
+            info += " | Kultur='{0}'".format(self.uiCultureCombo.currentText())
         if self.uiFindTypeGrp.isChecked() and self.uiFindTypeCombo.currentIndex() >= 0:
             whereClause.append(u"befundart = '{0}'".format(self.uiFindTypeCombo.currentText()))  # befundart
+            info += " | Befundart='{0}'".format(self.uiFindTypeCombo.currentText())
             if self.uiFindTypeDetailsChk.isChecked() and self.uiFindTypeDetailsCombo.currentIndex() >= 0:
                 whereClause.append(u"instr(befundart_detail, '{0}')".format(self.uiFindTypeDetailsCombo.currentText()))  # befundart_detail; je befundart_detail
-
+                info += ", Detail='{0}'".format(self.uiFindTypeDetailsCombo.currentText())
         if self.uiSpatialFilterGrp.isChecked() and self.uiFilterByMapLayerCombo.count() > 0 and self.uiFilterByMapLayerCombo.currentIndex() >= 0:
             #QMessageBox.warning(None, self.tr(u"findspot search"), u"{0}".format("Spatial Filter Activ"))
             vlayer = self.uiFilterByMapLayerCombo.currentLayer()
@@ -483,7 +488,7 @@ class APISSearch(QDockWidget, FORM_CLASS):
                 ct = QgsCoordinateTransform(srcCrs, destCrs, QgsProject.instance())
                 searchGeometry.transform(ct)
                 whereClause.append(u"(fs.fundortnummer || '.' || fs.fundstellenummer) IN (SELECT DISTINCT (fst.fundortnummer || '.' || fst.fundstellenummer) AS fsn FROM fundstelle fst WHERE NOT IsEmpty(fst.geometry) AND NOT IsEmpty(GeomFromText('{0}',{1})) AND Intersects(GeomFromText('{0}', {1}), fst.geometry) AND fst.ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'fundstelle' AND search_frame = GeomFromText('{0}', {1})))".format(searchGeometry.asWkt(), 4312))
-
+                info += " | Räumlicher Filter Selektion in '{0}'".format(vlayer.name())
         #whereClause.append("")  # spatial
 
         whereStr = u" AND ".join(whereClause)
@@ -499,8 +504,8 @@ class APISSearch(QDockWidget, FORM_CLASS):
         #return
         query.prepare(qryStr)
         query.exec_()
-        self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
-        res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query)
+        self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
+        res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query, info)
         if res:
             self.findspotSelectionListDlg.show()
             # if self.findspotSelectionListDlg.exec_():

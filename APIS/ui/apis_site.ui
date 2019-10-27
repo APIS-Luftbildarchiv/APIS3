@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2185</width>
-    <height>1455</height>
+    <width>1000</width>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -579,19 +579,19 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="uiLoadSiteInQGisBtn">
+      <widget class="QToolButton" name="uiLayerTBtn">
        <property name="text">
-        <string>Fundort in QGIS laden</string>
+        <string>Layer ...</string>
        </property>
        <property name="icon">
         <iconset resource="resource.qrc">
          <normaloff>:/plugins/APIS/icons/layer.png</normaloff>:/plugins/APIS/icons/layer.png</iconset>
        </property>
-       <property name="iconSize">
-        <size>
-         <width>30</width>
-         <height>30</height>
-        </size>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextBesideIcon</enum>
        </property>
       </widget>
      </item>
@@ -905,7 +905,6 @@
   <tabstop>uiFindspotListTableV</tabstop>
   <tabstop>uiSiteImageView</tabstop>
   <tabstop>uiLoadSiteInterpretationInQGisBtn</tabstop>
-  <tabstop>uiLoadSiteInQGisBtn</tabstop>
   <tabstop>uiListImagesOfSiteBtn</tabstop>
   <tabstop>uiDeleteSiteBtn</tabstop>
   <tabstop>uiInitalEntryDate</tabstop>

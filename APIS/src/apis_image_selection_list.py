@@ -36,8 +36,9 @@ from qgis.core import (QgsRasterLayer, QgsProject, QgsVectorFileWriter,
                        QgsFields, QgsField, QgsFeature, QgsGeometry,
                        QgsCoordinateReferenceSystem, QgsWkbTypes)
 
-from APIS.src.apis_utils import OpenFileOrFolder, VersionToCome, SetExportPath, GetExportPath
-from APIS.src.apis_thumb_viewer import QdContactSheet
+from APIS.src.apis_utils import (OpenFileOrFolder, VersionToCome, SetExportPath, GetExportPath, SetWindowSizeAndPos,
+                                 GetWindowSize, GetWindowPos, SelectionOrAll, PolygonOrPoint, FileOrFolder)
+from APIS.src.apis_thumb_viewer import APISThumbViewer
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_image2xmp import Image2Xmp
@@ -47,13 +48,20 @@ FORM_CLASS, _ = loadUiType(os.path.join(
 
 
 class APISImageSelectionList(QDialog, FORM_CLASS):
-    def __init__(self, iface, dbm, imageRegistry, parent=None):
+    def __init__(self, iface, dbm, imageRegistry, apisLayer, parent=None):
         """Constructor."""
         super(APISImageSelectionList, self).__init__(parent)
         self.iface = iface
         self.dbm = dbm
         self.imageRegistry = imageRegistry
+        self.apisLayer = apisLayer
         self.setupUi(self)
+
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("image_selection_list"):
+            self.resize(GetWindowSize("image_selection_list"))
+        if GetWindowPos("image_selection_list"):
+            self.move(GetWindowPos("image_selection_list"))
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
@@ -70,11 +78,20 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
         mLayer = QMenu()
         mLayer.addSection("In QGIS laden")
-        aLayerLoadOrtho = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Orthofotos")
-        aLayerLoadOrtho.triggered.connect(self.loadOrthos)
+        aLayerLoadImages = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Bild(er)")
+        aLayerLoadImages.triggered.connect(self.loadImagesInQgis)
+        aLayerLoadOrtho = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Orthofoto(s)")
+        aLayerLoadOrtho.triggered.connect(self.loadOrthosInQgis)
         mLayer.addSection("SHP Export")
-        aLayerExportFootprints = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "ExportFootprints")
-        aLayerExportFootprints.triggered.connect(self.exportFootprints)
+        aLayerExportFootprints = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "Bild(er) als SHP exportieren")
+        aLayerExportFootprints.triggered.connect(self.exportImagesAsShape)
+        mLayer.addSection("In QGIS anzeigen")
+        aLayerShowImage = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Bild(ern) zoomen")
+        aLayerShowImage.triggered.connect(lambda: self.showImageInQgis(zoomTo=True, select=False))
+        aLayerSelectImage = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Bild(er) selektieren")
+        aLayerSelectImage.triggered.connect(lambda: self.showImageInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectImage = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Bild(ern) zoomen und selektieren")
+        aLayerShowAndSelectImage.triggered.connect(lambda: self.showImageInQgis(zoomTo=True, select=True))
         self.uiLayerTBtn.setMenu(mLayer)
         self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
 
@@ -86,13 +103,11 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiPdfExportTBtn.setMenu(mPdfExport)
         self.uiPdfExportTBtn.clicked.connect(self.uiPdfExportTBtn.showMenu)
 
-
-
-        self.accepted.connect(self.onAccepted)
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
         self.uiImageListTableV.doubleClicked.connect(self.viewImage)
         self.uiResetSelectionBtn.clicked.connect(self.uiImageListTableV.clearSelection)
-
 
         self.uiFilterGrp.toggled.connect(self.applyFilter)
         self.uiFilterVerticalChk.stateChanged.connect(self.applyFilter)
@@ -146,7 +161,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             self.model.appendRow(newRow)
 
         if self.model.rowCount() < 1:
-            QMessageBox.warning(None, "Bild Auswahl", u"Es wurden keine kartierten Bilder gefunden!")
+            QMessageBox.warning(self, "Bild Auswahl", u"Es wurden keine kartierten Bilder gefunden!")
             return False
 
         for col in range(rec.count()):
@@ -170,8 +185,15 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def conditionalRowCount(self, section, value):
         count = 0
         for row in range(self.model.rowCount()):
-           if self.model.item(row, section).text() == value:
-               count += 1
+            if self.model.item(row, section).text() == value:
+                count += 1
+        return count
+
+    def conditionalSelectedRowCount(self, column, value):
+        count = 0
+        for idx in self.uiImageListTableV.selectionModel().selectedRows():
+            if self.model.item(idx.row(), column).text() == value:
+                count += 1
         return count
 
     def setupTable(self):
@@ -184,6 +206,14 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiImageListTableV.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.uiImageListTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+
+    def onSelectionChanged(self):
+        # self.uiSelectionCountLbl.setText("{0}".format(len(self.uiImageListTableV.selectionModel().selectedRows())))
+        # self.uiImageListTableV.selectionModel().selectedRows()
+        self.uiImageSelectedCountLbl.setText("{0}".format(len(self.uiImageListTableV.selectionModel().selectedRows())))
+        self.uiScanSelectedCountLbl.setText("{0}".format(self.conditionalSelectedRowCount(5, "ja")))
+        self.uiHiResSelectedCountLbl.setText("{0}".format(self.conditionalSelectedRowCount(7, "ja")))
+        self.uiOrthoSelectedCountLbl.setText("{0}".format(self.conditionalSelectedRowCount(6, "ja")))
 
     def setupFilter(self):
         self.uiFilterGrp.setChecked(False)
@@ -294,12 +324,11 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def viewImage(self):
         r = self.uiImageListTableV.currentIndex().row()
         imageDir = self.settings.value("APIS/image_dir")
-        #TODO RM fileName = imageDir + "\\{0}\\{1}.jpg".format(IdToIdLegacy(self.model.item(r, 1).text()), IdToIdLegacy(self.model.item(r, 0).text()).replace('.','_'))
         fileName = imageDir + "\\{0}\\{1}.jpg".format(self.model.item(r, 1).text(), self.model.item(r, 0).text().replace('.','_'))
         if os.path.isfile(os.path.normpath(fileName)):
             OpenFileOrFolder(fileName)
         else:
-            QMessageBox.warning(None, "Bild", u"Bild unter {0} nicht vorhanden".format(fileName))
+            QMessageBox.warning(self, "Bild", u"Bild unter {0} nicht vorhanden".format(fileName))
         #get Path to Image
         #open with standard
 
@@ -312,13 +341,14 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def viewAsThumbs(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Vorschau der Bilder')
-            msgBox.setText(u'Wollen Sie die Vorschau der ausgewählten Bilder oder der gesamten Liste öffnen?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
+            # msgBox = QMessageBox(self)
+            # msgBox.setWindowTitle(u'Vorschau der Bilder')
+            # msgBox.setText(u'Wollen Sie die Vorschau der ausgewählten Bilder oder der gesamten Liste öffnen?')
+            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
+            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
+            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
+            # ret = msgBox.exec_()
+            ret = SelectionOrAll(parent=self)
 
             if ret == 0:
                 imageList = self.getImageList(False, 5, "ja")
@@ -330,7 +360,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             imageList = self.getImageList(True, 5, "ja")
 
         if len(imageList) == 0:
-            QMessageBox.warning(None, "Bildvorschau", u"Es sind keine Bilder vorhanden!")
+            QMessageBox.warning(self, "Bildvorschau", u"Es sind keine Bilder vorhanden!")
             return
 
         #imageString = ""
@@ -348,16 +378,79 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
         #QMessageBox.warning(None, "BildNumber", "{0}".format(', '.join(imagePathList)))
         #app = QtGui.QApplication([])
-        widget = QdContactSheet()
+        widget = APISThumbViewer()
         widget.load(imagePathList)
-        widget.setWindowTitle("Apis Thumb Viewer")
-        widget.setModal(True)
-        widget.resize(1000, 600)
         widget.show()
         if widget.exec_():
             pass
 
-    def loadOrthos(self):
+    def loadImagesInQgis(self):
+        if self.uiImageListTableV.selectionModel().hasSelection():
+            # Abfrage Footprints der selektierten Bilder Exportieren oder alle
+            ret = SelectionOrAll(parent=self)
+            if ret == 0:
+                imageList = self.getImageList(False)
+            elif ret == 1:
+                imageList = self.getImageList(True)
+            else:
+                return
+        else:
+            imageList = self.getImageList(True)
+
+        polygon, point = PolygonOrPoint(parent=self)
+        if polygon or point:
+            # imageString = ""
+            # for image in imageList:
+            #     imageString += "'" + image + "',"
+            # use: imageString[:-1]
+            # QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
+
+            subsetString = '"bildnummer" IN (' + ','.join(['\'{0}\''.format(imageNumber) for imageNumber in imageList]) + ')'
+            now = QDateTime.currentDateTime()
+            time = now.toString("yyyyMMdd_hhmmss")
+
+            if polygon:
+                polygonLayerOblique = self.apisLayer.getSpatialiteLayer("luftbild_schraeg_fp", subsetString)
+                polygonLayerVertical = self.apisLayer.getSpatialiteLayer("luftbild_senk_fp", subsetString)
+                polygonLayer = self.apisLayer.mergeLayers([polygonLayerOblique, polygonLayerVertical], name="bild footprint", parent=self)
+                if polygonLayer:
+                    polygonLayer.loadNamedStyle(self.apisLayer.getStylePath("images_vertical_fp"))
+                    # export PolygonLayer
+                    self.apisLayer.addLayerToCanvas(polygonLayer, "Temp")
+
+            if point:
+                pointLayerOblique = self.apisLayer.getSpatialiteLayer("luftbild_schraeg_cp", subsetString)
+                pointLayerVertical = self.apisLayer.getSpatialiteLayer("luftbild_senk_cp", subsetString)
+                pointLayer = self.apisLayer.mergeLayers([pointLayerOblique, pointLayerVertical], name="bild centerpoint", parent=self)
+                if pointLayer:
+                    pointLayer.loadNamedStyle(self.apisLayer.getStylePath("images_vertical_cp"))
+                    # export PolygonLayer
+                    self.apisLayer.addLayerToCanvas(pointLayer, "Temp")
+
+    def showImageInQgis(self, zoomTo=True, select=False):
+        if self.uiImageListTableV.selectionModel().hasSelection():
+            ret = SelectionOrAll(parent=self)
+            if ret == 0:
+                imageList = self.getImageList(False)
+            elif ret == 1:
+                imageList = self.getImageList(True)
+            else:
+                return
+        else:
+            imageList = self.getImageList(True)
+
+        layers = self.apisLayer.requestImageLayers()
+        expression = "\"bildnummer\" IN ({})".format(','.join(["'{}'".format(iN) for iN in imageList]))
+        for layer in layers:
+            self.apisLayer.selectFeaturesByExpression(layer, expression)
+
+        if zoomTo:
+            self.apisLayer.zoomToSelections(layers)
+        if not select:
+            for layer in layers:
+                layer.removeSelection()
+
+    def loadOrthosInQgis(self):
         orthoList = self.getImageList(False, 6, "ja")
 
         orthoPathList = []
@@ -372,24 +465,17 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     baseName = fileInfo.baseName()
                     rlayer = QgsRasterLayer(orthoFile, baseName)
                     if not rlayer.isValid():
-                        QMessageBox.warning(None, "Ortho", "{0}".format(os.path.splitext(orthoFile)[1]))
+                        QMessageBox.warning(self, "Ortho", "{0}".format(os.path.splitext(orthoFile)[1]))
                     else:
                         QgsProject.instance().addMapLayer(rlayer)
                     #QMessageBox.warning(None, "Ortho", "{0}".format(os.path.splitext(orthoFile)[1]))
                 #if os.path.basename(orthoFile)
                 #orthoPathList.append()
 
-    def exportFootprints(self):
+    def exportImagesAsShape(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Footprints Exportieren')
-            msgBox.setText(u'Wollen Sie die Footprints der ausgewählten Bilder oder der gesamten Liste exportieren?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
-
+            ret = SelectionOrAll(parent=self)
             if ret == 0:
                 imageList = self.getImageList(False)
             elif ret == 1:
@@ -399,82 +485,73 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         else:
             imageList = self.getImageList(True)
 
-        imageString = ""
-        for image in imageList:
-            imageString += "'" + image + "',"
-        # use: imageString[:-1]
-        #QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
+        polygon, point = PolygonOrPoint(parent=self)
+        if polygon or point:
+            # imageString = ""
+            # for image in imageList:
+            #     imageString += "'" + image + "',"
+            # use: imageString[:-1]
+            #QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
 
-        query = QSqlQuery(self.dbm.db)
-        qryStr = "select filmnummer, bildnummer, AsWKT(geometry) as fpGeom, Area(geometry) as area from luftbild_senk_fp where bildnummer in ({0}) union all select filmnummer, bildnummer, AsWKT(geometry) as fpGeom, Area(geometry) as area from luftbild_schraeg_fp where bildnummer in ({0}) order by bildnummer".format(imageString[:-1])
-        query.exec_(qryStr)
+            subsetString = '"bildnummer" IN (' + ','.join(['\'{0}\''.format(imageNumber) for imageNumber in imageList]) + ')'
+            now = QDateTime.currentDateTime()
+            time = now.toString("yyyyMMdd_hhmmss")
+
+            if polygon:
+                polygonLayerOblique = self.apisLayer.getSpatialiteLayer("luftbild_schraeg_fp", subsetString)
+                polygonLayerVertical = self.apisLayer.getSpatialiteLayer("luftbild_senk_fp", subsetString)
+                polygonLayer = self.apisLayer.mergeLayers([polygonLayerOblique, polygonLayerVertical], parent=self)
+                if polygonLayer:
+                    # export PolygonLayer
+                    self.apisLayer.exportLayerAsShp(polygonLayer, time, name="Bilder_Footprints", groupName="Temp", styleName="images_vertical_fp", parent=self)
+
+            if point:
+                pointLayerOblique = self.apisLayer.getSpatialiteLayer("luftbild_schraeg_cp", subsetString)
+                pointLayerVertical = self.apisLayer.getSpatialiteLayer("luftbild_senk_cp", subsetString)
+                pointLayer = self.apisLayer.mergeLayers([pointLayerOblique, pointLayerVertical], parent=self)
+                if pointLayer:
+                    # export PolygonLayer
+                    self.apisLayer.exportLayerAsShp(pointLayer, time, name="Bilder_Centerpoints", groupName="Temp", styleName="images_vertical_cp", parent=self)
+
+                # query = QSqlQuery(self.dbm.db)
+                # qryStr = "select filmnummer, bildnummer, AsWKT(geometry) as fpGeom, Area(geometry) as area from luftbild_senk_fp where bildnummer in ({0}) union all select filmnummer, bildnummer, AsWKT(geometry) as fpGeom, Area(geometry) as area from luftbild_schraeg_fp where bildnummer in ({0}) order by bildnummer".format(imageString[:-1])
+                # query.exec_(qryStr)
+                #
+                # # Save Dialog
+                # saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
+                # polygonLayer = QFileDialog.getSaveFileName(self, 'Footprint Export Speichern', saveDir + "\\" + 'Footprints_{0}'.format(now.toString("yyyyMMdd_hhmmss")), '*.shp')[0]
+                # if polygonLayer:
+                #     check = QFile(polygonLayer)
+                #     if check.exists():
+                #         if not QgsVectorFileWriter.deleteShapeFile(polygonLayer):
+                #             QMessageBox.warning(self, "Footprint Export", u"Es ist nicht möglich die SHP Datei {0} zu überschreiben!".format(polygonLayer))
+                #             return
+                #             #raise Exception
+                #
+                #     #fields
+                #     fields = QgsFields()
+                #     fields.append(QgsField("bildnummer", QVariant.String))
+                #     fields.append(QgsField("filmnummer", QVariant.String))
+                #     fields.append(QgsField("area", QVariant.Double))
+                #
+                #     writer = QgsVectorFileWriter(polygonLayer, "UTF-8", fields, QgsWkbTypes.Polygon, QgsCoordinateReferenceSystem(4312, QgsCoordinateReferenceSystem.EpsgCrsId), "ESRI Shapefile")
+                #
+                #     for feature in self.iter_features(query):
+                #         writer.addFeature(feature)
+                #     del writer
+                #
+                #     #load to canvas
+                #     self.iface.addVectorLayer(layer, "", 'ogr')
+                #
+                #     #open folder in file browser
+                #     OpenFileOrFolder(os.path.split(layer)[0])
 
 
-        # Save Dialog
-        now = QDateTime.currentDateTime()
-        saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-        layer = QFileDialog.getSaveFileName(self, 'Footprint Export Speichern', saveDir + "\\" + 'Footprints_{0}'.format(now.toString("yyyyMMdd_hhmmss")), '*.shp')[0]
-        if layer:
-            #layer = "C:\\apis\\export_footprints.shp"
-            check = QFile(layer)
-            if check.exists():
-                if not QgsVectorFileWriter.deleteShapeFile(layer):
-                    QMessageBox.warning(None, "Footprint Export", u"Es ist nicht möglich die SHP Datei {0} zu überschreiben!".format(layer))
-                    return
-                    #raise Exception
-
-            #fields
-            fields = QgsFields()
-            fields.append(QgsField("bildnummer", QVariant.String))
-            fields.append(QgsField("filmnummer", QVariant.String))
-            fields.append(QgsField("area", QVariant.Double))
-
-            writer = QgsVectorFileWriter(layer, "UTF-8", fields, QgsWkbTypes.Polygon, QgsCoordinateReferenceSystem(4312, QgsCoordinateReferenceSystem.EpsgCrsId), "ESRI Shapefile")
-
-            for feature in self.iter_features(query):
-                writer.addFeature(feature)
-            del writer
-
-            #load to canvas
-            self.iface.addVectorLayer(layer, "", 'ogr')
-
-            #open folder in file browser
-            OpenFileOrFolder(os.path.split(layer)[0])
-
-            #vlayer = QgsVectorLayer("multipolygon?crs=EPSG:4326", "export_footprints", "memory")
-            # vlayer.setCrs(self.pointLayer.crs())
-            #provider = vlayer.dataProvider()
-            #vlayer use crs of pointLayer
-
-            #fields = QgsFields()
-            #fields.append(QgsField("area", QVariant.Double))
-            #vlayer.addAttribute(QgsField("area", QVariant.Double))
-
-
-            #vlayer.updateFields()
-
-            #for feature in self.iter_features():
-                #provider.addFeatures([feature])
-
-            #while query.next():
-                #rec = query.record()
-                #feature = QgsFeature()
-                #feature.setFields(fields)
-                #feature.setGeometry(QgsGeometry.fromWkt(rec.value(rec.indexOf("mp"))))
-                #feature.setAttribute("area",rec.value(rec.indexOf("area")))
-               # vlayer.addFeature(feature)
-                #geom.fromPolygon()
-                #QMessageBox.warning(None, "BildNumber", "{0}".format(geom.asWkt()))
-
-            #vlayer.updateExtents()
-            #QgsMapLayerRegistry.instance().addMapLayer(vlayer)
 
     def iter_features(self, query):
         """Iterate over the features of the input layer.
-
         Yields pairs of the form (QgsPoint, attributeMap).
         Each time a vertice is read hook is called.
-
         """
 
         while query.next():
@@ -488,13 +565,15 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def copyImages(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Bilder Kopieren')
-            msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste kopieren?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
+            # TODO remove
+            # msgBox = QMessageBox(self)
+            # msgBox.setWindowTitle(u'Bilder Kopieren')
+            # msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste kopieren?')
+            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
+            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
+            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
+            # ret = msgBox.exec_()
+            ret = SelectionOrAll(parent=self)
 
             if ret == 0:
                 imageList = self.getImageList(False, 5, "ja")
@@ -509,7 +588,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             hiResImageList = self.getImageList(True, 7, "ja")
 
         if len(imageList) == 0:
-            QMessageBox.warning(None, "Bilder kopieren", u"Es sind keine Bilder vorhanden!")
+            QMessageBox.warning(self, "Bilder kopieren", u"Es sind keine Bilder vorhanden!")
             return
 
         selectedDirName = QFileDialog.getExistingDirectory(None, u"Ziel Ordner auswählen", GetExportPath())
@@ -520,7 +599,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             hiRes = False
             if len(hiResImageList) > 0:
                 #ask if normal, hires, oder beides?
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(self)
                 msgBox.setWindowTitle(u'Bilder Kopieren')
                 msgBox.setText(u'Neben Bildern mit normaler Auflösung stehen Bilder mit hoher Auflösung zur Verfügung. Welche wollen Sie kopieren?')
                 msgBox.addButton(QPushButton(u'Normale Auflösung'), QMessageBox.ActionRole)
@@ -589,19 +668,27 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                 OpenFileOrFolder(destinationDirName)
 
             else:
-                QMessageBox.warning(None, "Bilder kopieren", u"Das Ziel Verzeichnis {0} konnte in {1} nicht erstellt werden".format(newDirName, selectedDirName))
+                QMessageBox.warning(self, "Bilder kopieren", u"Das Ziel Verzeichnis {0} konnte in {1} nicht erstellt werden".format(newDirName, selectedDirName))
 
     def image2Xmp(self):
 
+        # check if exiv2 is installed
+        from shutil import which
+        if which("exiv2") is None:
+            QMessageBox.warning(self, "Exiv2 nicht installiert!", "Um diese Funktion zu verwenden muss exiv2 installiert sein. Verwenden Sie dazu den OSGeo4W Network Installer (https://download.qgis.org/)")
+            return
+
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Schreibe EXIF/IPTC')
-            msgBox.setText(u'Wollen Sie die Metadaten der ausgewählten Bilder oder der gesamten Liste exportieren?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
+            # TODO remove
+            # msgBox = QMessageBox(self)
+            # msgBox.setWindowTitle(u'Schreibe EXIF/IPTC')
+            # msgBox.setText(u'Wollen Sie die Metadaten der ausgewählten Bilder oder der gesamten Liste exportieren?')
+            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
+            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
+            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
+            # ret = msgBox.exec_()
+            ret = SelectionOrAll(parent=self)
 
             if ret == 0:
                 imageList = self.getImageList(False)
@@ -612,12 +699,37 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         else:
             imageList = self.getImageList(True)
 
-        imageString = "'" + "','".join(imageList) + "'"
+        # check if images available for imageList
+        finalImageList = [imageNumber for imageNumber in imageList if self.imageRegistry.hasImage(imageNumber)]
+
+        if finalImageList:
+            if len(finalImageList) == len(imageList):
+                # same size (all images are in image registry)
+                rep = QMessageBox.question(self, "EXIF/XMP Export: Bilder vorhanden.", "Bilder sind für alle {0} Einträge vorhanden. Wollen Sie mit dem XMP Export fortfahren?".format(len(finalImageList)),
+                                                   QMessageBox.Yes | QMessageBox.Cancel, QMessageBox.Cancel)
+                if rep == QMessageBox.Cancel:
+                    return
+            else:
+                # not same size (not all images are in image registry) ask if to continue
+                rep = QMessageBox.question(self, "EXIF/XMP Export: einige Bilder vorhanden.",
+                                           "Bilder sind für {0} von {1} Einträgen vorhanden. Wollen Sie mit dem XMP Export fortfahren?".format(
+                                               len(finalImageList), len(imageList)),
+                                           QMessageBox.Yes | QMessageBox.Cancel, QMessageBox.Cancel)
+                if rep == QMessageBox.Cancel:
+                    return
+        else:
+            QMessageBox.warning(self, "EXIF/XMP Export: Bilder nicht vorhanden.", "Es sind keine Bilder für die ausgewählten Einträge vorhanden.")
+            return
+
+        imageString = "'" + "','".join(finalImageList) + "'"
+        #QMessageBox.information(None, "Image", u"{0}".format(imageString))
 
         query = QSqlQuery(self.dbm.db)
         qryStr = u"SELECT * FROM (SELECT bildnummer, hoehe, longitude, latitude,  (SELECT group_concat(fundortnummer, ';' ) FROM fundort, luftbild_senk_fp WHERE luftbild_senk_fp.bildnummer = lb.bildnummer AND Intersects(fundort.geometry, luftbild_senk_fp.geometry) AND fundort.rowid IN (SELECT rowid FROM spatialindex WHERE f_table_name='fundort' AND search_frame=luftbild_senk_fp.geometry) ORDER BY fundortnummer_nn) AS fundorte, NULL AS keyword, NULL AS description, lb.projekt, lb.copyright, land, militaernummer, militaernummer_alt, archiv, kamera, kalibrierungsnummer, kammerkonstante, fokus, fotograf, flugdatum, flugzeug FROM luftbild_senk_cp AS lb, film AS f WHERE lb.filmnummer = f.filmnummer AND lb.bildnummer IN ({0}) UNION ALL SELECT bildnummer, hoehe, longitude, latitude, (SELECT group_concat(fundortnummer, ';' ) FROM fundort, luftbild_schraeg_fp WHERE luftbild_schraeg_fp.bildnummer = lb.bildnummer AND Intersects(fundort.geometry, luftbild_schraeg_fp.geometry) AND fundort.rowid IN (SELECT rowid FROM spatialindex WHERE f_table_name='fundort' AND search_frame=luftbild_schraeg_fp.geometry) ORDER BY fundortnummer_nn) as fundorte, keyword, description, lb.projekt, lb.copyright, land, militaernummer, militaernummer_alt, archiv, kamera, kalibrierungsnummer, kammerkonstante, fokus, fotograf, flugdatum, flugzeug FROM luftbild_schraeg_cp AS lb, film AS f WHERE lb.filmnummer = f.filmnummer AND lb.bildnummer IN ({0})) ORDER BY bildnummer".format(imageString)
         query.prepare(qryStr)
         query.exec_()
+
+        # QMessageBox.information(None, "Info", "{0}".format(query.executedQuery()))# query.lastError().text()))
 
         imageDir = self.settings.value("APIS/image_dir")
 
@@ -625,6 +737,10 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         count = 0
         while query.next():
             count += 1
+
+        if count == 0:
+            QMessageBox.warning(self, "Database Warning", "{0}, {1}".format(query.executedQuery(), query.lastError().text()))
+            return
 
         progressDlg = QProgressDialog("XMP Metadaten werden geschrieben...", "Abbrechen", 0, count, self)
         progressDlg.setWindowModality(Qt.WindowModal)
@@ -647,13 +763,13 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             if self.imageRegistry.hasImage(metadataDict["APIS_bildnummer"]):
                 imagePath = imageDir + "\\" + metadataDict["APIS_bildnummer"][:10] + "\\" + metadataDict["APIS_bildnummer"].replace('.','_') + ".jpg"
                 if os.path.isfile(imagePath):
-                    #QMessageBox.information(None, "Image", u"{0}".format(imagePath))
+                    # QMessageBox.information(None, "Image", u"{0}".format(imagePath))
                     Image2Xmp(metadataDict, imagePath)
                     counting += 1
                 else:
-                    QMessageBox.information(None, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (FileSystem: {1}).".format(metadataDict["APIS_bildnummer"], imagePath))
+                    QMessageBox.information(self, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (FileSystem: {1}).".format(metadataDict["APIS_bildnummer"], imagePath))
             else:
-                QMessageBox.information(None, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (ImageRegistry).".format(metadataDict["APIS_bildnummer"]))
+                QMessageBox.information(self, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (ImageRegistry).".format(metadataDict["APIS_bildnummer"]))
             #imagePath = self.settings.value("APIS/image_dir") + "\\02140301\\02140301_003.jpg"
         progressDlg.setValue(count)
 
@@ -697,13 +813,15 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def askForImageList(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage ob Fundorte der selektierten Bilder Exportieren oder alle
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Bildliste als PDF speichern')
-            msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste als PDF speichern?')
-            msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
+            # TODO remove
+            # msgBox = QMessageBox(self)
+            # msgBox.setWindowTitle(u'Bildliste als PDF speichern')
+            # msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste als PDF speichern?')
+            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
+            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
+            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
+            # ret = msgBox.exec_()
+            ret = SelectionOrAll(parent=self)
 
             if ret == 0:
                 imageList = self.getImageList(False)
@@ -730,19 +848,19 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         if pdfsToPrint:
             APISPrinterQueue(pdfsToPrint, OutputMode.MergeNone, dbm=self.dbm, parent=self)
 
-    def onSelectionChanged(self, current, previous):
-        # Filter ortho = ja
-        if self.uiImageListTableV.selectionModel().hasSelection() and len(self.getImageList(False, 6, "ja")) > 0:
-            pass
-            #self.uiLoadOrthoBtn.setEnabled(True)
-        else:
-            pass
-            #self.uiLoadOrthoBtn.setEnabled(False)
-        #if self.uiImageListTableV.selectionModel().hasSelection() and len(self.uiImageListTableV.selectionModel().selectedRows()) == 1:
-        #    self.uiLoadOrthoBtn.setEnabled(True)
-        #else:
-        #    self.uiLoadOrthoBtn.setEnabled(False)
-        #QMessageBox.warning(None, "FilmNumber", "selection Changed")
+    # def onSelectionChanged(self, current, previous):
+    #     # Filter ortho = ja
+    #     if self.uiImageListTableV.selectionModel().hasSelection() and len(self.getImageList(False, 6, "ja")) > 0:
+    #         pass
+    #         #self.uiLoadOrthoBtn.setEnabled(True)
+    #     else:
+    #         pass
+    #         #self.uiLoadOrthoBtn.setEnabled(False)
+    #     #if self.uiImageListTableV.selectionModel().hasSelection() and len(self.uiImageListTableV.selectionModel().selectedRows()) == 1:
+    #     #    self.uiLoadOrthoBtn.setEnabled(True)
+    #     #else:
+    #     #    self.uiLoadOrthoBtn.setEnabled(False)
+    #     #QMessageBox.warning(None, "FilmNumber", "selection Changed")
 
     def applyFilter(self):
         self.uiImageListTableV.selectionModel().clear()
@@ -754,7 +872,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                 if (self.uiFilterVerticalChk.checkState() == Qt.Unchecked and self.model.item(row, 3).text() == u'senk.') or (self.uiFilterObliqueChk.checkState() == Qt.Unchecked and self.model.item(row, 3).text() == u'schräg'):
                     show = False
                 # Images
-                if show and ((self.uiFilterScanChk.checkState() == Qt.Checked and self.model.item(row,5).text() != self.uiFilterScanCombo.currentText()) or (self.uiFilterOrthoChk.checkState() == Qt.Checked and self.model.item(row,6).text() != self.uiFilterOrthoCombo.currentText()) or (self.uiFilterHiResChk.checkState() == Qt.Checked and self.model.item(row,7).text() != self.uiFilterHiResCombo.currentText())):
+                if show and ((self.uiFilterScanChk.checkState() == Qt.Checked and self.model.item(row, 5).text() != self.uiFilterScanCombo.currentText()) or (self.uiFilterOrthoChk.checkState() == Qt.Checked and self.model.item(row,6).text() != self.uiFilterOrthoCombo.currentText()) or (self.uiFilterHiResChk.checkState() == Qt.Checked and self.model.item(row,7).text() != self.uiFilterHiResCombo.currentText())):
                     show = False
                 # Scale
                 if show and self.uiFilterScaleEdit.text().strip() != '':
@@ -775,9 +893,9 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     show = False
 
                 # year
-                if show and self.uiFilterFromChk.checkState() == Qt.Checked and int(self.model.item(row,1).text()[2:6]) < self.uiFilterFromDate.date().year():
+                if show and self.uiFilterFromChk.checkState() == Qt.Checked and int(self.model.item(row, 1).text()[2:6]) < self.uiFilterFromDate.date().year():
                     show = False
-                if show and self.uiFilterToChk.checkState() == Qt.Checked and int(self.model.item(row,1).text()[2:6]) > self.uiFilterToDate.date().year():
+                if show and self.uiFilterToChk.checkState() == Qt.Checked and int(self.model.item(row, 1).text()[2:6]) > self.uiFilterToDate.date().year():
                     show = False
 
                 if show:
@@ -787,26 +905,26 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     self.uiImageListTableV.hideRow(row)
 
             self.uiImageFilterCountLbl.setText('({0})'.format(count))
-            self.uiScanFilterCountLbl.setText('({0})'.format(len(self.getImageList(True,5,"ja"))))
-            self.uiHiResFilterCountLbl.setText('({0})'.format(len(self.getImageList(True,7,"ja"))))
-            self.uiOrthoFilterCountLbl.setText('({0})'.format(len(self.getImageList(True,6,"ja"))))
+            self.uiScanFilterCountLbl.setText('({0})'.format(len(self.getImageList(True, 5, "ja"))))
+            self.uiHiResFilterCountLbl.setText('({0})'.format(len(self.getImageList(True, 7, "ja"))))
+            self.uiOrthoFilterCountLbl.setText('({0})'.format(len(self.getImageList(True, 6, "ja"))))
 
-            self.onSelectionChanged(None, None)
-            if count == 0:
-                pass
-                #self.uiLoadOrthoBtn.setEnabled(False)
-                #self.uiImageThumbsBtn.setEnabled(False)
-                #self.uiExportFootprintsBtn.setEnabled(False)
-                #self.uiCopyImagesBtn.setEnabled(False)
-                #self.uiPdfExportTBtn.setEnabled(False)
-            else:
-                pass
-                #if self.uiImageListTableV.selectionModel().hasSelection() and len(self.uiImageListTableV.selectionModel().selectedRows()) == 1:
-                #    self.uiLoadOrthoBtn.setEnabled(True)
-                #self.uiImageThumbsBtn.setEnabled(True)
-                #self.uiExportFootprintsBtn.setEnabled(True)
-                #self.uiCopyImagesBtn.setEnabled(True)
-                #self.uiPdfExportTBtn.setEnabled(True)
+            # self.onSelectionChanged(None, None)
+            # if count == 0:
+            #     pass
+            #     #self.uiLoadOrthoBtn.setEnabled(False)
+            #     #self.uiImageThumbsBtn.setEnabled(False)
+            #     #self.uiExportFootprintsBtn.setEnabled(False)
+            #     #self.uiCopyImagesBtn.setEnabled(False)
+            #     #self.uiPdfExportTBtn.setEnabled(False)
+            # else:
+            #     pass
+            #     #if self.uiImageListTableV.selectionModel().hasSelection() and len(self.uiImageListTableV.selectionModel().selectedRows()) == 1:
+            #     #    self.uiLoadOrthoBtn.setEnabled(True)
+            #     #self.uiImageThumbsBtn.setEnabled(True)
+            #     #self.uiExportFootprintsBtn.setEnabled(True)
+            #     #self.uiCopyImagesBtn.setEnabled(True)
+            #     #self.uiPdfExportTBtn.setEnabled(True)
         else:
             # show all rows
             for row in range(self.model.rowCount()):
@@ -831,5 +949,5 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             years.append(int(self.model.item(row, 1).text()[2:6]))
         return QDate(min(years), 1, 1), QDate(max(years), 1, 1)
 
-    def onAccepted(self):
-        self.accept()
+    def onClose(self):
+        SetWindowSizeAndPos("image_selection_list", self.size(), self.pos())

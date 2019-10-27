@@ -161,6 +161,9 @@ class APISPrinterQueue(QObject):
                 if self.isCanceled:
                     raise Exception('APISPrinterQueue', 'PrintingCanceled')
                 self.progress.setLabelText("PDF Export: {0}".format(printable['fileName']))
+                if not 'options' in printable:
+                    printable['options'] = {}
+
                 if printable['type'] == APISListPrinter.FILM:
                     # Prepare Printer
                     printable['printer'] = APISFilmListPrinter(printable['fileName'], printable['idList'], self.dbm, self.imageRegistry)
@@ -175,13 +178,13 @@ class APISPrinterQueue(QObject):
                     printable['printer'] = APISFindspotListPrinter(printable['fileName'], printable['idList'], self.dbm)
                 elif printable['type'] == APISTemplatePrinter.FILM:
                     # Prepare Printer
-                    printable['printer'] = APISFilmTemplatePrinter(printable['fileName'], printable['idList'][0], self.dbm)
+                    printable['printer'] = APISFilmTemplatePrinter(printable['fileName'], printable['idList'][0], self.dbm, printable['options'])
                 elif printable['type'] == APISTemplatePrinter.SITE:
                     # Prepare Printer
-                    printable['printer'] = APISSiteTemplatePrinter(printable['fileName'], printable['idList'][0], self.dbm)
+                    printable['printer'] = APISSiteTemplatePrinter(printable['fileName'], printable['idList'][0], self.dbm, printable['options'])
                 elif printable['type'] == APISTemplatePrinter.FINDSPOT:
                     # Prepare Printer
-                    printable['printer'] = APISFindspotTemplatePrinter(printable['fileName'], printable['idList'][0], self.dbm)
+                    printable['printer'] = APISFindspotTemplatePrinter(printable['fileName'], printable['idList'][0], self.dbm, printable['options'])
                 elif printable['type'] == APISLabelPrinter.Oblique:
                     printable['printer'] = APISObliqueLabelPrinter(printable['fileName'], printable['idList'], self.dbm)
                 elif printable['type'] == APISLabelPrinter.Vertical:
@@ -578,8 +581,9 @@ class APISTemplatePrinter:
 class APISFilmTemplatePrinter(APISTemplatePrinter):
     FILENAMETEMPLATE = "Film_{0}"
 
-    def __init__(self, fileName, id, dbm):
+    def __init__(self, fileName, id, dbm, options):
         self.dbm = dbm
+        self.options = options
         template = os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "layout", "film_logo.qpt"])
         APISTemplatePrinter.__init__(self, fileName, id, template)
 
@@ -602,6 +606,9 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
             substituteDict['projekt'] = substituteDict['projekt'].strip(";").replace(";", "\n")
             substituteDict['wetter_description'] = GenerateWeatherDescription(self.dbm.db, substituteDict['wetter'])
             substituteDict['datum_druck'] = QDate.currentDate().toString("yyyy-MM-dd")
+            if not self.options['personalData']:
+                substituteDict['fotograf'] = "---"
+                substituteDict['pilot'] = "---"
 
         return substituteDict
 
@@ -702,8 +709,9 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
 class APISSiteTemplatePrinter(APISTemplatePrinter):
     FILENAMETEMPLATE = "Fundort_{0}"
 
-    def __init__(self, fileName, id, dbm):
+    def __init__(self, fileName, id, dbm, options):
         self.dbm = dbm
+        self.options = options
         template = os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "layout", "site_logo.qpt"])
         APISTemplatePrinter.__init__(self, fileName, id, template)
 
@@ -755,6 +763,9 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
             while query2.next():
                 rec2 = query2.record()
                 substituteDict['kgs_lage'] += u"{0} {1} ({2} %)\n".format(rec2.value(0), rec2.value(1), rec2.value(2))
+
+            if not self.options['filmProject']:
+                substituteDict['filmnummer_projekt'] = "---"
 
         return substituteDict
 
@@ -809,8 +820,9 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
 class APISFindspotTemplatePrinter(APISTemplatePrinter):
     FILENAMETEMPLATE = "Fundstelle_{0}"
 
-    def __init__(self, fileName, id, dbm):
+    def __init__(self, fileName, id, dbm, options):
         self.dbm = dbm
+        self.options = options
         template = os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "layout", "findspot_logo.qpt"])
         APISTemplatePrinter.__init__(self, fileName, id, template)
 
@@ -842,6 +854,9 @@ class APISFindspotTemplatePrinter(APISTemplatePrinter):
                 substituteDict['sicherheit'] = "fraglich"
             elif substituteDict['sicherheit'] == "4":
                 substituteDict['sicherheit'] = "kein Fundstelle"
+
+            if not self.options['personalData']:
+                substituteDict['bearbeiter'] = "---"
 
         return substituteDict
 

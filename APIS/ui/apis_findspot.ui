@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2220</width>
-    <height>1331</height>
+    <width>1000</width>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -882,22 +882,19 @@
    <item row="1" column="0" colspan="3">
     <layout class="QHBoxLayout" name="uiBottomHorizontalLayout">
      <item>
-      <widget class="QPushButton" name="uiLoadFindspotInQGisBtn">
+      <widget class="QToolButton" name="uiLayerTBtn">
        <property name="text">
-        <string>Fundstelle in QGIS anzeigen</string>
+        <string>Layer ...</string>
        </property>
        <property name="icon">
         <iconset resource="resource.qrc">
          <normaloff>:/plugins/APIS/icons/layer.png</normaloff>:/plugins/APIS/icons/layer.png</iconset>
        </property>
-       <property name="iconSize">
-        <size>
-         <width>30</width>
-         <height>30</height>
-        </size>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
        </property>
-       <property name="autoDefault">
-        <bool>false</bool>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextBesideIcon</enum>
        </property>
       </widget>
      </item>
@@ -1064,7 +1061,6 @@
   <tabstop>uiMiscellaneousPTxt</tabstop>
   <tabstop>uiFindingsHistoryPTxt</tabstop>
   <tabstop>uiFindingsInterpretationPTxt</tabstop>
-  <tabstop>uiLoadFindspotInQGisBtn</tabstop>
   <tabstop>uiViewSiteBtn</tabstop>
   <tabstop>uiInitalEntryDate</tabstop>
   <tabstop>uiLastChangesDate</tabstop>

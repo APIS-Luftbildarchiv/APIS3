@@ -26,7 +26,8 @@ import os
 from osgeo import ogr
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QTableWidgetItem, QHeaderView, QCheckBox, QMenu
+from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QTableWidgetItem, QHeaderView, QCheckBox, QMenu, QMessageBox,
+                             QPushButton)
 from PyQt5.QtCore import QSettings, Qt, QVariant
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlQuery
@@ -36,7 +37,8 @@ from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsField, Q
                        QgsCoordinateTransform)
 
 from APIS.src.apis_points2path import Points2Path
-from APIS.src.apis_utils import TransformGeometry
+from APIS.src.apis_utils import (TransformGeometry, SetWindowSizeAndPos, GetWindowSize, GetWindowPos, OpenFileOrFolder,
+                                 FileOrFolder)
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_flight_path.ui'), resource_suffix='')
@@ -44,18 +46,29 @@ FORM_CLASS, _ = loadUiType(os.path.join(
 
 class APISFlightPath(QDialog, FORM_CLASS):
 
-    def __init__(self, iface, dbm, parent=None):
+    def __init__(self, iface, dbm, apisLayer, parent=None):
         """Constructor."""
         super(APISFlightPath, self).__init__(parent)
         self.iface = iface
         self.dbm = dbm
+        self.apisLayer = apisLayer
         self.setupUi(self)
+
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("flight_path"):
+            self.resize(GetWindowSize("flight_path"))
+        if GetWindowPos("flight_path"):
+            self.move(GetWindowPos("flight_path"))
+
         self.filmsDict = {}
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
         self.uiLayerTBtn.setEnabled(False)
 
         self.shpDriver = ogr.GetDriverByName('ESRI Shapefile')
+
+        self.rejected.connect(self.onClose)
+        self.accepted.connect(self.onClose)
 
         mSelect = QMenu()
         mSelect.addSection("Linien")
@@ -95,6 +108,9 @@ class APISFlightPath(QDialog, FORM_CLASS):
     def showEvent(self, evnt):
         self.selectAll(False)
         self.uiLayerTBtn.setEnabled(False)
+
+    def onClose(self):
+        SetWindowSizeAndPos("flight_path", self.size(), self.pos())
 
     def viewFilms(self, films):
 
@@ -256,7 +272,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
             check = QFile(layerName)
             if check.exists():
                 if not QgsVectorFileWriter.deleteShapeFile(layerName):
-                    QMessageBox.warning(None, "Fundorte Export",
+                    QMessageBox.warning(self, "Fundorte Export",
                                         u"Es ist nicht möglich die SHP Datei {0} zu überschreiben!".format(layerName))
                     return
 
@@ -264,14 +280,19 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
             if error == QgsVectorFileWriter.NoError:
                 # QMessageBox.information(None, "Fundorte Export", u"Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.")
-                msgBox = QMessageBox()
-                msgBox.setWindowTitle(u'Fundorte Export')
-                msgBox.setText(u"Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.")
-                msgBox.addButton(QPushButton(u'SHP Datei laden'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'Ordner öffnen'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'SHP Datei laden und Ordner öffnen'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton(u'OK'), QMessageBox.AcceptRole)
-                ret = msgBox.exec_()
+                # TODO remove
+                # msgBox = QMessageBox(self)
+                # msgBox.setWindowTitle(u'Fundorte Export')
+                # msgBox.setText(u"Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.")
+                # msgBox.addButton(QPushButton(u'SHP Datei laden'), QMessageBox.ActionRole)
+                # msgBox.addButton(QPushButton(u'Ordner öffnen'), QMessageBox.ActionRole)
+                # msgBox.addButton(QPushButton(u'SHP Datei laden und Ordner öffnen'), QMessageBox.ActionRole)
+                # msgBox.addButton(QPushButton(u'OK'), QMessageBox.AcceptRole)
+                # ret = msgBox.exec_()
+                ret = FileOrFolder(parent=self,
+                                   title="Fundorte Export",
+                                   text="Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.",
+                                   rejectText="OK")
 
                 if ret == 0 or ret == 2:
                     # Shp Datei in QGIS laden
@@ -282,16 +303,18 @@ class APISFlightPath(QDialog, FORM_CLASS):
                     OpenFileOrFolder(os.path.split(layerName)[0])
 
             else:
-                QMessageBox.warning(None, "Fundorte Export",
+                QMessageBox.warning(self, "Fundorte Export",
                                     u"Beim erstellen der SHP Datei ist ein Fehler aufgetreten.")
 
 
     def loadLayerInQgis(self):
         flightPathPointLayer, flightPathLineLayer = self.requestFlightPathLayer()
         if flightPathPointLayer.hasFeatures():
-            QgsProject.instance().addMapLayer(flightPathPointLayer)
+            #QgsProject.instance().addMapLayer(flightPathPointLayer)
+            self.apisLayer.addLayerToCanvas(flightPathPointLayer, "Flugwege")
         if flightPathLineLayer.hasFeatures():
-            QgsProject.instance().addMapLayer(flightPathLineLayer)
+            #QgsProject.instance().addMapLayer(flightPathLineLayer)
+            self.apisLayer.addLayerToCanvas(flightPathLineLayer, "Flugwege")
 
     def requestFlightPathLayer(self):
         # https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/vector.html#memory-provider
@@ -376,7 +399,11 @@ class APISFlightPath(QDialog, FORM_CLASS):
         dataSource = self.shpDriver.Open(shpFile, 0)
         if dataSource:
             sourceCrs = QgsCoordinateReferenceSystem()
-            sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
+            spatialRef = dataSource.GetLayer().GetSpatialRef()
+            if spatialRef:
+                sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
+            else:
+                sourceCrs.createFromId(4326, type=QgsCoordinateReferenceSystem.EpsgCrsId)
 
             # Create QgsMultiPointGeometry; iterate over all Points and add to MultiGeometry
             if sortBy:

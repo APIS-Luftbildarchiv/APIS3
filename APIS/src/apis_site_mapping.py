@@ -525,7 +525,7 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
             self.siteLayer.updateFeature(feature)
 
         if SitesHaveFindspots(self.dbm.db, [siteNumber for siteNumber in polygonDict]):
-            findspotHandlingDlg = APISSiteEditFindspotConflictHandling(self.iface, self.dbm, polygonDict)
+            findspotHandlingDlg = APISSiteEditFindspotConflictHandling(self.iface, self.dbm, polygonDict, parent=self)
             findspotHandlingDlg.closeAble = False
             findspotHandlingDlg.uiCancelEditBtn.setEnabled(False)
             res = findspotHandlingDlg.exec_()

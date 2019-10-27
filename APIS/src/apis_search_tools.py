@@ -34,9 +34,9 @@ class RectangleMapTool(QgsMapToolEmitPoint):
 
         self.reset()
 
-        self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry)
-        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
-        self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
+        self.imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
+        self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
+        self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
 
         self.worker = None
 
@@ -117,7 +117,8 @@ class RectangleMapTool(QgsMapToolEmitPoint):
         self.rubberBand.hide()
 
     def openFindspotSelectionListDialogByLocation(self, query):
-        res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query)
+        info = u"gefunden für den ausgewählten Bereich."
+        res = self.findspotSelectionListDlg.loadFindspotListBySpatialQuery(query, info)
         if res:
             self.findspotSelectionListDlg.show()
             #if self.findspotSelectionListDlg.exec_():

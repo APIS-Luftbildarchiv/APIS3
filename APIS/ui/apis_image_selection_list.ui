@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1954</width>
-    <height>1124</height>
+    <width>1000</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,12 +28,15 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QPushButton" name="uiResetSelectionBtn">
+       <property name="toolTip">
+        <string>Selektion zurücksetzen</string>
+       </property>
        <property name="text">
         <string/>
        </property>
        <property name="icon">
         <iconset resource="resource.qrc">
-         <normaloff>:/plugins/APIS/icons/update.png</normaloff>:/plugins/APIS/icons/update.png</iconset>
+         <normaloff>:/plugins/APIS/icons/deselection.png</normaloff>:/plugins/APIS/icons/deselection.png</iconset>
        </property>
        <property name="autoDefault">
         <bool>false</bool>
@@ -168,7 +171,7 @@
      <item>
       <widget class="QLabel" name="uiImageSelectedCountLbl">
        <property name="text">
-        <string>-</string>
+        <string>0</string>
        </property>
       </widget>
      </item>
@@ -232,7 +235,7 @@
      <item>
       <widget class="QLabel" name="uiScanSelectedCountLbl">
        <property name="text">
-        <string>-</string>
+        <string>0</string>
        </property>
       </widget>
      </item>
@@ -293,7 +296,7 @@
      <item>
       <widget class="QLabel" name="uiHiResSelectedCountLbl">
        <property name="text">
-        <string>-</string>
+        <string>0</string>
        </property>
       </widget>
      </item>
@@ -354,7 +357,7 @@
      <item>
       <widget class="QLabel" name="uiOrthoSelectedCountLbl">
        <property name="text">
-        <string>-</string>
+        <string>0</string>
        </property>
       </widget>
      </item>

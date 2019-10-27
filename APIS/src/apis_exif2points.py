@@ -31,6 +31,8 @@ from qgis.core import (QgsWkbTypes, QgsVectorFileWriter, QgsFields, QgsField, Qg
                        QgsGeometry, QgsPointXY)
 from qgis.core import QgsMessageLog, Qgis
 
+from APIS.src.apis_utils import GetExifForImage
+
 #import pyexiv2 as exif
 import exifread
 
@@ -105,9 +107,11 @@ class Exif2Points(object):
             return None
 
     # https: // gist.github.com / snakeye / fdc372dbf11370fe29eb
+    # TODO remove if utils approach works
     def _get_if_exist(self, data, key):
         return data[key] if key in data else None
 
+    # TODO remove if utils approach works
     def _convert_to_degress(self, value):
         """
         Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
@@ -117,6 +121,7 @@ class Exif2Points(object):
         """
         return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
 
+    # TODO remove if utils approach works
     def get_exif_location(self, exif_data):
         """
         Returns the latitude and longitude, if available, from the provided exif_data (obtained through get_exif_data above)
@@ -150,21 +155,21 @@ class Exif2Points(object):
 
     def iter_images_as_features(self):
         for image in self.images:
-            with open(image, 'rb') as f:
+            exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True)
+            # TODO remove if utils approach works
+            #with open(image, 'rb') as f:
+            #tags = exifread.process_file(f, details=False)
+            #ddlat, ddlon, alt = self.get_exif_location(tags)
+
+            if exif["latitude"] and exif["longitude"]:
                 imageName = os.path.basename(image)
                 imageNumber = int(imageName[11:14])
-                tags = exifread.process_file(f, details=False)
+                attributes = [imageNumber, exif["latitude"], exif["longitude"], exif["altitude"]]
 
-                ddlat, ddlon, alt = self.get_exif_location(tags)
-
-                if ddlat and ddlon:
-                    attributes = [imageNumber, ddlat, ddlon, alt]
-
-                    del tags
-                    feature = QgsFeature()
-                    feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(ddlon, ddlat)))
-                    feature.setAttributes(attributes)
-                    yield feature
+                feature = QgsFeature()
+                feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(exif["longitude"], exif["latitude"])))
+                feature.setAttributes(attributes)
+                yield feature
 
     def log_warning(self, message):
         """Log a warning."""

@@ -31,7 +31,7 @@ from PyQt5.QtGui import QIcon
 
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, APISListPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
-from APIS.src.apis_utils import SelectionOrAll
+from APIS.src.apis_utils import SelectionOrAll, SetWindowSizeAndPos, GetWindowSize, GetWindowPos
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_film_selection_list.ui'), resource_suffix='')
@@ -49,6 +49,12 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("film_selection_list"):
+            self.resize(GetWindowSize("film_selection_list"))
+        if GetWindowPos("film_selection_list"):
+            self.move(GetWindowPos("film_selection_list"))
+
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
         self.printingOptionsDlg = None
@@ -56,6 +62,8 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         self.uiDisplayFlightPathBtn.clicked.connect(lambda: parent.openFlightPathDialog(self.getFilmList(), self))
 
         self.uiResetSelectionBtn.clicked.connect(self.uiFilmListTableV.clearSelection)
+        # sort by Filmnumber without Producer (two leading digits)
+        # self.uiSortByFilmNumberWithoutProducer.clicked.connect()
 
         mPdfExport = QMenu()
         aPdfExportFilmList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Filmliste")
@@ -65,7 +73,8 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         self.uiPdfExportTBtn.setMenu(mPdfExport)
         self.uiPdfExportTBtn.clicked.connect(self.uiPdfExportTBtn.showMenu)
 
-        #self.accepted.connect(self.onAccepted)
+        self.accepted.connect(self.onAccepted)
+        self.rejected.connect(self.onRejected)
 
         self.setupTable()
 
@@ -97,16 +106,21 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         # self.uiFilmListTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
 
         self.uiFilmListTableV.sortByColumn(0, Qt.AscendingOrder)
+        self.uiFilmListTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+
+    def onSelectionChanged(self):
+        self.uiSelectionCountLbl.setText("{0}".format(len(self.uiFilmListTableV.selectionModel().selectedRows())))
 
     def viewFilm(self):
         filmIdx = self.model.createIndex(self.uiFilmListTableV.currentIndex().row(), self.model.fieldIndex("filmnummer"))
         self.filmNumberToLoad = self.model.data(filmIdx)
+        SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())
         self.accept()
 
 
     def askForFilmList(self):
         if self.uiFilmListTableV.selectionModel().hasSelection():
-            ret = SelectionOrAll()
+            ret = SelectionOrAll(parent=self)
             if ret == 0:
                 filmList = self.getFilmList(False)
             elif ret == 1:
@@ -141,27 +155,31 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         if tab_list and not detail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Filmliste")
+            personalData = False
         elif detail and not tab_list:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film")
+            personalData = True
         else:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Film und Filmliste")
+            personalData = True
 
         if self.uiFilmListTableV.model().rowCount() == 1:
-            self.printingOptionsDlg.configure(False, False)
+            self.printingOptionsDlg.configure(False, False, visPersonalDataChk=personalData)
         elif not self.uiFilmListTableV.selectionModel().hasSelection():
-            self.printingOptionsDlg.configure(False, detail)
+            self.printingOptionsDlg.configure(False, detail, visPersonalDataChk=personalData)
         else:
             if len(self.uiFilmListTableV.selectionModel().selectedRows()) == 1:
-                self.printingOptionsDlg.configure(True, detail)
+                self.printingOptionsDlg.configure(True, detail, visPersonalDataChk=personalData)
             elif len(self.uiFilmListTableV.selectionModel().selectedRows()) == self.uiFilmListTableV.model().rowCount():
-                self.printingOptionsDlg.configure(False, detail)
+                self.printingOptionsDlg.configure(False, detail, visPersonalDataChk=personalData)
             else:
-                self.printingOptionsDlg.configure(True, detail)
+                self.printingOptionsDlg.configure(True, detail, visPersonalDataChk=personalData)
 
         self.printingOptionsDlg.show()
 
         if self.printingOptionsDlg.exec_():
             # get settings from dialog
+            printPersonalData = self.printingOptionsDlg.printPersonalData()
             selectionModeIsAll = self.printingOptionsDlg.selectionModeIsAll()
             outputMode = self.printingOptionsDlg.outputMode()
 
@@ -174,7 +192,7 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
                 if detail:
                     for f in filmList:
-                        pdfsToPrint.append({'type': APISTemplatePrinter.FILM, 'idList': [f]})
+                        pdfsToPrint.append({'type': APISTemplatePrinter.FILM, 'idList': [f], 'options': {'personalData': printPersonalData}})
 
                 if pdfsToPrint:
                     APISPrinterQueue(pdfsToPrint,
@@ -186,4 +204,7 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
                                      parent=self)
 
     def onAccepted(self):
-        self.accept()
+        SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())
+
+    def onRejected(self):
+        SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())

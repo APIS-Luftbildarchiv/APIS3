@@ -30,6 +30,7 @@ from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtSql import QSqlQuery
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
+from APIS.src.apis_utils import GetWindowSize, SetWindowSize
 from APIS.src.apis_sharding import APISSharding
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -44,12 +45,19 @@ class APISShardingSelectionList(QDialog, FORM_CLASS):
         self.dbm = dbm
         self.setupUi(self)
 
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("sharding_selection_list"):
+            self.resize(GetWindowSize("sharding_selection_list"))
+
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
         self.siteNumber = None
 
         self.uiShardingListTableV.doubleClicked.connect(self.openShardingDialog)
         self.uiNewShardingBtn.clicked.connect(self.addNewSharding)
+
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
     def loadShardingListBySiteNumber(self, siteNumber):
         self.siteNumber = siteNumber
@@ -82,7 +90,7 @@ class APISShardingSelectionList(QDialog, FORM_CLASS):
 
     def openShardingDialog(self, idx):
         shardingNumber = self.model.item(idx.row(), 0).text()
-        shardingDlg = APISSharding(self.iface, self.dbm)
+        shardingDlg = APISSharding(self.iface, self.dbm, parent=self)
         shardingDlg.shardingEditsSaved.connect(self.reloadShardingList)
         shardingDlg.openSharding(self.siteNumber, shardingNumber)
         # Run the dialog event loop
@@ -93,7 +101,7 @@ class APISShardingSelectionList(QDialog, FORM_CLASS):
         #MessageBox.warning(None, "test", u"{0}".format(res))
 
     def addNewSharding(self):
-        shardingDlg = APISSharding(self.iface, self.dbm)
+        shardingDlg = APISSharding(self.iface, self.dbm, parent=self)
         shardingDlg.shardingEditsSaved.connect(self.reloadShardingList)
         # Run the dialog event loop
         shardingDlg.addNewSharding(self.siteNumber)
@@ -106,3 +114,6 @@ class APISShardingSelectionList(QDialog, FORM_CLASS):
 
     def reloadShardingList(self):
         self.loadShardingListBySiteNumber(self.siteNumber)
+
+    def onClose(self):
+        SetWindowSize("sharding_selection_list", self.size())

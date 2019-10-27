@@ -38,14 +38,15 @@ from qgis.gui import QgsRubberBand
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
 from APIS.src.apis_overpass_request import APISOverpassRequest
-from APIS.src.apis_utils import SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers, VersionToCome
+from APIS.src.apis_utils import (SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers, VersionToCome,
+                                 GetWindowSize, GetWindowPos, SetWindowSizeAndPos, FileOrFolder, PolygonOrPoint)
 from APIS.src.apis_findspot import APISFindspot
 from APIS.src.apis_findspot_selection_list import APISFindspotSelectionList
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter
-from APIS.src.apis_thumb_viewer import QdContactSheet
+from APIS.src.apis_thumb_viewer import APISThumbViewer
 
 from functools import partial
 
@@ -72,6 +73,12 @@ class APISSite(QDialog, FORM_CLASS):
         self.stylesDir = self.apisLayer.getStylesDir()
 
         self.setupUi(self)
+
+        # Initial window size/pos last saved. Use default values for first time
+        if GetWindowSize("site"):
+            self.resize(GetWindowSize("site"))
+        if GetWindowPos("site"):
+            self.move(GetWindowPos("site"))
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
@@ -102,8 +109,8 @@ class APISSite(QDialog, FORM_CLASS):
         self.shardingDlg = None
         self.findspotHandlingDlg = None
         self.printingOptionsDlg = None
-
-        self.uiLoadSiteInQGisBtn.clicked.connect(self.loadSiteInQGis)
+        # TODO remove deprecated
+        # self.uiLoadSiteInQGisBtn.clicked.connect(self.loadSiteInQGis)
         self.uiLoadSiteInterpretationInQGisBtn.clicked.connect(self.loadSiteInterpretationInQGis)
         self.uiListImagesOfSiteBtn.clicked.connect(self.openImageSelectionListDialog)
         self.uiSelectRepresentativeImageBtn.clicked.connect(self.openRepresentativeImageDialog)
@@ -112,6 +119,21 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiDeleteSiteBtn.clicked.connect(self.deleteSite)
 
         self.uiLoadFindspotInQGisBtn.clicked.connect(lambda: VersionToCome())
+
+        mLayer = QMenu()
+        mLayer.addSection("Fundort")
+        aLayerLoadSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "In QGIS laden")
+        aLayerLoadSite.triggered.connect(self.loadSiteInQgis)
+        aLayerShowSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen")
+        aLayerShowSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=False))
+        aLayerSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundort(e) selektieren")
+        aLayerSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen und selektieren")
+        aLayerShowAndSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=True))
+        mLayer.addSection("Fundstellen")
+        mLayer.addSection("Interpretation")
+        self.uiLayerTBtn.setMenu(mLayer)
+        self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
 
         mSharding = QMenu()
         aShardingOverview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'footprints.png')), "Begehungen Übersicht")
@@ -513,23 +535,23 @@ class APISSite(QDialog, FORM_CLASS):
         res = query.exec_()
         #QMessageBox.information(None, "SqlQuery", query.executedQuery())
         if not res:
-            QMessageBox.information(None, "SqlError", query.lastError().text())
+            QMessageBox.information(self, "SqlError", query.lastError().text())
         import getpass
         query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
         res = query.exec_()
         #QMessageBox.information(None, "SqlQuery", query.executedQuery())
         if not res:
-            QMessageBox.information(None, "SqlError", query.lastError().text())
+            QMessageBox.information(self, "SqlError", query.lastError().text())
 
     def openTextEditor(self, title, editor):
-        textEditorDlg = APISTextEditor()
+        textEditorDlg = APISTextEditor(self)
         textEditorDlg.setWindowTitle(title)
         textEditorDlg.setText(editor.text())
         if textEditorDlg.exec_():
             editor.setText(textEditorDlg.getText())
 
     def openOverpassRequest(self):
-        overpassRequestDlg = APISOverpassRequest()
+        overpassRequestDlg = APISOverpassRequest(self)
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT latitude, longitude FROM fundort WHERE fundortnummer = '{0}'".format(self.siteNumber))
         res = query.exec_()
@@ -540,7 +562,7 @@ class APISSite(QDialog, FORM_CLASS):
             oldValue = self.uiCadastralCommunityEdit.text()
             if oldValue.strip():
                 # Abfrage ob Fundorte der selektierten Bilder Exportieren oder alle
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(self)
                 msgBox.setWindowTitle(u'Katastralgemeinde')
                 msgBox.setText(u'Wollen Sie die Katastralgemeinde "{0}" durch "{1}" ersetzen?'.format(oldValue, newValue))
                 msgBox.addButton(QPushButton(u'Ersetzen'), QMessageBox.ActionRole)
@@ -559,7 +581,7 @@ class APISSite(QDialog, FORM_CLASS):
         '''
 
         # Save Settings
-
+        SetWindowSizeAndPos("site", self.size(), self.pos())
         self.accept()
 
     def onReject(self):
@@ -570,16 +592,18 @@ class APISSite(QDialog, FORM_CLASS):
         if self.editMode:
             res = self.cancelEdit()
             if res:
+               SetWindowSizeAndPos("site", self.size(), self.pos())
                self.close()
                return "ABC"
             else:
                 self.show()
         else:
+            SetWindowSizeAndPos("site", self.size(), self.pos())
             self.close()
 
     def openShardingSelectionListDialog(self):
         #if self.shardingDlg == None:
-        self.shardingDlg = APISShardingSelectionList(self.iface, self.dbm)
+        self.shardingDlg = APISShardingSelectionList(self.iface, self.dbm, parent=self)
         siteNumber = self.uiSiteNumberEdit.text()
         self.shardingDlg.loadShardingListBySiteNumber(siteNumber)
         if self.shardingDlg.exec_():
@@ -602,7 +626,7 @@ class APISSite(QDialog, FORM_CLASS):
         path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
 
         if not OpenFileOrFolder(path):
-            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+            QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
     def getFolderNameSite(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
@@ -623,19 +647,16 @@ class APISSite(QDialog, FORM_CLASS):
                 for image in entryList:
                     imagePathList.append(path + u'\\' + image)
 
-                widget = QdContactSheet()
+                widget = APISThumbViewer()
                 widget.load(imagePathList)
-                widget.setWindowTitle("Apis Thumb Viewer")
-                widget.setModal(True)
-                widget.resize(1000, 600)
                 widget.show()
                 if widget.exec_():
                     pass
                     # app.exec_()
             else:
-                QMessageBox.information(None, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
+                QMessageBox.information(self, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
         else:
-            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+            QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
     def openImageSelectionListDialog(self):
         #layer = self.uiSiteMapCanvas.layers()
@@ -656,7 +677,7 @@ class APISSite(QDialog, FORM_CLASS):
         # LuftbildSuche
         query.prepare("select cp.bildnummer as bildnummer, cp.filmnummer as filmnummer, cp.radius as mst_radius, f.weise as weise, f.art_ausarbeitung as art from film as f, luftbild_schraeg_cp AS cp WHERE f.filmnummer = cp.filmnummer AND cp.bildnummer IN (SELECT fp.bildnummer FROM luftbild_schraeg_fp AS fp WHERE NOT IsEmpty(fp.geometry) AND Intersects(GeomFromText('{0}',{1}), fp.geometry) AND rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_schraeg_fp' AND search_frame = GeomFromText('{0}',{1}) )) UNION ALL SELECT  cp_s.bildnummer AS bildnummer, cp_S.filmnummer AS filmnummer, cp_s.massstab, f_s.weise, f_s.art_ausarbeitung FROM film AS f_s, luftbild_senk_cp AS cp_s WHERE f_s.filmnummer = cp_s.filmnummer AND cp_s.bildnummer IN (SELECT fp_s.bildnummer FROM luftbild_senk_fp AS fp_s WHERE NOT IsEmpty(fp_s.geometry) AND Intersects(GeomFromText('{0}',{1}), fp_s.geometry) AND rowid IN (SELECT rowid FROM SpatialIndex WHERE f_table_name = 'luftbild_senk_fp' AND search_frame = GeomFromText('{0}',{1}) ) ) ORDER BY filmnummer, bildnummer".format(searchGeometry.asWkt(), epsg))
         query.exec_()
-        imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry)
+        imageSelectionListDlg = APISImageSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
         res = imageSelectionListDlg.loadImageListBySqlQuery(query)
         if res:
             imageSelectionListDlg.show()
@@ -703,7 +724,7 @@ class APISSite(QDialog, FORM_CLASS):
                 #else:
                     #mEditor.setStyleSheet("")
         if flag:
-            QMessageBox.warning(None, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
+            QMessageBox.warning(self, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
             return False
 
         # Check if fins spots will change due to site geometry edits
@@ -760,7 +781,7 @@ class APISSite(QDialog, FORM_CLASS):
             else:
                 header = self.tr(u"Änderungen wurden vorgenommen!")
                 question = self.tr(u"Möchten Sie die Änerungen der Attribute speichern?")
-            result = QMessageBox.question(None,
+            result = QMessageBox.question(self,
                                           header,
                                           question,
                                           QMessageBox.Yes | QMessageBox.No ,
@@ -825,13 +846,13 @@ class APISSite(QDialog, FORM_CLASS):
         # has findspots
         findspotCount = self.siteHasFindspots(self.siteNumber)
         if findspotCount:
-            QMessageBox.warning(None, u"Fundort löschen", u"Der Fundort ({0}) hat {1} Fundstellen. Bitte löschen Sie diese damit Sie den Fundort löschen können.".format(self.siteNumber, findspotCount))
+            QMessageBox.warning(self, u"Fundort löschen", u"Der Fundort ({0}) hat {1} Fundstellen. Bitte löschen Sie diese damit Sie den Fundort löschen können.".format(self.siteNumber, findspotCount))
             return
         else:
             # Abfrage wirklich löschen
             header = u"Fundort löschen "
             question = u"Möchten Sie den Fundort wirklich aus der Datenbank löschen?"
-            result = QMessageBox.question(None,
+            result = QMessageBox.question(self,
                                           header,
                                           question,
                                           QMessageBox.Yes | QMessageBox.No,
@@ -879,25 +900,31 @@ class APISSite(QDialog, FORM_CLASS):
 
         if detail and not subList and not subDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort")
+            personalData = False
         elif detail and subList and not subDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort und Funndstellenliste")
+            personalData = False
         elif detail and subList and subDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort, Funndstellenliste und Fundstellen")
+            personalData = True
         else:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundort")
+            personalData = False
 
-        self.printingOptionsDlg.configure(False, subList)  # only if at least findspot list (or list plus detail of findspots) is selected allow outputmode
+        self.printingOptionsDlg.configure(False, subList, visPersonalDataChk=personalData, visFilmProjectChk=True)  # only if at least findspot list (or list plus detail of findspots) is selected allow outputmode
 
         self.printingOptionsDlg.show()
 
         if self.printingOptionsDlg.exec_():
             # get settings from dialog
+            printPersonalData = self.printingOptionsDlg.printPersonalData()
+            printFilmProject = self.printingOptionsDlg.printFilmProject()
             outputMode = self.printingOptionsDlg.outputMode()
 
             pdfsToPrint = []
             if detail:
                 s = self.siteNumber
-                pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [s]})
+                pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [s], 'options': {'filmProject': printFilmProject}})
                 if SiteHasFindspot(self.dbm.db, s) and (subList or subDetail):
                     findspotList = GetFindspotNumbers(self.dbm.db, [s])
                     if findspotList:
@@ -905,7 +932,7 @@ class APISSite(QDialog, FORM_CLASS):
                             pdfsToPrint.append({'type': APISListPrinter.FINDSPOT, 'idList': findspotList})
                         if subDetail:
                             for f in findspotList:
-                                pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [f]})
+                                pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [f], 'options': {'personalData': printPersonalData}})
 
             if pdfsToPrint:
                 APISPrinterQueue(pdfsToPrint,
@@ -915,31 +942,42 @@ class APISSite(QDialog, FORM_CLASS):
                                  dbm=self.dbm,
                                  parent=self)
 
-
-    def loadSiteInQGis(self):
-
-        polygon, point = self.askForGeometryType()
+    def loadSiteInQgis(self):
+        polygon, point = PolygonOrPoint(parent=self)
         if polygon or point:
             # get PolygonLayer
             siteNumber = self.uiSiteNumberEdit.text()
             subsetString = u'"fundortnummer" = "{0}"'.format(siteNumber)
-            siteLayer = self.getSpatialiteLayer(u"fundort", subsetString, u"fundort polygon {0}".format(siteNumber))
+            siteLayer = self.apisLayer.getSpatialiteLayer(u"fundort", subsetString, u"fundort polygon {0}".format(siteNumber))
 
-            if polygon:
+            if polygon and siteLayer:
+                siteLayerMemory = self.apisLayer.createMemoryLayer(siteLayer)
+                siteLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("sites_fp"))
                 # load PolygonLayer
-                QgsProject.instance().addMapLayer(siteLayer)
+                self.apisLayer.addLayerToCanvas(siteLayerMemory, "Temp")
 
-            if point:
+            if point and siteLayer:
                 # generate PointLayer
-                centerPointLayer = self.generateCenterPointLayer(siteLayer, u"fundort punkt {0}".format(siteNumber))
+                centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(siteLayer, u"fundort punkt {0}".format(siteNumber))
+                centerPointLayer.loadNamedStyle(self.apisLayer.getStylePath("sites_cp"))
                 # load PointLayer
-                QgsProject.instance().addMapLayer(centerPointLayer)
+                self.apisLayer.addLayerToCanvas(centerPointLayer, "Temp")
+
+    def showSiteInQgis(self, zoomTo=True, select=False):
+        layer = self.apisLayer.requestSiteLayer()
+        siteNumber = self.uiSiteNumberEdit.text()
+        expression = u"\"fundortnummer\" = '{0}'".format(siteNumber)
+        self.apisLayer.selectFeaturesByExpression(layer, expression)
+        if zoomTo:
+            self.apisLayer.zoomToSelection(layer)
+        if not select:
+            layer.removeSelection()
 
     def loadSiteInterpretationInQGis(self):
         siteNumber = self.uiSiteNumberEdit.text()
         country, siteNumberN = siteNumber.split(".")
         if country == u"AUT":
-            kgName = u"{0} ".format(self.uiCadastralCommunityEdit.text().lower().replace(".","").replace("-", " ").replace("(","").replace(")", ""))
+            kgName = u"{0} ".format(self.uiCadastralCommunityEdit.text().lower().replace(".", "").replace("-", " ").replace("(", "").replace(")", ""))
         else:
             kgName = ""
         ##Generate Path
@@ -950,31 +988,22 @@ class APISSite(QDialog, FORM_CLASS):
         shpFile = u"luftint_{0}.shp".format(siteNumberN)
         intShpPath = os.path.normpath(os.path.join(intBaseDir, country, u"{0}{1}".format(kgName, siteNumberN), intDir, shpFile))
 
-
         if os.path.isfile(intShpPath):
             #QMessageBox.information(None, u"Interpretation", intShpPath)
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(u'Fundort Interpretation')
-            msgBox.setText(u"Für den Fundort {0} ist eine Interpretation vorhanden:".format(
-                    siteNumber))
-            msgBox.addButton(QPushButton(u'In QGIS laden'), QMessageBox.ActionRole)
-            msgBox.addButton(QPushButton(u'Verzeichnis öffnen'), QMessageBox.ActionRole)
-            msgBox.addButton(QPushButton(u'Laden und öffnen'), QMessageBox.ActionRole)
-            msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            ret = msgBox.exec_()
+            ret = FileOrFolder(parent=self, title="Fundort Interpretation", text="Für den Fundort {0} ist eine Interpretation vorhanden:".format(siteNumber), rejectText="Abbrechen")
+
             if ret == 0 or ret == 2:
                 # Load in QGIS
-                self.apisLayer.requestShapeFile(intShpPath, epsg=None, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True)
+                stylePath = self.apisLayer.getStylePath("interpretation")
+                self.apisLayer.requestShapeFile(intShpPath, epsg=4312, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
             if ret == 1 or ret == 2:
                 # Open Folder
                 OpenFileOrFolder(os.path.dirname(intShpPath))
 
             if ret == 3:
                 return
-
-
         else:
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(self)
             msgBox.setWindowTitle(u'Fundort Interpretation')
             msgBox.setText(u"Für den Fundort {0} ist keine Interpretation vorhanden. Wollen Sie eine Interpretation Erstellen?".format(siteNumber))
             msgBox.addButton(QPushButton(u'Vorbereiten'), QMessageBox.ActionRole)
@@ -1004,54 +1033,8 @@ class APISSite(QDialog, FORM_CLASS):
                 return
 
             if ret == 1:
-                self.apisLayer.requestShapeFile(intShpPath, epsg=None, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True)
-
-
-        #TODO : REMOVE
-        # subsetString = u'"fundortnummer" = "{0}"'.format(siteNumber)
-        # siteInterpretationLayer = self.getSpatialiteLayer(u"fundort_interpretation", subsetString, u"fundort interpretation {0}".format(siteNumber))
-        # count = siteInterpretationLayer.dataProvider().featureCount()
-        # if count > 0:
-        #     QgsMapLayerRegistry.instance().addMapLayer(siteInterpretationLayer)
-        # else:
-        #     QMessageBox.warning(None, u"Fundort Interpretation", u"Für den Fundort ist keine Interpretation vorhanden.")
-
-    def askForGeometryType(self):
-        # Abfrage ob Fundorte der selektierten Bilder Exportieren oder alle
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle(u'Fundorte')
-        msgBox.setText(u'Wollen Sie für den Fundort Polygon, Punkt oder beide Layer verwenden?')
-        msgBox.addButton(QPushButton(u'Polygon'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Punkt'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Polygon und Punkt'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-        ret = msgBox.exec_()
-
-        if ret == 0:
-            polygon = True
-            point = False
-        elif ret == 1:
-            polygon = False
-            point = True
-        elif ret == 2:
-            polygon = True
-            point = True
-        else:
-            return None, None
-
-        return polygon, point
-
-    def getSpatialiteLayer(self, layerName, subsetString=None, displayName=None):
-        if not displayName:
-            displayName = layerName
-        uri = QgsDataSourceUri()
-        uri.setDatabase(self.dbm.db.databaseName())
-        uri.setDataSource('', layerName, 'geometry')
-        layer = QgsVectorLayer(uri.uri(), displayName, 'spatialite')
-        if subsetString:
-            layer.setSubsetString(subsetString)
-
-        return layer
+                stylePath = self.apisLayer.getStylePath("interpretation")
+                self.apisLayer.requestShapeFile(intShpPath, epsg=None, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
 
     def generateCenterPointLayer(self, polygonLayer, displayName=None):
         if not displayName:
@@ -1372,7 +1355,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.repImageLoaded = True
 
     def openRepresentativeImageDialog(self):
-        repImageDlg = APISRepresentativeImage(self.dbm, self.imageRegistry, self.repImagePath, self.uiProjectOrFilmEdit.text())
+        repImageDlg = APISRepresentativeImage(self.dbm, self.imageRegistry, self.repImagePath, self.uiProjectOrFilmEdit.text(), parent=self)
         repImageDlg.show()
         if repImageDlg.exec_():
             # if new Image saved Reload Image
@@ -1444,7 +1427,7 @@ class APISSite(QDialog, FORM_CLASS):
 
     def openSiteEditFindspotHandlingDialog(self):
         if self.findspotHandlingDlg == None:
-            self.findspotHandlingDlg = APISSiteEditFindspotConflictHandling(self.iface, self.dbm, {self.siteNumber: [self.newPolygon, self.oldPolygon, self.newPolygon.buffer(0.0001, 12)]})
+            self.findspotHandlingDlg = APISSiteEditFindspotConflictHandling(self.iface, self.dbm, {self.siteNumber: [self.newPolygon, self.oldPolygon, self.newPolygon.buffer(0.0001, 12)]}, parent=self)
         res = self.findspotHandlingDlg.exec_()
         if res:
             # fortfahren, get desissions made ...

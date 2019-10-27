@@ -28,18 +28,19 @@ from functools import partial
 from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QDate, QTime, QDateTime, QDir
 from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QColor, QIcon
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate, QSqlQueryModel, QSqlRecord
-from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView, \
-    QMessageBox, QPushButton, QFileDialog, QMenu
+from PyQt5.QtWidgets import (QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView,
+                             QMessageBox, QPushButton, QFileDialog, QMenu, QApplication, QStyle)
 from PyQt5.uic import loadUiType
 from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature)
 
 from APIS.src.apis_findingtype_detail import APISFindingTypeDetail
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_text_editor import APISTextEditor
-from APIS.src.apis_utils import OpenFileOrFolder, ApisLogger, VersionToCome, SetWindowSizeAndPos, GetWindowSize, GetWindowPos
+from APIS.src.apis_utils import (OpenFileOrFolder, ApisLogger, VersionToCome, SetWindowSizeAndPos, GetWindowSize,
+                                 GetWindowPos, PolygonOrPoint)
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
-from APIS.src.apis_thumb_viewer import QdContactSheet
+from APIS.src.apis_thumb_viewer import APISThumbViewer
 
 # QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
 # QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
@@ -89,13 +90,26 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.uiCommentBtn.clicked.connect(lambda: self.openTextEditor("Bemerkung zur Lage", self.uiCommentEdit))
         self.uiFindingTypeDetailBtn.clicked.connect(self.openFindingTypeDetailDialog)
 
-        self.uiLoadFindspotInQGisBtn.clicked.connect(self.loadFindspotInQGis)
+        # TODO remove
+        #self.uiLoadFindspotInQGisBtn.clicked.connect(self.loadFindspotInQGis)
 
         self.uiViewSiteBtn.clicked.connect(self.openSiteDialog)
 
         self.uiDatingTimeCombo.editTextChanged.connect(self.onLineEditChanged)
         self.uiDatingPeriodCombo.editTextChanged.connect(self.onLineEditChanged)
         self.uiDatingPeriodDetailCombo.editTextChanged.connect(self.onLineEditChanged)
+
+        mLayer = QMenu()
+        aLayerLoadSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "In QGIS laden")
+        aLayerLoadSite.triggered.connect(self.loadFindspotInQgis)
+        aLayerShowSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen")
+        aLayerShowSite.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=False))
+        aLayerSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundort(e) selektieren")
+        aLayerSelectSite.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen und selektieren")
+        aLayerShowAndSelectSite.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=True))
+        self.uiLayerTBtn.setMenu(mLayer)
+        self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
 
         mSharding = QMenu()
         aShardingOverview = mSharding.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'footprints.png')), "Begehungen Übersicht")
@@ -501,7 +515,8 @@ class APISFindspot(QDialog, FORM_CLASS):
         tv.resizeRowsToContents()
         tv.verticalHeader().setVisible(False)
         tv.horizontalHeader().setVisible(True)
-        tv.setMinimumWidth(tv.horizontalHeader().length()+100)
+        scroll = 0 if editor.count() <= editor.maxVisibleItems() else QApplication.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        tv.setMinimumWidth(tv.horizontalHeader().length() + scroll)
         tv.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         # FIXME Pyqt5 AutoCompletion
@@ -542,8 +557,8 @@ class APISFindspot(QDialog, FORM_CLASS):
         tv.horizontalHeader().setVisible(True)
 
         #tv.setMinimumWidth(500)
-
-        tv.setMinimumWidth(tv.horizontalHeader().length()+100)
+        scroll = 0 if editor.count() <= editor.maxVisibleItems() else QApplication.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        tv.setMinimumWidth(tv.horizontalHeader().length() + scroll)
         tv.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         # FIXME Pyqt5 AutoCompletion
@@ -588,14 +603,14 @@ class APISFindspot(QDialog, FORM_CLASS):
 
 
     def openTextEditor(self, title, editor):
-        textEditorDlg = APISTextEditor()
+        textEditorDlg = APISTextEditor(self)
         textEditorDlg.setWindowTitle(title)
         textEditorDlg.setText(editor.text())
         if textEditorDlg.exec_():
             editor.setText(textEditorDlg.getText())
 
     def openFindingTypeDetailDialog(self):
-        findingTypeDetailDlg = APISFindingTypeDetail(self.iface, self.dbm)
+        findingTypeDetailDlg = APISFindingTypeDetail(self.iface, self.dbm, self)
         res = findingTypeDetailDlg.loadList(self.uiFindingTypeCombo.currentText(), self.uiFindingTypeDetailEdit.text())
         if res and findingTypeDetailDlg.exec_():
             self.uiFindingTypeDetailEdit.setText(findingTypeDetailDlg.getFindingTypeDetailText())
@@ -628,99 +643,46 @@ class APISFindspot(QDialog, FORM_CLASS):
 
     def closeEvent(self, e):
         # Write window size and position to QSettings
-        SetWindowSizeAndPos("findspot", self.size(), self.pos())
-        e.accept()
+        if self.editMode:
+            self.onReject()
+        else:
+            SetWindowSizeAndPos("findspot", self.size(), self.pos())
+            e.accept()
 
-    def loadFindspotInQGis(self):
-
-        polygon, point = self.askForGeometryType()
+    def loadFindspotInQgis(self):
+        polygon, point = PolygonOrPoint(parent=self)
         if polygon or point:
             # get PolygonLayer
             findspotNumber = self.uiFindspotNumberEdit.text()
             subsetString = u'"fundortnummer"  || \'.\' || "fundstellenummer" = "{0}"'.format(findspotNumber)
-            findspotLayer = self.getSpatialiteLayer(u"fundstelle", subsetString, u"fundstelle polygon {0}".format(findspotNumber))
+            findspotLayer = self.apisLayer.getSpatialiteLayer(u"fundstelle", subsetString, u"fundstelle polygon {0}".format(findspotNumber))
 
-            if polygon:
+            if polygon and findspotLayer:
+                findspotLayerMemory = self.apisLayer.createMemoryLayer(findspotLayer)
+                findspotLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("find_spots_fp"))
                 # load PolygonLayer
-                QgsProject.instance().addMapLayer(findspotLayer)
+                self.apisLayer.addLayerToCanvas(findspotLayerMemory, "Temp")
 
-            if point:
+            if point and findspotLayer:
                 # generate PointLayer
-                centerPointLayer = self.generateCenterPointLayer(findspotLayer, u"fundstelle punkt {0}".format(findspotNumber))
+                centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(findspotLayer, u"fundstelle punkt {0}".format(findspotNumber))
+                centerPointLayer.loadNamedStyle(self.apisLayer.getStylePath("find_spots_cp"))
                 # load PointLayer
-                QgsProject.instance().addMapLayer(centerPointLayer)
+                self.apisLayer.addLayerToCanvas(centerPointLayer, "Temp")
 
-    def askForGeometryType(self):
-        # Abfrage ob Fundstellen der selektierten Bilder Exportieren oder alle
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle(u'Fundstellen')
-        msgBox.setText(u'Wollen Sie für die Fundstelle Polygone, Punkte oder beide Layer verwenden?')
-        msgBox.addButton(QPushButton(u'Polygon'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Punkt'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Polygon und Punkt'), QMessageBox.ActionRole)
-        msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-        ret = msgBox.exec_()
-
-        if ret == 0:
-            polygon = True
-            point = False
-        elif ret == 1:
-            polygon = False
-            point = True
-        elif ret == 2:
-            polygon = True
-            point = True
-        else:
-            return None, None
-
-        return polygon, point
-
-    def getSpatialiteLayer(self, layerName, subsetString=None, displayName=None):
-        if not displayName:
-            displayName = layerName
-        uri = QgsDataSourceUri()
-        uri.setDatabase(self.dbm.db.databaseName())
-        uri.setDataSource('', layerName, 'geometry')
-        layer = QgsVectorLayer(uri.uri(), displayName, 'spatialite')
-        if subsetString:
-            layer.setSubsetString(subsetString)
-
-        return layer
-
-    def generateCenterPointLayer(self, polygonLayer, displayName=None):
-        if not displayName:
-            displayName = polygonLayer.name()
-        epsg = polygonLayer.crs().authid()
-        # QMessageBox.warning(None, "EPSG", u"{0}".format(epsg))
-        layer = QgsVectorLayer("Point?crs={0}".format(epsg), displayName, "memory")
-        layer.setCrs(polygonLayer.crs())
-        provider = layer.dataProvider()
-        provider.addAttributes(polygonLayer.dataProvider().fields())
-
-        layer.updateFields()
-
-        pointFeatures = []
-        for polygonFeature in polygonLayer.getFeatures():
-            polygonGeom = polygonFeature.geometry()
-            pointGeom = polygonGeom.centroid()
-            # if center point is not on polygon get the nearest Point
-            if not polygonGeom.contains(pointGeom):
-                pointGeom = polygonGeom.pointOnSurface()
-
-            pointFeature = QgsFeature()
-            pointFeature.setGeometry(pointGeom)
-            pointFeature.setAttributes(polygonFeature.attributes())
-            pointFeatures.append(pointFeature)
-
-        provider.addFeatures(pointFeatures)
-
-        layer.updateExtents()
-
-        return layer
+    def showFindspotInQgis(self, zoomTo=True, select=False):
+        layer = self.apisLayer.requestFindspotLayer()
+        findspotNumber = self.uiFindspotNumberEdit.text()
+        expression = u"\"fundortnummer\"  || '.' || \"fundstellenummer\" = '{0}'".format(findspotNumber)
+        self.apisLayer.selectFeaturesByExpression(layer, expression)
+        if zoomTo:
+            self.apisLayer.zoomToSelection(layer)
+        if not select:
+            layer.removeSelection()
 
     def openShardingSelectionListDialog(self):
         #if self.shardingDlg == None:
-        shardingDlg = APISShardingSelectionList(self.iface, self.dbm)
+        shardingDlg = APISShardingSelectionList(self.iface, self.dbm, parent=self)
         shardingDlg.loadShardingListBySiteNumber(self.siteNumber)
         if shardingDlg.exec_():
             pass
@@ -742,7 +704,7 @@ class APISFindspot(QDialog, FORM_CLASS):
         path = dirName + u'\\' + folderNameSite + u'\\' + folderNameType
 
         if not OpenFileOrFolder(path):
-            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+            QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
     def getFolderNameSite(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
@@ -763,19 +725,16 @@ class APISFindspot(QDialog, FORM_CLASS):
                 for image in entryList:
                     imagePathList.append(path + u'\\' + image)
 
-                widget = QdContactSheet()
+                widget = APISThumbViewer()
                 widget.load(imagePathList)
-                widget.setWindowTitle("Apis Thumb Viewer")
-                widget.setModal(True)
-                widget.resize(1000, 600)
                 widget.show()
                 if widget.exec_():
                     pass
                     # app.exec_()
             else:
-                QMessageBox.information(None, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
+                QMessageBox.information(self, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
         else:
-            QMessageBox.information(None, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
+            QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
 
     def cloneFindspot(self):
@@ -802,7 +761,7 @@ class APISFindspot(QDialog, FORM_CLASS):
         res = self.model.insertRecord(-1, currentRecord)
         if not res:
             # QMessageBox.information(None, "SqlError", "{0}, {1}".format(self.model.lastError().text(), self.model.query().executedQuery()))
-            QMessageBox.warning(None, "Fundort Klonen", "Bitte schließen Sie das Fenster und öffnen es erneut ohne Änderungen an der Funstelle vorzunehmen vor dem Klonvorgang. (Anmerkunk: ein noch nicht identifizierter Bug verhindert das korrekte Klonen).")
+            QMessageBox.warning(self, "Fundort Klonen", "Bitte schließen Sie das Fenster und öffnen es erneut ohne Änderungen an der Funstelle vorzunehmen vor dem Klonvorgang. (Anmerkunk: ein noch nicht identifizierter Bug verhindert das korrekte Klonen).")
         else:
             self.model.setFilter("fundortnummer='{0}' AND fundstellenummer={1}".format(siteNumber, findspotNumber))
             res = self.model.select()
@@ -817,14 +776,14 @@ class APISFindspot(QDialog, FORM_CLASS):
             # in log eintragen
             ApisLogger(self.dbm.db, "clone", "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
-            QMessageBox.information(None, u"Fundstelle Klonen", u"Die Fundstelle {0}.{1} wurde geklont und gespeichert: {0}.{2}".format(siteNumber, findspotNumberSource, findspotNumber))
+            QMessageBox.information(self, u"Fundstelle Klonen", u"Die Fundstelle {0}.{1} wurde geklont und gespeichert: {0}.{2}".format(siteNumber, findspotNumberSource, findspotNumber))
         self.initalLoad = False
 
     def deleteFindspot(self):
         # Abfrage wirklich löschen
         header = u"Fundstelle löschen"
         question = u"Möchten Sie die Fundstelle wirklich aus der Datenbank löschen?"
-        result = QMessageBox.question(None,
+        result = QMessageBox.question(self,
                                       header,
                                       question,
                                       QMessageBox.Yes | QMessageBox.No,
@@ -852,13 +811,13 @@ class APISFindspot(QDialog, FORM_CLASS):
         res = query.exec_()
         #QMessageBox.information(None, "SqlQuery", query.executedQuery())
         if not res:
-            QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+            QMessageBox.information(self, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
         import getpass
         query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
         res = query.exec_()
         #QMessageBox.information(None, "SqlQuery", query.executedQuery())
         if not res:
-            QMessageBox.information(None, "SqlError", query.lastError().text())
+            QMessageBox.information(self, "SqlError", query.lastError().text())
 
     def getNextFindspotNumber(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
@@ -873,24 +832,29 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         if detail and not parentDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
+            filmProject = False
         elif detail and parentDetail:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle und Fundort")
+            filmProject = True
         else:
             self.printingOptionsDlg.setWindowTitle("Druck Optionen: Fundstelle")
+            filmProject = False
 
-        self.printingOptionsDlg.configure(False, parentDetail)  # only if parent site is selected allow outputmode
+        self.printingOptionsDlg.configure(False, parentDetail, visPersonalDataChk=True, visFilmProjectChk=filmProject)  # only if parent site is selected allow outputmode
 
         self.printingOptionsDlg.show()
 
         if self.printingOptionsDlg.exec_():
             # get settings from dialog
+            printPersonalData = self.printingOptionsDlg.printPersonalData()
+            printFilmProject = self.printingOptionsDlg.printFilmProject()
             outputMode = self.printingOptionsDlg.outputMode()
 
             pdfsToPrint = []
             if detail:
                 if parentDetail:
-                    pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [self.siteNumber]})
-                pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': ["{0}.{1}".format(self.siteNumber, self.findspotNumber)]})
+                    pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [self.siteNumber], 'options': {'filmProject': printFilmProject}})
+                pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': ["{0}.{1}".format(self.siteNumber, self.findspotNumber)], 'options': {'personalData': printPersonalData}})
 
             if pdfsToPrint:
                 APISPrinterQueue(pdfsToPrint,
@@ -951,7 +915,7 @@ class APISFindspot(QDialog, FORM_CLASS):
                 #else:
                     #mEditor.setStyleSheet("")
         if flag:
-            QMessageBox.warning(None, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
+            QMessageBox.warning(self, self.tr(u"Benötigte Felder Ausfüllen"), self.tr(u"Füllen Sie bitte alle Felder aus, die mit * gekennzeichnet sind."))
             return False
 
         #saveToModel
@@ -998,7 +962,7 @@ class APISFindspot(QDialog, FORM_CLASS):
             else:
                 header = self.tr(u"Änderungen wurden vorgenommen!")
                 question = self.tr(u"Möchten Sie die Änderungen der Attribute speichern?")
-            result = QMessageBox.question(None,
+            result = QMessageBox.question(self,
                                           header,
                                           question,
                                           QMessageBox.Yes | QMessageBox.No ,

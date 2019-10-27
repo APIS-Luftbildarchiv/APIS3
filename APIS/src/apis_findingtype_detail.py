@@ -29,6 +29,8 @@ from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView
 from PyQt5.QtCore import QItemSelection, QItemSelectionModel
 from PyQt5.QtSql import QSqlRelationalTableModel
 
+from APIS.src.apis_utils import SetWindowSize, GetWindowSize
+
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_findingtype_detail.ui'), resource_suffix='')
 
@@ -40,6 +42,11 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
         self.iface = iface
         self.dbm = dbm
         self.setupUi(self)
+        if GetWindowSize("findingtype_detail"):
+            self.resize(GetWindowSize("findingtype_detail"))
+
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
         self.uiResetSelectionBtn.clicked.connect(lambda: self.setSelectionForFindingTypeDetail(self.uiFindingTypeDetailEdit.text().strip()))
         self.uiDropSelectionBtn.clicked.connect(lambda: self.setSelectionForFindingTypeDetail(""))
@@ -66,7 +73,7 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
         model.select()
 
         if model.rowCount() < 1:
-            QMessageBox.warning(None, "Result", u"Für die Befundart '{0}' wurden keine Detail Einträge gefunden.".format(findingType))
+            QMessageBox.warning(self, "Result", u"Für die Befundart '{0}' wurden keine Detail Einträge gefunden.".format(findingType))
             return False
 
         self.uiFindingTypeDetailTableV.setModel(model)
@@ -118,7 +125,7 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
                 sm.select(selection, QItemSelectionModel.Select)
             #QMessageBox.warning(None, "not found", u"{0}".format(len(notFound)))
             if len(notFound) > 0:
-                QMessageBox.warning(None, u"Befundart Details", u"Die folgenden Einträge wurden nicht gefunden. Bitte wählen Sie von den verfügbaren Einträgen aus oder fügen Sie diese manuell zur Tabelle 'befundart' hinzu. [{0}]".format(u", ".join(notFound)))
+                QMessageBox.warning(self, u"Befundart Details", u"Die folgenden Einträge wurden nicht gefunden. Bitte wählen Sie von den verfügbaren Einträgen aus oder fügen Sie diese manuell zur Tabelle 'befundart' hinzu. [{0}]".format(u", ".join(notFound)))
 
         self.setMode = False
 
@@ -138,3 +145,6 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
 
     def getFindingTypeDetailText(self):
         return self.uiFindingTypeDetailNewEdit.text()
+
+    def onClose(self):
+        SetWindowSize("findingtype_detail", self.size())

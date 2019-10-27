@@ -110,10 +110,7 @@ class APIS:
         #QMessageBox.warning(None, self.tr(u"ApisEnabled"), u"ImageRegistry is now loaded!")
         if(self.configStatus and self.imageRegistry.registryIsLoaded()):
             self.dbm = ApisDbManager(self.settings.value("APIS/database_file"))
-
-            # TODO: Prepare ApisLayerTree
             self.apisLayer = ApisLayerManager(self.plugin_dir, self.iface, self.dbm)
-
             self.initDialogs()
             if self.openDialogButtons is not None:
                 self.activateDialogs(True)

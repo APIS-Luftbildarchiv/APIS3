@@ -47,7 +47,6 @@
        </widget>
       </item>
      </layout>
-     <zorder></zorder>
      <zorder>uiPrintAllRBtn</zorder>
      <zorder>uiPrintSelectionRBtn</zorder>
     </widget>
@@ -91,6 +90,26 @@
       <string>Optionen</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QCheckBox" name="uiPersonalDataChk">
+        <property name="text">
+         <string>Personen bezogene Daten drucken</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="uiFilmProjectChk">
+        <property name="text">
+         <string>Feld 'Filmnummer/Projektname' drucken</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QCheckBox" name="uiOpenFilesChk">
         <property name="text">

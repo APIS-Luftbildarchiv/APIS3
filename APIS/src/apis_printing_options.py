@@ -25,7 +25,8 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from APIS.src.apis_printer import OutputMode
 
@@ -37,13 +38,22 @@ class APISPrintingOptions(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(APISPrintingOptions, self).__init__(parent)
-
+        self.isVisPersonalDataChk = False
+        self.isVisFilmProjectChk = False
         self.setupUi(self)
 
-    def configure(self, visSelectionModeGrp=True, visOutputModeGrp=True, visOneFileForEachRBtn=False):
+    def configure(self, visSelectionModeGrp=True, visOutputModeGrp=True, visOneFileForEachRBtn=False, visPersonalDataChk=False, visFilmProjectChk=False):
         self.uiSelectionModeGrp.setVisible(visSelectionModeGrp)
         self.uiOutputModeGrp.setVisible(visOutputModeGrp)
         self.uiOneFileForEachRBtn.setVisible(visOneFileForEachRBtn)
+        self.uiPersonalDataChk.setVisible(visPersonalDataChk)
+        if visPersonalDataChk:
+            self.uiPersonalDataChk.setCheckState(Qt.Checked)
+        self.isVisPersonalDataChk = visPersonalDataChk
+        self.uiFilmProjectChk.setVisible(visFilmProjectChk)
+        if visFilmProjectChk:
+            self.uiFilmProjectChk.setCheckState(Qt.Checked)
+        self.isVisFilmProjectChk = visFilmProjectChk
 
         self.adjustSize()
 
@@ -61,3 +71,17 @@ class APISPrintingOptions(QDialog, FORM_CLASS):
             return OutputMode.MergeByGroup
         elif self.uiSingleFilesRBtn.isChecked():
             return OutputMode.MergeNone
+
+    def printPersonalData(self):
+        # QMessageBox.information(None, "Info", "print personal data: {0}, {1}".format(self.isVisPersonalDataChk, self.uiPersonalDataChk.isChecked()))
+        if self.isVisPersonalDataChk:
+            return self.uiPersonalDataChk.isChecked()
+        else:
+            return True
+
+    def printFilmProject(self):
+        # QMessageBox.information(None, "Info", "print personal data: {0}, {1}".format(self.isVisPersonalDataChk, self.uiPersonalDataChk.isChecked()))
+        if self.isVisFilmProjectChk:
+            return self.uiFilmProjectChk.isChecked()
+        else:
+            return True

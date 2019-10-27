@@ -29,6 +29,8 @@ from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import QSettings
 
+from APIS.src.apis_utils import SetWindowSize, GetWindowSize
+
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_overpass_request.ui'), resource_suffix='')
 
@@ -39,6 +41,8 @@ class APISOverpassRequest(QDialog, FORM_CLASS):
         super(APISOverpassRequest, self).__init__(parent)
 
         self.setupUi(self)
+        if GetWindowSize("overpass_request"):
+            self.resize(GetWindowSize("overpass_request"))
 
         self.lon = None
         self.lat = None
@@ -71,7 +75,7 @@ class APISOverpassRequest(QDialog, FORM_CLASS):
                     self.uiAdminLevelList.addItem(u"[{0}]: {1}".format(value[0], value[1]))
                 self.uiRequestBtn.setEnabled(False)
             else:
-                QMessageBox.warning(None, u"Request Error", u"Fehler bei der online Abfrage (Status Code: {0}).".format(r.status_code))
+                QMessageBox.warning(self, u"Request Error", u"Fehler bei der online Abfrage (Status Code: {0}).".format(r.status_code))
 
     def useSelection(self, item):
         self.accept()
@@ -89,6 +93,7 @@ class APISOverpassRequest(QDialog, FORM_CLASS):
         Save options when pressing OK button
         Update Plugin Status
         '''
+        SetWindowSize("overpass_request", self.size())
         self.accept()
 
     def onReject(self):
@@ -96,4 +101,5 @@ class APISOverpassRequest(QDialog, FORM_CLASS):
         Run some actions when
         the user closes the dialog
         '''
+        SetWindowSize("overpass_request", self.size())
         self.close()

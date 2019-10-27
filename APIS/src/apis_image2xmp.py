@@ -27,7 +27,7 @@ class Image2Xmp():
     def update_metaData(self):
         #try:
         commandItemTemplate = '-M"set Xmp.apis.{0} {1}"'
-        command = 'expiv2 mo -M"reg apis /" {0} {1}'.format(" ".join([commandItemTemplate.format(k, str(v)) for k, v in self.metadataDict.items()]), self.imagePath)
+        command = 'exiv2 mo -M"reg apis /" {0} {1}'.format(" ".join([commandItemTemplate.format(k, str(v)) for k, v in self.metadataDict.items()]), self.imagePath)
 
         DETACHED_PROCESS = 0x00000008
         subprocess.run(command, creationflags=DETACHED_PROCESS)

@@ -30,7 +30,7 @@ from PyQt5.QtCore import QSettings, Qt, QRectF
 from PyQt5.QtSql import QSqlQueryModel
 from PyQt5.QtGui import QImage, QPixmap
 
-from APIS.src.apis_utils import IsFilm
+from APIS.src.apis_utils import IsFilm, SetWindowSize, GetWindowSize
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_representative_image.ui'), resource_suffix='')
@@ -48,6 +48,8 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.newPath = currentPath
 
         self.setupUi(self)
+        if GetWindowSize("representative_image"):
+            self.resize(GetWindowSize("representative_image"))
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
@@ -174,7 +176,7 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         Save options when pressing OK button
         Update Plugin Status
         '''
-
+        SetWindowSize("representative_image", self.size())
         self.accept()
 
     def onReject(self):
@@ -182,4 +184,5 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         Run some actions when
         the user closes the dialog
         '''
+        SetWindowSize("representative_image", self.size())
         self.close()

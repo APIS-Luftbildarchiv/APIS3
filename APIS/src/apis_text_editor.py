@@ -27,6 +27,8 @@ import os
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog
 
+from APIS.src.apis_utils import SetWindowSize, GetWindowSize
+
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_text_editor.ui'), resource_suffix='')
 
@@ -37,6 +39,8 @@ class APISTextEditor(QDialog, FORM_CLASS):
         super(APISTextEditor, self).__init__(parent)
 
         self.setupUi(self)
+        if GetWindowSize("text_editor"):
+            self.resize(GetWindowSize("text_editor"))
 
         # Signals/Slot Connections
         self.rejected.connect(self.onReject)
@@ -55,7 +59,7 @@ class APISTextEditor(QDialog, FORM_CLASS):
         Save options when pressing OK button
         Update Plugin Status
         '''
-
+        SetWindowSize("text_editor", self.size())
         self.accept()
 
     def onReject(self):
@@ -63,4 +67,5 @@ class APISTextEditor(QDialog, FORM_CLASS):
         Run some actions when
         the user closes the dialog
         '''
+        SetWindowSize("text_editor", self.size())
         self.close()

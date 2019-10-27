@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>909</width>
-    <height>585</height>
+    <width>888</width>
+    <height>631</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -26,8 +26,8 @@
   <property name="modal">
    <bool>true</bool>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="5" column="0" colspan="4">
     <widget class="QPlainTextEdit" name="uiReportPTxt">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -49,7 +49,67 @@
      </property>
     </widget>
    </item>
-   <item>
+   <item row="1" column="2">
+    <widget class="QLineEdit" name="lineEdit_2"/>
+   </item>
+   <item row="0" column="2">
+    <widget class="QLineEdit" name="lineEdit"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QCheckBox" name="checkBox_2">
+     <property name="text">
+      <string>Footprint Layer:</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QCheckBox" name="checkBox">
+     <property name="text">
+      <string>Centerpoint Layer:</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QToolButton" name="toolButton">
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="3">
+    <widget class="QToolButton" name="toolButton_2">
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QCheckBox" name="checkBox_3">
+     <property name="text">
+      <string>Bildpfad:</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLineEdit" name="lineEdit_3"/>
+   </item>
+   <item row="2" column="3">
+    <widget class="QToolButton" name="toolButton_3">
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
     <widget class="QPushButton" name="uiImportBtn">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
@@ -74,6 +134,9 @@
       <bool>false</bool>
      </property>
     </widget>
+   </item>
+   <item row="4" column="0" colspan="4">
+    <widget class="QTableView" name="tableView"/>
    </item>
   </layout>
  </widget>

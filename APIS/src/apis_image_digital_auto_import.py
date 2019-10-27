@@ -34,7 +34,7 @@ from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsCoordi
 
 import exifread
 
-from APIS.src.apis_utils import TransformGeometry, GetMeridianAndEpsgGK
+from APIS.src.apis_utils import TransformGeometry, GetMeridianAndEpsgGK, SetWindowSize, GetWindowSize, GetExifForImage
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_digital_auto_import.ui'), resource_suffix='')
@@ -46,6 +46,11 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         super(APISDigitalImageAutoImport, self).__init__(parent)
 
         self.setupUi(self)
+        if GetWindowSize("image_digital_auto_import"):
+            self.resize(GetWindowSize("image_digital_auto_import"))
+
+        self.accepted.connect(self.onClose)
+        self.rejected.connect(self.onClose)
 
         self.iface = iface
         self.dbm = dbm
@@ -63,6 +68,20 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.uiReportPTxt.setCenterOnScroll(True)
         self.writeMsg(u"Monoplot/INS2CAM import für Film: {0}".format(self.filmId))
         self.uiImportBtn.clicked.connect(self.run)
+
+    def autodetectSources(self):
+        # sourceLayer
+        imageBasePath = self.settings.value("APIS/image_dir")
+        monoplotPath = self.settings.value("APIS/monoplot_dir")
+        epsg = self.settings.value("APIS/monoplot_epsg", type=int)
+        sourceCpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_cp_shp"), u"shp")
+        sourceFpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_fp_shp"), u"shp")
+        sourceCpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.currentFilmNumber, monoplotPath, sourceCpLayerShp))
+        sourceFpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.currentFilmNumber, monoplotPath, sourceFpLayerShp))
+        cpIsFile = os.path.isfile(sourceCpLayerPath)
+        fpIsFile = os.path.isfile(sourceFpLayerPath)
+        #sourceCpLayer = self.apisLayer.requestShapeFile(sourceCpLayerPath, epsg, None, "Bildkartierung", True, True)
+        #sourceFpLayer = self.apisLayer.requestShapeFile(sourceFpLayerPath, epsg, None, "Bildkartierung", True, True)
 
     def areSourceLayerMonoplot(self):
         if self.sourceLayerCP.featureCount() == 0 or self.sourceLayerFP.featureCount() == 0:
@@ -172,9 +191,11 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         else:
             return query.value(0)
 
+    # TODO remove
     def _get_if_exist(self, data, key):
         return data[key] if key in data else None
 
+    # TODO remove
     def _convert_to_degress(self, value):
         """
         Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
@@ -184,6 +205,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         """
         return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
 
+    # TODO remove
     def getExifForImage(self, imageNumber):
         exif = [None, None, None, None, None, None]
 
@@ -232,6 +254,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         return exif
 
+    # TODO remove
     def OLDgetExifForImage(self, imageNumber):
         exif = [None, None, None, None, None, None]
         dirName = self.settings.value("APIS/image_dir")
@@ -334,7 +357,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                         if mode == 2:
                             # überschreiben
                             #QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
-                            self.writeMsg(u"UPDATE: {0}: wird überchrieben.".format(bn))
+                            self.writeMsg(u"UPDATE: {0}: wird überschrieben.".format(bn))
                             imagesToDelete.append(bn)
 
                         elif mode == 3:
@@ -392,14 +415,16 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     targetFeatCP.setAttribute('gkx', gkx)  # Hochwert
                     targetFeatCP.setAttribute('gky', gky)  # Rechtswert
 
-                    exif = self.getExifForImage(bn)
-                    targetFeatCP.setAttribute('hoehe', exif[0] if exif[0] else 0)  # TODO: Is this the best way to set hight to 0 if no image is there?
-                    targetFeatCP.setAttribute('gps_longitude', exif[1] if exif[1] is not None else None)
-                    targetFeatCP.setAttribute('gps_latitude', exif[2] if exif[2] is not None else None)
-                    targetFeatCP.setAttribute('kappa', QgsPointXY(exif[1], exif[2]).azimuth(cp) if exif[1] and exif[2] else None)
-                    targetFeatCP.setAttribute('belichtungszeit', exif[3] if exif[3] is not None else None)
-                    targetFeatCP.setAttribute('fokus', exif[4] if exif[4] is not None else None)  # FocalLength
-                    targetFeatCP.setAttribute('blende', exif[4]/exif[5] if exif[4] and exif[5] else None)  # effecitve aperture (diameter of entrance pupil) = focalLength / fNumber
+                    image = os.path.normpath(self.settings.value("APIS/image_dir") + '\\' + self.filmId + '\\' + bn.replace('.', '_') + '.jpg')
+                    exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True, exposure_time=True, focal_length=True, fnumber=True)
+
+                    targetFeatCP.setAttribute('hoehe', exif["altitude"] if exif["altitude"] else 450)  # TODO: Is this the best way to set hight to 0 if no image is there? 436 is the average hight of all oblique images
+                    targetFeatCP.setAttribute('gps_longitude', exif["longitude"] if exif["longitude"] is not None else None)
+                    targetFeatCP.setAttribute('gps_latitude', exif["latitude"] if exif["latitude"] is not None else None)
+                    targetFeatCP.setAttribute('kappa', QgsPointXY(exif["longitude"], exif["latitude"]).azimuth(cp) if exif["longitude"] and exif["latitude"] else None)
+                    targetFeatCP.setAttribute('belichtungszeit', exif["exposure_time"] if exif["exposure_time"] is not None else None)
+                    targetFeatCP.setAttribute('fokus', exif["focal_length"] if exif["focal_length"] is not None else None)  # FocalLength
+                    targetFeatCP.setAttribute('blende', exif["focal_length"]/exif["fnumber"] if exif["focal_length"] and exif["fnumber"] else None) # effecitve aperture (diameter of entrance pupil) = focalLength / fNumber
 
                     # FOOTPRINT
                     targetFeatFP = QgsFeature(self.targetLayerFP.fields())
@@ -468,3 +493,6 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
             if not res2:
                 QMessageBox.warning(None, "MonoplotImport", u"Es sind Probleme bei bereits kartierten Bildern vorhanden:\n{0}".format(msg2))
+
+    def onClose(self):
+        SetWindowSize("image_digital_auto_import", self.size())

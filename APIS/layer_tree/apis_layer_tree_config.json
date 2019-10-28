@@ -27,12 +27,12 @@
         "flight_path_pnt": {
             "group": "flight_path",
             "in_group_pos_after": 0,
-            "style": "flugweg_pkt"
+            "style": "flugweg_pkt.qml"
         },
         "flight_path_lin": {
             "group": "flight_path",
             "in_group_pos_after": "flight_path_lin",
-            "style": "flugweg_lin"
+            "style": "flugweg_lin.qml"
         },
         "images_vertical_cp": {
             "default": 1,
@@ -64,6 +64,16 @@
             "name": "luftbild_schraeg_fp",
             "group": "images",
             "in_group_pos_after": "images_oblique_cp",
+            "style": "bilder_pol.qml"
+        },
+        "image_mapping_cp": {
+            "group": "image_mapping",
+            "in_group_pos_after": 0,
+            "style": "bilder_pkt.qml"
+        },
+        "image_mapping_fp": {
+            "group": "image_mapping",
+            "in_group_pos_after": "image_mapping_cp",
             "style": "bilder_pol.qml"
         },
         "sites": {

@@ -9,6 +9,8 @@ from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsLayerTre
 
 from APIS.src.apis_utils import FileOrFolder, OpenFileOrFolder
 
+from osgeo import ogr, osr
+
 class ApisLayerManager:
     def __init__(self, pluginDir, iface, dbm):
         self.layerTreeConfigFile = pluginDir + "\\layer_tree\\apis_layer_tree_config.json"
@@ -325,12 +327,15 @@ class ApisLayerManager:
 
     def requestSpatialiteTable(self, databaseName, tableName, displayName=None, groupName=None, subsetString=None, useLayerFromTree=True, addToCanvas=False, stylePath=None):
         try:
+            layer = None
             if not displayName:
                 displayName = tableName
 
             if useLayerFromTree:
                 layer = self.findspatialiteLayerInTree(databaseName, tableName)
-
+                if layer is not None and layer.subsetString() != "":
+                    layer = None
+                    #QMessageBox.information(None, "info", "subset: {}".format(layer.subsetString()))
             if layer is None:
                 layer = self._loadSpaitaliteTable(databaseName, tableName, displayName, subsetString)
 
@@ -343,7 +348,7 @@ class ApisLayerManager:
             QMessageBox.warning(None, "Error Requesting Spatialtie Table", u"{0}".format(e))
             return None
 
-    def requestShapeFile(self, shapeFilePath, epsg=None, layerName=None, groupName=None, useLayerFromTree=True, addToCanvas=False, stylePath=None):
+    def requestShapeFile(self, shapeFilePath, epsg=None, defaultEpsg=None, layerName=None, groupName=None, useLayerFromTree=True, addToCanvas=False, stylePath=None):
         try:
             #QMessageBox.information(None, "Info", "LOAD SHP")
             layer = None
@@ -355,6 +360,15 @@ class ApisLayerManager:
             if useLayerFromTree:
                 layer = self.findshapeFileLayerInTree(shapeFilePath)
             if layer is None:
+                if not self.shapeFileHasCrs(shapeFilePath) and defaultEpsg:
+                    # apply defaultEpsg To Shape file
+                    spatialRef = osr.SpatialReference()
+                    spatialRef.ImportFromEPSG(defaultEpsg)
+                    spatialRef.MorphToESRI()
+                    shapePrjFilePath = os.path.splitext(shapeFilePath)[0]+'.prj'
+                    file = open(shapePrjFilePath, 'w')
+                    file.write(spatialRef.ExportToWkt())
+                    file.close()
                 layer = QgsVectorLayer(shapeFilePath, layerName, "ogr")
                 if epsg:
                     layer.setCrs(QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId))
@@ -366,6 +380,17 @@ class ApisLayerManager:
         except Exception as e:
             QMessageBox.warning(None, "Error Loading Shape File", u"{0}".format(e))
             return None
+
+    def shapeFileHasCrs(self, shapeFilePath):
+        shpDriver = ogr.GetDriverByName('ESRI Shapefile')
+        dataSource = shpDriver.Open(shapeFilePath, 0)
+        if dataSource:
+            spatialRef = dataSource.GetLayer().GetSpatialRef()
+            if spatialRef:
+                return True
+            else: return False
+        else:
+            return False
 
     def findshapeFileLayerInTree(self, layerUri):
         for treeLayer in self.tocRoot.findLayers():
@@ -584,3 +609,10 @@ class ApisLayerManager:
 
     def getStylePath(self, style):
         return self.stylesDir + self.__layers[style]["style"]
+
+    def removeLayerGroupIfEmpty(self, groupName):
+        group = self.tocRoot.findGroup(groupName)
+        if group:
+            count = len(group.findLayers())
+            if count == 0:
+                self.tocRoot.removeChildNode(group)

@@ -995,7 +995,7 @@ class APISSite(QDialog, FORM_CLASS):
             if ret == 0 or ret == 2:
                 # Load in QGIS
                 stylePath = self.apisLayer.getStylePath("interpretation")
-                self.apisLayer.requestShapeFile(intShpPath, epsg=4312, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
+                self.apisLayer.requestShapeFile(intShpPath, epsg=None, defaultEpsg=4312, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
             if ret == 1 or ret == 2:
                 # Open Folder
                 OpenFileOrFolder(os.path.dirname(intShpPath))

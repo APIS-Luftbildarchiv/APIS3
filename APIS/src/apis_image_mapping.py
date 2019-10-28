@@ -122,11 +122,12 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
             self.removeCenterPointLayer()
             self.removeFootPrintLayer()
+            self.apisLayer.removeLayerGroupIfEmpty("Bildkartierung")
 
         else:
             if self.currentFilmNumber:
-                self.reloadCpLayer()
                 self.reloadFpLayer()
+                self.reloadCpLayer()
 
             if self.mappingMode:
                 self.vertexMarker.show()
@@ -145,8 +146,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
     def openMonoplotImportDialog(self):
         """Run method that performs all the real work"""
-        self.reloadCpLayer()
         self.reloadFpLayer()
+        self.reloadCpLayer()
 
         # sourceLayer
         imageBasePath = self.settings.value("APIS/image_dir")
@@ -179,7 +180,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
             QMessageBox.warning(None, u"Monoplot Import", u"Für den Film {0} sind folgende Monoplot Dateien nicht vorhanden: {1}".format(self.currentFilmNumber, errorText))
 
-
     def setCurrentFilmNumber(self, filmNumber):
         self.currentFilmNumber = filmNumber
         self.uiCurrentFilmNumberEdit.setText(self.currentFilmNumber)
@@ -197,12 +197,11 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         #if not self.uiSetCenterPointBtn.isChecked():
         #    self.uiSetCenterPointBtn.toggle()
 
-
         # Remove old Layer & Load New Layer
         self.removeCenterPointLayer()
         self.removeFootPrintLayer()
-        self.loadCenterPointLayerForFilm()
         self.loadFootPrintLayerForFilm()
+        self.loadCenterPointLayerForFilm()
 
     def resetCurrentFilmNumber(self):
         self.uiCurrentFilmNumberEdit.clear()
@@ -362,21 +361,37 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         #    self.uiMappingDetailsTBox.setItemEnabled(0, False)
 
     def loadCenterPointLayerForFilm(self):
-        uri = QgsDataSourceUri()
-        uri.setDatabase(self.dbm.db.databaseName())
-        uri.setDataSource('', 'luftbild_{0}_cp'.format(self.orientation), 'geometry')
-        self.cpLayer = QgsVectorLayer(uri.uri(), u'Kartierung {0} Mittelpunkt'.format(self.currentFilmNumber), 'spatialite')
-        self.cpLayer.setSubsetString(u'"filmnummer" = "{0}"'.format(self.currentFilmNumber))
-        QgsProject.instance().addMapLayer(self.cpLayer)
+        self.cpLayer = self.apisLayer.requestSpatialiteTable(self.dbm.db.databaseName(),
+                                                             "luftbild_{0}_cp".format(self.orientation),
+                                                             displayName="Kartierung {0} Mittelpunkt".format(self.currentFilmNumber),
+                                                             groupName="Bildkartierung",
+                                                             subsetString='"filmnummer" = "{0}"'.format(self.currentFilmNumber),
+                                                             useLayerFromTree=False,
+                                                             addToCanvas=True,
+                                                             stylePath=self.apisLayer.getStylePath("image_mapping_cp"))
+        #uri = QgsDataSourceUri()
+        #uri.setDatabase(self.dbm.db.databaseName())
+        #uri.setDataSource('', 'luftbild_{0}_cp'.format(self.orientation), 'geometry')
+        #self.cpLayer = QgsVectorLayer(uri.uri(), u'Kartierung {0} Mittelpunkt'.format(self.currentFilmNumber), 'spatialite')
+        #self.cpLayer.setSubsetString(u'"filmnummer" = "{0}"'.format(self.currentFilmNumber))
+        #QgsProject.instance().addMapLayer(self.cpLayer)
         self.cpLayerId = self.cpLayer.id()
 
     def loadFootPrintLayerForFilm(self):
-        uri = QgsDataSourceUri()
-        uri.setDatabase(self.dbm.db.databaseName())
-        uri.setDataSource('', 'luftbild_{0}_fp'.format(self.orientation), 'geometry')
-        self.fpLayer = QgsVectorLayer(uri.uri(), u'Kartierung {0} Footprint'.format(self.currentFilmNumber), 'spatialite')
-        self.fpLayer.setSubsetString(u'"filmnummer" = "{0}"'.format(self.currentFilmNumber))
-        QgsProject.instance().addMapLayer(self.fpLayer)
+        self.fpLayer = self.apisLayer.requestSpatialiteTable(self.dbm.db.databaseName(),
+                                                             "luftbild_{0}_fp".format(self.orientation),
+                                                             displayName="Kartierung {0} Footprint".format(self.currentFilmNumber),
+                                                             groupName="Bildkartierung",
+                                                             subsetString='"filmnummer" = "{0}"'.format(self.currentFilmNumber),
+                                                             useLayerFromTree=False,
+                                                             addToCanvas=True,
+                                                             stylePath=self.apisLayer.getStylePath("image_mapping_fp"))
+        # uri = QgsDataSourceUri()
+        # uri.setDatabase(self.dbm.db.databaseName())
+        # uri.setDataSource('', 'luftbild_{0}_fp'.format(self.orientation), 'geometry')
+        # self.fpLayer = QgsVectorLayer(uri.uri(), u'Kartierung {0} Footprint'.format(self.currentFilmNumber), 'spatialite')
+        # self.fpLayer.setSubsetString(u'"filmnummer" = "{0}"'.format(self.currentFilmNumber))
+        # QgsProject.instance().addMapLayer(self.fpLayer)
         self.fpLayerId = self.fpLayer.id()
 
     def removeCenterPointLayer(self):
@@ -508,8 +523,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                 f.setAttribute('bildnummer', bn)
 
                 if self.isOblique:
-                    # TODO remove
-                    # exif = self.getExifForImage(bn)
                     image = os.path.normpath(self.settings.value("APIS/image_dir") + '\\' + self.currentFilmNumber + '\\' + bn.replace('.', '_') + '.jpg')
                     exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True, exposure_time=True, focal_length=True, fnumber=True)
 
@@ -563,106 +576,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         else:
             return query.value(0)
 
-    # TODO remove
-    def _get_if_exist(self, data, key):
-        return data[key] if key in data else None
-
-    # TODO remove
-    def _convert_to_degress(self, value):
-        """
-        Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
-        :param value:
-        :type value: exifread.utils.Ratio
-        :rtype: float
-        """
-        return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
-
-    # TODO remove
-    def getExifForImage(self, imageNumber):
-        # altitude, longitude, latitude, exposure time, focal length, fnumber
-        exif = [None, None, None, None, None, None]
-
-        dirName = self.settings.value("APIS/image_dir")
-        imageName = imageNumber.replace('.', '_') + '.jpg'
-        image = os.path.normpath(dirName + '\\' + self.filmId + '\\' + imageName)
-
-        with open(image, 'rb') as f:
-            tags = exifread.process_file(f, details=False)
-
-            gps_altitude = self._get_if_exist(tags, 'GPS GPSAltitude')
-            gps_altitude_ref = self._get_if_exist(tags, 'GPS GPSAltitudeRef')
-            if gps_altitude and gps_altitude_ref:
-                alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
-                if gps_altitude_ref.values[0] == 1:
-                    alt *= -1
-                exif[0] = alt
-
-            gps_longitude = self._get_if_exist(tags, 'GPS GPSLongitude')
-            gps_longitude_ref = self._get_if_exist(tags, 'GPS GPSLongitudeRef')
-            if gps_longitude and gps_longitude_ref:
-                lon = self._convert_to_degress(gps_longitude)
-                if gps_longitude_ref.values[0] != 'E':
-                    lon = 0 - lon
-                exif[1] = lon
-
-            gps_latitude = self._get_if_exist(tags, 'GPS GPSLatitude')
-            gps_latitude_ref = self._get_if_exist(tags, 'GPS GPSLatitudeRef')
-            if gps_latitude and gps_latitude_ref:
-                lat = self._convert_to_degress(gps_latitude)
-                if gps_latitude_ref.values[0] != 'N':
-                    lat = 0 - lat
-                exif[2] = lat
-
-            exif_exposure_time = self._get_if_exist(tags, 'EXIF ExposureTime')
-            if exif_exposure_time:
-                exif[3] = float(exif_exposure_time.values[0].num / exif_exposure_time.values[0].den)
-
-            exif_focal_length = self._get_if_exist(tags, 'EXIF FocalLength')
-            if exif_focal_length:
-                exif[4] = float(exif_focal_length.values[0].num / exif_focal_length.values[0].den)
-
-            exif_fnumber = self._get_if_exist(tags, 'EXIF FNumber')
-            if exif_fnumber:
-                exif[5] = float(exif_fnumber.values[0].num / exif_fnumber.values[0].den)
-
-        return exif
-
-    # TODO remove
-    def OLDgetExifForImage(self, imageNumber):
-        exif = [None, None, None, None, None, None]
-        dirName = self.settings.value("APIS/image_dir")
-        #TODO RM imageName = IdToIdLegacy(imageNumber).replace('.','_') + '.jpg' TODO RM
-        imageName = imageNumber.replace('.','_') + '.jpg'
-        #TODO RM image = os.path.normpath(dirName+'\\'+IdToIdLegacy(self.currentFilmNumber)+'\\'+imageName) TODO RM
-        image = os.path.normpath(dirName+'\\'+self.currentFilmNumber+'\\'+imageName)
-        #QMessageBox.warning(None, u"exif", image)
-
-        if os.path.isfile(image):
-            md = exiv.ImageMetadata(image)
-            md.read()
-
-            if "Exif.GPSInfo.GPSAltitude" in md.exif_keys:
-                exif[0] = float(md["Exif.GPSInfo.GPSAltitude"].value)
-
-            if "Exif.GPSInfo.GPSLongitude" in md.exif_keys:
-                lon = md["Exif.GPSInfo.GPSLongitude"].value
-                exif[1] = float(lon[0])+((float(lon[1])+(float(lon[2])/60))/60)
-
-            if "Exif.GPSInfo.GPSLatitude" in md.exif_keys:
-                lat = md["Exif.GPSInfo.GPSLatitude"].value
-                exif[2] = float(lat[0])+((float(lat[1])+(float(lat[2])/60))/60)
-
-            if "Exif.Photo.ExposureTime" in md.exif_keys:
-                exif[3] = float(md["Exif.Photo.ExposureTime"].value)
-
-            if "Exif.Photo.FocalLength" in md.exif_keys:
-                exif[4] = float(md["Exif.Photo.FocalLength"].value)
-
-            if "Exif.Photo.FNumber" in md.exif_keys:
-                exif[5] = md["Exif.Photo.FNumber"].value
-
-        return exif
-
     def reloadCpLayer(self):
          if self.cpLayerId not in QgsProject.instance().mapLayers():
             self.loadCenterPointLayerForFilm()
@@ -678,8 +591,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             self.generateFootprintsForFilmVertical()
 
     def generateFootprintsForFilmVertical(self):
-        self.reloadCpLayer()
         self.reloadFpLayer()
+        self.reloadCpLayer()
 
         # Error wenn nur ein punkt vorhanden
         if self.cpLayer.featureCount() > 1:
@@ -809,8 +722,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
 
     def generateFootprintsForFilmOblique(self):
-        self.reloadCpLayer()
         self.reloadFpLayer()
+        self.reloadCpLayer()
 
         caps = self.fpLayer.dataProvider().capabilities()
         if caps & QgsVectorDataProvider.AddFeatures:
@@ -915,53 +828,51 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
 
 class SetPointMapTool(QgsMapToolEmitPoint):
-  def __init__(self, canvas):
-      self.canvas = canvas
-      QgsMapToolEmitPoint.__init__(self, self.canvas)
-      self.vertexMarker = QgsVertexMarker(self.canvas)
-      self.vertexMarker.setColor(Qt.red)
-      self.vertexMarker.setCursor(Qt.CrossCursor)
-      self.reset()
+    def __init__(self, canvas):
+        self.canvas = canvas
+        QgsMapToolEmitPoint.__init__(self, self.canvas)
+        self.vertexMarker = QgsVertexMarker(self.canvas)
+        self.vertexMarker.setColor(Qt.red)
+        self.vertexMarker.setCursor(Qt.CrossCursor)
+        self.reset()
 
-  def reset(self):
-      self.centerPoint = None
-      self.vertexMarker.hide()
-      #self.isEmittingPoint = False
-      #self.rubberBand.reset(QGis.Polygon)
+    def reset(self):
+        self.centerPoint = None
+        self.vertexMarker.hide()
+        #self.isEmittingPoint = False
+        #self.rubberBand.reset(QGis.Polygon)
 
-  def canvasPressEvent(self, e):
-      self.centerPoint = self.toMapCoordinates(e.pos())
-      self.vertexMarker.setCenter(self.centerPoint)
-      if not self.vertexMarker.isVisible():
-        self.vertexMarker.show()
-      #self.endPoint = self.startPoint
-      #self.isEmittingPoint = True
-      #self.showRect(self.startPoint, self.endPoint)
+    def canvasPressEvent(self, e):
+        self.centerPoint = self.toMapCoordinates(e.pos())
+        self.vertexMarker.setCenter(self.centerPoint)
+        if not self.vertexMarker.isVisible():
+            self.vertexMarker.show()
+        #self.endPoint = self.startPoint
+        #self.isEmittingPoint = True
+        #self.showRect(self.startPoint, self.endPoint)
 
-  def canvasReleaseEvent(self, e):
-      return
-      #self.isEmittingPoint = False
-     # r = self.rectangle()
-      #if r is not None:
-       # print "Rectangle:", r.xMinimum(), r.yMinimum(), r.xMaximum(), r.yMaximum()
+    def canvasReleaseEvent(self, e):
+        return
+        #self.isEmittingPoint = False
+        # r = self.rectangle()
+        #if r is not None:
+        #   print "Rectangle:", r.xMinimum(), r.yMinimum(), r.xMaximum(), r.yMaximum()
 
-  def canvasMoveEvent(self, e):
-      return
-      #if not self.isEmittingPoint:
+    def canvasMoveEvent(self, e):
+        return
+        #if not self.isEmittingPoint:
         #return
+        #self.endPoint = self.toMapCoordinates(e.pos())
+        #self.showRect(self.startPoint, self.endPoint)
 
-      #self.endPoint = self.toMapCoordinates(e.pos())
-      #self.showRect(self.startPoint, self.endPoint)
+    def rectangle(self):
+        if self.startPoint is None or self.endPoint is None:
+            return None
+        elif self.startPoint.x() == self.endPoint.x() or self.startPoint.y() == self.endPoint.y():
+            return None
+        return QgsRectangle(self.startPoint, self.endPoint)
 
-  def rectangle(self):
-      if self.startPoint is None or self.endPoint is None:
-        return None
-      elif self.startPoint.x() == self.endPoint.x() or self.startPoint.y() == self.endPoint.y():
-        return None
-
-      return QgsRectangle(self.startPoint, self.endPoint)
-
-  def deactivate(self):
-      super(SetPointMapTool, self).deactivate()
-      #self.emit(SIGNAL("deactivated()"))
-      self.deactivated.emit()
+    def deactivate(self):
+        super(SetPointMapTool, self).deactivate()
+        #self.emit(SIGNAL("deactivated()"))
+        self.deactivated.emit()

@@ -222,7 +222,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
             if len(interpretationsToLoad) > 0:
                 stylePath = self.apisLayer.getStylePath("interpretation")
                 for intShp in interpretationsToLoad:
-                    self.apisLayer.requestShapeFile(intShp, epsg=None, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
+                    self.apisLayer.requestShapeFile(intShp, epsg=None, defaultEpsg=4312, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
                     #QMessageBox.information(None, u"Interpretation", intShp)
             else:
                 QMessageBox.warning(self, u"Fundort Interpretation", u"Für die ausgewählten Fundorte ist keine Interpretation vorhanden.")

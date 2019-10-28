@@ -28,7 +28,7 @@ from osgeo import ogr
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QTableWidgetItem, QHeaderView, QCheckBox, QMenu, QMessageBox,
                              QPushButton)
-from PyQt5.QtCore import QSettings, Qt, QVariant
+from PyQt5.QtCore import QSettings, Qt, QVariant, QDateTime
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlQuery
 
@@ -258,62 +258,20 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
     def exportLayerAsShp(self):
         flightPathPointLayer, flightPathLineLayer = self.requestFlightPathLayer()
+        now = QDateTime.currentDateTime()
+        time = now.toString("yyyyMMdd_hhmmss")
         if flightPathPointLayer.hasFeatures():
-            QgsProject.instance().addMapLayer(flightPathPointLayer)
-            writer = QgsVectorFileWriter(flightPathPointLayer, "UTF-8", fields, QGis.WKBPolygon, QgsCoordinateReferenceSystem(4326, QgsCoordinateReferenceSystem.EpsgCrsId))
+            self.apisLayer.exportLayerAsShp(flightPathPointLayer, time, name="Flugwege_Punkt", groupName="Flugwege", styleName="flight_path_pnt", parent=self)
         if flightPathLineLayer.hasFeatures():
-            QgsProject.instance().addMapLayer(flightPathLineLayer)
-
-        geomType = "Punkt" if layer.geometryType() == 0 else "Polygon"
-        saveDir = self.settings.value("APIS/working_dir", QDir.home().dirName())
-        layerName = QFileDialog.getSaveFileName(self, u'Fundorte {0} Export Speichern'.format(geomType),
-                                                saveDir + "\\" + 'Fundorte_{0}_{1}'.format(geomType, time), '*.shp')[0]
-        if layerName:
-            check = QFile(layerName)
-            if check.exists():
-                if not QgsVectorFileWriter.deleteShapeFile(layerName):
-                    QMessageBox.warning(self, "Fundorte Export",
-                                        u"Es ist nicht möglich die SHP Datei {0} zu überschreiben!".format(layerName))
-                    return
-
-            error = QgsVectorFileWriter.writeAsVectorFormat(layer, layerName, "UTF-8", layer.crs(), "ESRI Shapefile")
-
-            if error == QgsVectorFileWriter.NoError:
-                # QMessageBox.information(None, "Fundorte Export", u"Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.")
-                # TODO remove
-                # msgBox = QMessageBox(self)
-                # msgBox.setWindowTitle(u'Fundorte Export')
-                # msgBox.setText(u"Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.")
-                # msgBox.addButton(QPushButton(u'SHP Datei laden'), QMessageBox.ActionRole)
-                # msgBox.addButton(QPushButton(u'Ordner öffnen'), QMessageBox.ActionRole)
-                # msgBox.addButton(QPushButton(u'SHP Datei laden und Ordner öffnen'), QMessageBox.ActionRole)
-                # msgBox.addButton(QPushButton(u'OK'), QMessageBox.AcceptRole)
-                # ret = msgBox.exec_()
-                ret = FileOrFolder(parent=self,
-                                   title="Fundorte Export",
-                                   text="Die ausgewählten Fundorte wurden in eine SHP Datei exportiert.",
-                                   rejectText="OK")
-
-                if ret == 0 or ret == 2:
-                    # Shp Datei in QGIS laden
-                    self.iface.addVectorLayer(layerName, "", 'ogr')
-
-                if ret == 1 or ret == 2:
-                    # ordner öffnen
-                    OpenFileOrFolder(os.path.split(layerName)[0])
-
-            else:
-                QMessageBox.warning(self, "Fundorte Export",
-                                    u"Beim erstellen der SHP Datei ist ein Fehler aufgetreten.")
-
+            self.apisLayer.exportLayerAsShp(flightPathLineLayer, time, name="Flugwege_Linie", groupName="Flugwege", styleName="flight_path_lin", parent=self)
 
     def loadLayerInQgis(self):
         flightPathPointLayer, flightPathLineLayer = self.requestFlightPathLayer()
         if flightPathPointLayer.hasFeatures():
-            #QgsProject.instance().addMapLayer(flightPathPointLayer)
+            flightPathPointLayer.loadNamedStyle(self.apisLayer.getStylePath("flight_path_pnt"))
             self.apisLayer.addLayerToCanvas(flightPathPointLayer, "Flugwege")
         if flightPathLineLayer.hasFeatures():
-            #QgsProject.instance().addMapLayer(flightPathLineLayer)
+            flightPathLineLayer.loadNamedStyle(self.apisLayer.getStylePath("flight_path_lin"))
             self.apisLayer.addLayerToCanvas(flightPathLineLayer, "Flugwege")
 
     def requestFlightPathLayer(self):

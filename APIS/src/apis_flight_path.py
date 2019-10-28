@@ -300,7 +300,8 @@ class APISFlightPath(QDialog, FORM_CLASS):
                   QgsField("abflug_flughafen", QVariant.String),
                   QgsField("ankunft_flughafen", QVariant.String),
                   QgsField("wetter", QVariant.String),
-                  QgsField("target", QVariant.String)]
+                  QgsField("target", QVariant.String),
+                  QgsField("orientation", QVariant.String)]
 
         flightPathPointProvider.addAttributes(fields)
         flightPathLineProvider.addAttributes(fields)
@@ -436,6 +437,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
         attributes.append(self.filmsDict[filmNumber]['ankunft_flughafen'])
         attributes.append(self.filmsDict[filmNumber]['wetter'])
         attributes.append(self.filmsDict[filmNumber]['target'])
+        attributes.append(self.filmsDict[filmNumber]['orientation'])
         return attributes
 
     def yearFromFilm(self, film):

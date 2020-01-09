@@ -164,7 +164,7 @@ def GenerateWeatherDescription(db, weatherCode):
         pos += 1
     return weatherDescription
 
-def VersionToCome(version="3.1"):
+def VersionToCome(version="3.2"):
     QMessageBox.information(None, "Version 3", "Diese Funktion steht ab Version {0} zur Verfügung.".format(version))
 
 def SetExportPath(path):

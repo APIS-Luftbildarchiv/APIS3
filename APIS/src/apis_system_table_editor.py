@@ -22,12 +22,18 @@
  ***************************************************************************/
 """
 
-import os
+import os, sys
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QAbstractItemView
+from PyQt5.QtCore import QVariant, Qt
+from PyQt5.QtGui import QIntValidator
+from PyQt5.QtWidgets import (QDialog, QAbstractItemView, QHeaderView, QFormLayout, QLabel, QLineEdit, QMessageBox,
+                             QPushButton, QComboBox, QStyle, QApplication, QTableView)
 from PyQt5.QtSql import QSqlRelationalTableModel
 
+from APIS.src.apis_utils import DbHasTable
+
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_system_table_editor.ui'), resource_suffix='')
 
@@ -38,25 +44,259 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
         self.dbm = dbm
         super(APISSystemTableEditor, self).__init__(parent)
 
+        self.table = None
+        self.model = None
+        self.insertQuery = None
+        self.updateQuery = None
+        self.deleteQuery = None
+
         self.setupUi(self)
 
+        self.uiEditBtn.setEnabled(False)
+        self.uiRemoveBtn.setEnabled(False)
+
         self.setupTable()
+
 
     def setupTable(self):
         self.uiSystemTableV.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.uiSystemTableV.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.uiSystemTableV.resizeColumnsToContents()
+        self.uiSystemTableV.resizeRowsToContents()
+        self.uiSystemTableV.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+    def onSelectionChanged(self):
+        if self.uiSystemTableV.selectionModel().hasSelection():
+            self.uiEditBtn.setEnabled(True)
+            self.uiRemoveBtn.setEnabled(True)
+        else:
+            self.uiEditBtn.setEnabled(False)
+            self.uiRemoveBtn.setEnabled(False)
 
     def loadTable(self, table):
-        self.uiSysTableLbl.setText(table)
+        # check if table in db
+        if not DbHasTable(self.dbm.db, table):
+            return False
 
-        model = QSqlRelationalTableModel(self, self.dbm.db)
-        model.setTable(table)
-        model.select()
-        rc = model.rowCount()
-        while (model.canFetchMore()):
-            model.fetchMore()
-            rc = model.rowCount()
+        self.table = table
+        self.uiSysTableLbl.setText(self.table)
 
-        self.uiSystemTableV.setModel(model)
+        self.model = QSqlRelationalTableModel(self, self.dbm.db)
+        self.model.setTable(table)
+        self.model.select()
+        #rc = self.model.rowCount()
+        while (self.model.canFetchMore()):
+            self.model.fetchMore()
+            #rc = self.model.rowCount()
 
+        self.uiSystemTableV.setModel(self.model)
+        self.uiSystemTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+        self.onSelectionChanged()
+
+        dummyRecord = self.model.record()
+        editors = []
+        for fIdx in range(dummyRecord.count()):
+            field = dummyRecord.field(fIdx)
+            if field.name() != "ogc_fid":
+                editors.append({'name': field.name(), 'type': field.type(), 'lineEdit': QLineEdit()})
+
+        self.inputDialog = APISInputDialog(editors, dummyRecord, parent=self)
+        self.uiAddBtn.clicked.connect(self.openInputDialog)
+
+        # init input dialog
+
+        return True
+
+    def openInputDialog(self):
+        if self.inputDialog.exec_():
+            rec = self.inputDialog.getRecord()
+            if not rec.isEmpty():
+                res = self.model.insertRowIntoTable(rec)
+                if res:
+                    self.model.select()
+                    self.dbm.dbRequiresUpdate = True
+                else:
+                    QMessageBox.warning(self, "DB Fehler", "Der folgende Feheler ist aufgetreten: {}".format(self.model.lastError().text()))
+        else:
+            pass
+
+class APISInputDialog(QDialog):
+    def __init__(self, editors, record, parent=None):
+        super(APISInputDialog, self).__init__(parent)
+        self.editors = editors
+        self.record = record
+        layout = QFormLayout()
+        for editor in self.editors:
+            #QMessageBox.information(self, "info", "{}".format((editor["name"])))
+            if editor["name"] != "ogc_fid":
+                label = QLabel(editor["name"])
+                #QMessageBox.information(None, "info", "{}".format(editor["type"]))
+                if editor["type"] == QVariant.Int:
+                    intVal = QIntValidator()
+                    intVal.setBottom(0)
+                    editor['lineEdit'].setValidator(intVal)
+                layout.addRow(label, editor['lineEdit'])
+                editor['lineEdit'].textEdited.connect(self.onTextEdited)
+
+        self.uiSubmitBtn = QPushButton("Speichern")
+        self.uiSubmitBtn.setEnabled(False)
+        self.uiSubmitBtn.clicked.connect(self.saveInputAsQSqlRecord)
+        layout.addRow(self.uiSubmitBtn)
+        self.setLayout(layout)
+        self.setWindowTitle("APIS Input Dialog")
         self.adjustSize()
+
+    def onTextEdited(self, text):
+        for editor in self.editors:
+            if len(editor['lineEdit'].text().replace(" ", "")) == 0:
+                self.uiSubmitBtn.setEnabled(False)
+                return
+        self.uiSubmitBtn.setEnabled(True)
+
+    def saveInputAsQSqlRecord(self):
+        for editor in self.editors:
+            self.record.setValue(editor["name"], editor['lineEdit'].text())
+        self.accept()
+
+    def getRecord(self):
+        return self.record
+
+
+class APISAdvancedInputDialog(QDialog):
+    def __init__(self, dbm, tableName, showEntriesCombo, modelColumnName=None, excludeEntries=None, parent=None):
+        super(APISAdvancedInputDialog, self).__init__(parent)
+
+        self.dbm = dbm
+        self.tableName = tableName
+        self.modelColumnName = modelColumnName
+        self.showEntriesCombo = showEntriesCombo
+        self.excludeEntries = excludeEntries
+
+        self.valueToBeAdded = None
+        self.editors = None
+        self.record = None
+        self.tableExists = False
+
+        if self.prepairEditorsAndRecord():
+            self.setupForm()
+        else:
+            pass
+            # something went wrong preping
+
+    def prepairEditorsAndRecord(self):
+        if not DbHasTable(self.dbm.db, self.tableName):
+            return False
+
+        self.tableExists = True
+
+        self.model = QSqlRelationalTableModel(self, self.dbm.db)
+        self.model.setTable(self.tableName)
+        self.model.select()
+        while (self.model.canFetchMore()):
+            self.model.fetchMore()
+
+        self.record = self.model.record()
+        self.editors = []
+        for fIdx in range(self.record.count()):
+            field = self.record.field(fIdx)
+            if field.name() != "ogc_fid":
+                self.editors.append({'name': field.name(), 'type': field.type(), 'lineEdit': QLineEdit()})
+
+        return True
+
+    def setupForm(self):
+        layout = QFormLayout()
+
+        if self.showEntriesCombo:
+            self.uiAvailableEntriesCombo = QComboBox()
+            # populate (but exlude if exclude has elements)
+
+            if self.excludeEntries and len(self.excludeEntries) > 0:
+                self.model.setFilter("{0} NOT IN ({1})".format(self.modelColumnName, ",".join("'{0}'".format(i) for i in self.excludeEntries)))
+                # QMessageBox.information(self, "info", "{0} NOT IN ({1})".format(self.modelColumnName, ",".join("'{0}'".format(i) for i in self.excludeEntries)))
+                # self.model.select()
+            self.model.removeColumn(0)
+            self.setupComboBox(self.uiAvailableEntriesCombo, self.model.fieldIndex(self.modelColumnName))
+            layout.addRow(self.uiAvailableEntriesCombo)
+
+            self.uiAddBtn = QPushButton("Hinzufügen")
+            if self.uiAvailableEntriesCombo.count() < 1:
+                self.uiAddBtn.setEnabled(False)
+            self.uiAddBtn.clicked.connect(self.addInputToSelection)
+            layout.addRow(self.uiAddBtn)
+
+        for editor in self.editors:
+            # QMessageBox.information(self, "info", "{}".format((editor["name"])))
+            if editor["name"] != "ogc_fid":
+                label = QLabel(editor["name"])
+                # QMessageBox.information(None, "info", "{}".format(editor["type"]))
+                if editor["type"] == QVariant.Int:
+                    intVal = QIntValidator()
+                    intVal.setBottom(0)
+                    editor['lineEdit'].setValidator(intVal)
+                layout.addRow(label, editor['lineEdit'])
+                editor['lineEdit'].textEdited.connect(self.onTextEdited)
+
+        self.uiSubmitBtn = QPushButton("Speichern")
+        self.uiSubmitBtn.setEnabled(False)
+        self.uiSubmitBtn.clicked.connect(self.saveInputAsQSqlRecord)
+        layout.addRow(self.uiSubmitBtn)
+        self.setLayout(layout)
+        self.setWindowTitle("APIS Input Dialog")
+        self.adjustSize()
+
+    def onTextEdited(self, text):
+        for editor in self.editors:
+            if len(editor['lineEdit'].text().replace(" ", "")) == 0:
+                self.uiSubmitBtn.setEnabled(False)
+                return
+        self.uiSubmitBtn.setEnabled(True)
+
+    def addInputToSelection(self):
+        self.setValueToBeAdded(self.uiAvailableEntriesCombo.currentText())
+        self.accept()
+
+    def setValueToBeAdded(self, value):
+        self.valueToBeAdded = value
+
+    def getValueToBeAdded(self):
+        return self.valueToBeAdded
+
+    def saveInputAsQSqlRecord(self):
+        for editor in self.editors:
+            self.record.setValue(editor["name"], editor['lineEdit'].text())
+        if not self.record.isEmpty():
+            result = self.model.insertRowIntoTable(self.record)
+            if result:
+                self.setValueToBeAdded(self.record.field(self.modelColumnName).value())
+                self.accept()
+            else:
+                QMessageBox.warning(self, "DB Fehler", "Der folgende Feheler ist aufgetreten: {}".format(self.model.lastError().text()))
+                self.reject()
+        else:
+            self.reject()
+
+    def setupComboBox(self, editor, modelColumn):
+        tv = QTableView()
+        editor.setView(tv)
+
+        tv.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        tv.setSelectionMode(QAbstractItemView.SingleSelection)
+        tv.setSelectionBehavior(QAbstractItemView.SelectRows)
+        tv.setAutoScroll(False)
+
+        editor.setModel(self.model)
+
+        editor.setModelColumn(modelColumn)
+        editor.setInsertPolicy(QComboBox.NoInsert)
+
+        tv.resizeColumnsToContents()
+        tv.resizeRowsToContents()
+        tv.verticalHeader().setVisible(False)
+        tv.horizontalHeader().setVisible(True)
+        #tv.setMinimumWidth(tv.horizontalHeader().length())
+        tv.horizontalHeader().setStretchLastSection(True)
+        #tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        tv.resizeColumnsToContents()
+        scroll = 0 if editor.count() <= editor.maxVisibleItems() else QApplication.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        tv.setMinimumWidth(tv.horizontalHeader().length() + scroll)

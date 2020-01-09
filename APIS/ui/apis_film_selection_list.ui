@@ -38,23 +38,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="uiSortByFilmNumberWithoutProducer">
-       <property name="toolTip">
-        <string>Sortieren nach Filmnummer ohne Hersteller</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/plugins/APIS/icons/film_sorting.png</normaloff>:/plugins/APIS/icons/film_sorting.png</iconset>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="uiDisplayFlightPathBtn">
        <property name="enabled">
         <bool>true</bool>

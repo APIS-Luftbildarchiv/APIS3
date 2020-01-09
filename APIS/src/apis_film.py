@@ -46,7 +46,7 @@ from APIS.src.apis_weather import APISWeather
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_exif2points import Exif2Points
-from APIS.src.apis_system_table_editor import APISSystemTableEditor
+from APIS.src.apis_system_table_editor import APISSystemTableEditor, APISAdvancedInputDialog
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -117,10 +117,10 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiWeatherCodeEdit.textChanged.connect(self.generateWeatherCode)
         self.uiFilmModeCombo.currentIndexChanged.connect(self.onFilmModeChanged)
 
-        # self.uiEditProjectTableBtn.clicked.connect(lambda: self.openSystemTableEditor("projekt", self.uiProjectSelectionCombo))
-        # self.uiEditCopyrightTableBtn.clicked.connect(lambda: self.openSystemTableEditor("copyright", self.uiCopyrightCombo))
-        self.uiEditProjectTableBtn.clicked.connect(lambda: VersionToCome())
-        self.uiEditCopyrightTableBtn.clicked.connect(lambda: VersionToCome())
+        self.uiEditProjectTableBtn.clicked.connect(lambda: self.openSystemTableEditorDialog("projekt", self.uiProjectSelectionCombo))
+        self.uiEditCopyrightTableBtn.clicked.connect(lambda: self.openSystemTableEditorDialog("copyright", self.uiCopyrightCombo))
+        # self.uiEditProjectTableBtn.clicked.connect(lambda: VersionToCome())
+        # self.uiEditCopyrightTableBtn.clicked.connect(lambda: VersionToCome())
 
         # init Project Btn
         self.uiAddProjectBtn.clicked.connect(self.addProject)
@@ -571,24 +571,35 @@ class APISFilm(QDialog, FORM_CLASS):
         # Run the dialog event loop and See if OK was pressed
         if self.searchFilmDlg.exec_():
             # QMessageBox.warning(None, "FilmNumber", self.searchFilmDlg.generateSearchQuery())
+
             model = QSqlRelationalTableModel(self, self.dbm.db)
             model.setTable("film")
-            searchMode, searchQuery = self.searchFilmDlg.generateSearchQuery()
-            model.setFilter(searchQuery)
+            searchMode, searchFilter = self.searchFilmDlg.generateSearchFilter()
+            # QMessageBox.information(self, "info", searchFilter)
+
+            model.setFilter(searchFilter)
             model.select()
             rc = model.rowCount()
             while (model.canFetchMore()):
                 model.fetchMore()
                 rc = model.rowCount()
 
-
-            if model.rowCount():
+            query = QSqlQuery(self.dbm.db)
+            searchQuery = "select filmnummer, substr(filmnummer, 3, 8) as 'ohne_hersteller', flugdatum, anzahl_bilder, weise, art_ausarbeitung, militaernummer, militaernummer_alt from film where {0}".format(searchFilter)
+            query.exec_(searchQuery)
+            querySize = 0
+            while(query.next()):
+                querySize += 1
+            query.seek(-1)
+            # if model.rowCount():
+            if querySize > 0:
                 # open film selection list dialog
                 searchListDlg = APISFilmSelectionList(self.iface, model, self.dbm, self.imageRegistry, parent=self)
                 searchListDlg.uiFilmCountLbl.setText(str(rc))
                 searchListDlg.uiFilmCountDescriptionLbl.setText(u"Film gefunden" if model.rowCount() == 1 else u"Filme gefunden")
                 searchListDlg.uiFilmSearchModeLbl.setText(searchMode)
-                if searchListDlg.exec_():
+                res = searchListDlg.loadFilmListBySqlQuery(query)
+                if res and searchListDlg.exec_():
                     #QMessageBox.warning(None, "FilmNumber", unicode(searchListDlg.filmNumberToLoad))
                     self.loadRecordByKeyAttribute("filmnummer", searchListDlg.filmNumberToLoad)
             else:
@@ -651,16 +662,37 @@ class APISFilm(QDialog, FORM_CLASS):
             pos += 1
         return weatherDescription
 
-    def openSystemTableEditor(self, table, updateEditor):
-        if self.systemTableEditorDlg is None:
-            self.systemTableEditorDlg = APISSystemTableEditor(self.dbm, parent=self)
+    def openSystemTableEditorDialog(self, table, updateEditor):
+        if self.dbm:
+            self.systemTableEditorDlg = APISAdvancedInputDialog(self.dbm, table, False, parent=self)
 
-        self.systemTableEditorDlg.loadTable(table)
-        self.systemTableEditorDlg.show()
+            if self.systemTableEditorDlg.tableExists:
+                if self.systemTableEditorDlg.exec_():
+                    # See if OK was pressed
+                    # rec = self.systemTableEditorDlg.getRecord()
+                    # Update updateEditor
+                    # self.setupComboBox(self.uiProjectSelectionCombo, "projekt", 0, None)
+                    self.updateComboBox(updateEditor)
 
-        if self.systemTableEditorDlg.exec_():
-            pass
-            # Update updateEditor
+            else:
+                QMessageBox.warning(self, "Tabelle nicht vorhanden", "Die Tabelle {0} ist in der APIS Datenbank nicht vorhanden".format(table))
+
+        else:
+            QMessageBox.warning(self, "Warning Database", "Die APIS Datenbank konnte nicht gefunden werden.")
+
+    def updateComboBox(self, updateEditor):
+        updateEditor.model().select()
+        tv = updateEditor.view()
+        tv.resizeRowsToContents()
+        tv.resizeColumnsToContents()
+        scroll = 0 if updateEditor.count() <= updateEditor.maxVisibleItems() else QApplication.style().pixelMetric(
+            QStyle.PM_ScrollBarExtent)
+        tv.setMinimumWidth(tv.horizontalHeader().length() + scroll)
+        updateEditor.setCurrentIndex(updateEditor.count() - 1)
+        if updateEditor.validator():
+            updateEditor.lineEdit().setValidator(
+                InListValidator([updateEditor.itemText(i) for i in range(updateEditor.count())],
+                                updateEditor.lineEdit(), None, self))
 
     def openFlightPathDialog(self, filmList, toClose=None):
         self.flightPathDlg.viewFilms(filmList) #DEBUG
@@ -874,10 +906,18 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiFilmModeCombo.setEnabled(False)
 
     def showEvent(self, evnt):
-        pass
-        #self.model.select()
-        #while (self.model.canFetchMore()):
-        #    self.model.fetchMore()
+        # QMessageBox.information(self, "info", "db requires update: {0}".format(self.dbm.dbRequiresUpdate))
+
+        if self.dbm.dbRequiresUpdate:
+            self.initalLoad = True
+            self.updateComboBox(self.uiProjectSelectionCombo)
+            currIdx = self.mapper.currentIndex()
+            self.model.select()
+            while (self.model.canFetchMore()):
+               self.model.fetchMore()
+            self.mapper.setCurrentIndex(currIdx)
+            self.dbm.dbRequiresUpdate = False
+            self.initalLoad = False
 
 class FilmDelegate(QSqlRelationalDelegate):
     def __init__(self):

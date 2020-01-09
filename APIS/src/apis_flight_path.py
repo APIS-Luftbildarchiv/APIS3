@@ -208,7 +208,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
             table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def selectBestAvailable(self, columns):
-        self.selectAll(False)
+        self.selectColumns(columns, False)
         table = self.uiFlightPathAvailabilityTable
         for row in range(0, table.rowCount()):
             for column in columns:
@@ -217,13 +217,13 @@ class APISFlightPath(QDialog, FORM_CLASS):
                     chkBox.setChecked(True)
                     break
 
-    def selectColumns(self, columns):
+    def selectColumns(self, columns, checked=True):
         table = self.uiFlightPathAvailabilityTable
         for row in range(0, table.rowCount()):
             for column in columns:
                 chkBox = table.cellWidget(row, column)
                 if chkBox.isEnabled():
-                    chkBox.setChecked(True)
+                    chkBox.setChecked(checked)
 
     def selectAll(self, checked):
         table = self.uiFlightPathAvailabilityTable

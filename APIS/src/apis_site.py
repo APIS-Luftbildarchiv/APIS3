@@ -264,25 +264,28 @@ class APISSite(QDialog, FORM_CLASS):
             "filmnummer_projekt": {
                 "editor": self.uiProjectOrFilmEdit
             },
-            "katastralgemeindenummer":{
+            "katastralgemeindenummer": {
                 "editor": self.uiCadastralCommunityNumberEdit
             },
             "land":{
                 "editor": self.uiCountryEdit
             },
-            "katastralgemeinde":{
+            "katastralgemeinde": {
                 "editor": self.uiCadastralCommunityEdit
+            },
+            "common_name": {
+                "editor": self.uiCommonNameEdit
             },
             "flurname":{
                 "editor": self.uiFieldNameEdit
             },
-            "parzellennummern":{
+            "parzellennummern": {
                 "editor": self.uiPlotNumberEdit
             },
-            "kommentar_lage":{
+            "kommentar_lage": {
                 "editor": self.uiCommentEdit
             },
-            "erstmeldung_jahr":{
+            "erstmeldung_jahr": {
                 "editor": self.uiFirstReportYearEdit,
                 "validator": self.intValidator
             },
@@ -292,18 +295,18 @@ class APISSite(QDialog, FORM_CLASS):
             "raster": {
                 "editor": self.uiRasterEdit
             },
-            "ortshoehe":{
+            "ortshoehe": {
                 "editor": self.uiElevationEdit,
                 "validator": self.doubleValidator
             },
-            "flaeche":{
+            "flaeche": {
                 "editor": self.uiAreaEdit,
                 "validator": self.doubleValidator
             },
-            "literatur":{
+            "literatur": {
                 "editor": self.uiLiteraturePTxt
             },
-            "sonstiges":{
+            "sonstiges": {
                 "editor": self.uiMiscellaneousPTxt
             },
             "befund": {

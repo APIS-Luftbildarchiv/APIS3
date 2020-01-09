@@ -632,7 +632,11 @@ class APISFilmTemplatePrinter(APISTemplatePrinter):
         if not vectorLayer.hasFeatures() and dataSource and dataSource.GetLayer().GetFeatureCount() > 0:
             features = []
             sourceCrs = QgsCoordinateReferenceSystem()
-            sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
+            if dataSource.GetLayer().GetSpatialRef() is None:
+                # assuming if flight path has no spatial ref it is 4326 for gps tracking
+                sourceCrs.createFromId(4326, QgsCoordinateReferenceSystem.EpsgCrsId)
+            else:
+                sourceCrs.createFromProj4(dataSource.GetLayer().GetSpatialRef().ExportToProj4())
             for sourceFeature in dataSource.GetLayer():
                 feature = QgsFeature()
                 feature.setGeometry(TransformGeometry(QgsGeometry.fromWkt(sourceFeature.GetGeometryRef().ExportToWkt()), sourceCrs, vectorLayer.crs()))
@@ -861,8 +865,8 @@ class APISFindspotTemplatePrinter(APISTemplatePrinter):
         return substituteDict
 
     def adjustItems(self):
-        adjustItemHight = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte", "literatur", "sonstiges"]
-        adjustItemsPos = ["kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte",
+        adjustItemHight = ["parzelle", "kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte", "literatur", "sonstiges"]
+        adjustItemsPos = ["parzelle", "kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte",
                            "literatur", "sonstiges"]
         self.adjustItemsHightAndPos(adjustItemHight, adjustItemsPos)
 
@@ -885,7 +889,11 @@ class APISListPrinter:
         query.prepare(self.queryStr)
         query.exec_()
 
-        # QMessageBox.information(None, "SQL", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+        # c = 0
+        # while(query.next()):
+        #     c += 1
+
+        QMessageBox.information(None, "SQL", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
 
         layout = QgsLayout(QgsProject.instance())
 
@@ -1012,12 +1020,17 @@ class APISFilmListPrinter(APISListPrinter):
     def __init__(self, fileName, idList, dbm, imageRegistry):
         self.dbm = dbm
         self.imageRegistry = imageRegistry
+        #   QMessageBox.information(None, "Info", "{}".format(len(idList)))
         #define Info
 
         #define orientation
 
         #define query
-        qryStr = "SELECT filmnummer AS Filmnummer, strftime('%d.%m.%Y', flugdatum) AS Flugdatum, anzahl_bilder AS Bildanzahl, weise AS Weise, art_ausarbeitung AS Art, militaernummer AS Militärnummer, militaernummer_alt AS 'Militärnummer Alt', CASE WHEN weise = 'senk.' THEN (SELECT count(*) from luftbild_senk_cp WHERE film.filmnummer = luftbild_senk_cp.filmnummer) ELSE (SELECT count(*) from luftbild_schraeg_cp WHERE film.filmnummer = luftbild_schraeg_cp.filmnummer) END AS Kartiert, 0 AS Gescannt FROM film WHERE filmnummer IN ({0}) ORDER BY {1}".format(",".join("'{0}'".format(film) for film in idList), ",".join("filmnummer='{0}' DESC".format(film) for film in idList))
+
+        if len(idList) > 2000:
+            qryStr = "SELECT filmnummer AS Filmnummer, strftime('%d.%m.%Y', flugdatum) AS Flugdatum, anzahl_bilder AS Bildanzahl, weise AS Weise, art_ausarbeitung AS Art, militaernummer AS Militärnummer, militaernummer_alt AS 'Militärnummer Alt', CASE WHEN weise = 'senk.' THEN (SELECT count(*) from luftbild_senk_cp WHERE film.filmnummer = luftbild_senk_cp.filmnummer) ELSE (SELECT count(*) from luftbild_schraeg_cp WHERE film.filmnummer = luftbild_schraeg_cp.filmnummer) END AS Kartiert, 0 AS Gescannt FROM film WHERE filmnummer IN ({0})".format(",".join("'{0}'".format(film) for film in idList))
+        else:
+            qryStr = "SELECT filmnummer AS Filmnummer, strftime('%d.%m.%Y', flugdatum) AS Flugdatum, anzahl_bilder AS Bildanzahl, weise AS Weise, art_ausarbeitung AS Art, militaernummer AS Militärnummer, militaernummer_alt AS 'Militärnummer Alt', CASE WHEN weise = 'senk.' THEN (SELECT count(*) from luftbild_senk_cp WHERE film.filmnummer = luftbild_senk_cp.filmnummer) ELSE (SELECT count(*) from luftbild_schraeg_cp WHERE film.filmnummer = luftbild_schraeg_cp.filmnummer) END AS Kartiert, 0 AS Gescannt FROM film WHERE filmnummer IN ({0}) ORDER BY {1}".format(",".join("'{0}'".format(film) for film in idList), ",".join("filmnummer='{0}' DESC".format(film) for film in idList))
 
         APISListPrinter.__init__(self, fileName, qryStr)
 
@@ -1292,7 +1305,7 @@ class APISVerticalLabelPrinter(APISLabelPrinter):
         if count == 0:
             qryStrOblique = u"SELECT luftbild_senk_cp.bildnummer AS bildnummer, film.kamera, luftbild_senk_cp.fokus, luftbild_senk_cp.hoehe, luftbild_senk_cp.massstab, film.militaernummer AS mil_num, film.flugdatum FROM film, luftbild_senk_cp WHERE luftbild_senk_cp.filmnummer = film.filmnummer AND luftbild_senk_cp.bildnummer IN ({0}) ORDER BY luftbild_senk_cp.bildnummer".format(
                 u",".join(u"'{0}'".format(image) for image in idList))
-            query.prepare(qryStr)
+            query.prepare(qryStrOblique)
             query.exec_()
 
         for imageNumber in idList:

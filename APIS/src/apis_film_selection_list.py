@@ -25,9 +25,9 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QMenu
+from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QMenu, QMessageBox
 from PyQt5.QtCore import QSettings, Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QStandardItemModel, QStandardItem
 
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, APISListPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
@@ -43,7 +43,7 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         super(APISFilmSelectionList, self).__init__(parent)
 
         self.iface = iface
-        self.model = model
+        # self.model = model
         self.dbm = dbm
         self.imageRegistry = imageRegistry
 
@@ -62,8 +62,6 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         self.uiDisplayFlightPathBtn.clicked.connect(lambda: parent.openFlightPathDialog(self.getFilmList(), self))
 
         self.uiResetSelectionBtn.clicked.connect(self.uiFilmListTableV.clearSelection)
-        # sort by Filmnumber without Producer (two leading digits)
-        # self.uiSortByFilmNumberWithoutProducer.clicked.connect()
 
         mPdfExport = QMenu()
         aPdfExportFilmList = mPdfExport.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'pdf_export.png')), "Filmliste")
@@ -76,7 +74,29 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         self.accepted.connect(self.onAccepted)
         self.rejected.connect(self.onRejected)
 
+        #self.setupTable()
+
+    def loadFilmListBySqlQuery(self, query=None):
+        self.model = QStandardItemModel()
+
+        # iterate over query result
+        while query.next():
+            newRow = []
+            rec = query.record()
+            for col in range(rec.count()):
+                newCol = QStandardItem(str(rec.value(col)))
+                newRow.append(newCol)
+            self.model.appendRow(newRow)
+
+        if self.model.rowCount() < 1:
+            #QMessageBox.warning(self, "Bild Auswahl", u"Es wurden keine kartierten Bilder gefunden!")
+            return False
+
+        for col in range(rec.count()):
+            self.model.setHeaderData(col, Qt.Horizontal, rec.fieldName(col))
+
         self.setupTable()
+        return True
 
     def setupTable(self):
         self.uiFilmListTableV.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -84,18 +104,18 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         self.uiFilmListTableV.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         #hide and sort Columns
-        self.visibleColumns = ['filmnummer', 'flugdatum', 'anzahl_bilder', 'weise', 'art_ausarbeitung', 'militaernummer', 'militaernummer_alt']
-        vCIdx = []
-        for vC in self.visibleColumns:
-            vCIdx.append(self.model.fieldIndex(vC))
-
-        for c in range(self.model.columnCount()):
-            if c not in vCIdx:
-                self.uiFilmListTableV.hideColumn(c)
-
-        hH = self.uiFilmListTableV.horizontalHeader()
-        for i in range(len(vCIdx)):
-            hH.moveSection(hH.visualIndex(vCIdx[i]), i)
+        # self.visibleColumns = ['filmnummer', 'flugdatum', 'anzahl_bilder', 'weise', 'art_ausarbeitung', 'militaernummer', 'militaernummer_alt']
+        # vCIdx = []
+        # for vC in self.visibleColumns:
+        #     vCIdx.append(self.model.fieldIndex(vC))
+        #
+        # for c in range(self.model.columnCount()):
+        #     if c not in vCIdx:
+        #         self.uiFilmListTableV.hideColumn(c)
+        #
+        # hH = self.uiFilmListTableV.horizontalHeader()
+        # for i in range(len(vCIdx)):
+        #     hH.moveSection(hH.visualIndex(vCIdx[i]), i)
 
         self.uiFilmListTableV.resizeColumnsToContents()
         self.uiFilmListTableV.resizeRowsToContents()
@@ -107,13 +127,13 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
         self.uiFilmListTableV.sortByColumn(0, Qt.AscendingOrder)
         self.uiFilmListTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+        self.uiFilmListTableV.resizeRowsToContents()
 
     def onSelectionChanged(self):
         self.uiSelectionCountLbl.setText("{0}".format(len(self.uiFilmListTableV.selectionModel().selectedRows())))
 
     def viewFilm(self):
-        filmIdx = self.model.createIndex(self.uiFilmListTableV.currentIndex().row(), self.model.fieldIndex("filmnummer"))
-        self.filmNumberToLoad = self.model.data(filmIdx)
+        self.filmNumberToLoad = self.model.item(self.uiFilmListTableV.currentIndex().row(), 0).text()
         SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())
         self.accept()
 
@@ -138,14 +158,10 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
             rows = self.uiFilmListTableV.selectionModel().selectedRows()
             for row in rows:
                 # get filmnummer
-                filmList.append(self.model.data(self.model.createIndex(row.row(), self.model.fieldIndex("filmnummer"))))
+                filmList.append(self.model.item(row.row(), 0).text())
         else:
-            rc = self.model.rowCount()
-            while (self.model.canFetchMore()):
-                self.model.fetchMore()
-                rc = self.model.rowCount()
-            for row in range(rc):
-                filmList.append(self.model.data(self.model.createIndex(row, self.model.fieldIndex("filmnummer"))))
+            for row in range(self.model.rowCount()):
+                filmList.append(self.model.item(row, 0).text())
 
         return filmList
 
@@ -208,3 +224,5 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
 
     def onRejected(self):
         SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())
+
+

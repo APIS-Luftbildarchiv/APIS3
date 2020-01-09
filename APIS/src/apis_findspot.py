@@ -41,6 +41,7 @@ from APIS.src.apis_utils import (OpenFileOrFolder, ApisLogger, VersionToCome, Se
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
 from APIS.src.apis_thumb_viewer import APISThumbViewer
+from APIS.src.apis_chronology import APISChronology
 
 # QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
 # QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
@@ -89,6 +90,7 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.uiPlotNumberBtn.clicked.connect(lambda: self.openTextEditor("Parzellennummer", self.uiPlotNumberEdit))
         self.uiCommentBtn.clicked.connect(lambda: self.openTextEditor("Bemerkung zur Lage", self.uiCommentEdit))
         self.uiFindingTypeDetailBtn.clicked.connect(self.openFindingTypeDetailDialog)
+        self.uiDatingBtn.clicked.connect(self.openChronologyDialog)
 
         # TODO remove
         #self.uiLoadFindspotInQGisBtn.clicked.connect(self.loadFindspotInQGis)
@@ -267,10 +269,16 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         self.uiCadastralCommunityNumberEdit.setText(str(query.value(0)))
         self.uiCadastralCommunityEdit.setText(str(query.value(1)))
-        self.uiFieldNameEdit.setText(str('' if query.isNull(2) else query.value(2)))
+        # self.uiFieldNameEdit.setText(str('' if query.isNull(2) else query.value(2)))
 
 
         self.lineEditMaps = {
+            "common_name": {
+                "editor": self.uiCommonNameEdit
+            },
+            "flurname": {
+                "editor": self.uiFieldNameEdit
+            },
             "bearbeiter": {
                 "editor": self.uiCaseWorkerEdit
             },
@@ -462,14 +470,21 @@ class APISFindspot(QDialog, FORM_CLASS):
         #if time != "":
         #time = self.uiDatingTimeCombo.lineEdit().text()
         #period = self.uiDatingPeriodCombo.lineEdit().text()
-        #QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(time))
+        # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(time))
         self.setupComboBoxByQuery(self.uiDatingPeriodCombo, u"SELECT DISTINCT periode FROM zeit WHERE zeit ='{0}'".format(time))
 
-        index = self.uiDatingPeriodCombo.findText(period)
+        if self.initalLoad:
+            index = self.uiDatingPeriodCombo.findText(period)
+        else:
+            index = self.uiDatingPeriodCombo.findText(time)
+
+        # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(index))
+
+
         if index < 0 and self.uiDatingPeriodCombo.count() == 1:
             self.uiDatingPeriodCombo.setCurrentIndex(0)
-        #else:
-        #    self.uiDatingPeriodCombo.setCurrentIndex(index)
+        else:
+            self.uiDatingPeriodCombo.setCurrentIndex(index)
 
 
     def loadPeriodDetailsContent(self, row):
@@ -478,14 +493,19 @@ class APISFindspot(QDialog, FORM_CLASS):
         period = self.uiDatingPeriodCombo.lineEdit().text()
         periodDetail = self.uiDatingPeriodDetailCombo.lineEdit().text()
 
-            #QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(periodDetail))
+        # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(periodDetail))
         self.setupComboBoxByQuery(self.uiDatingPeriodDetailCombo, u"SELECT DISTINCT periode_detail FROM zeit WHERE zeit = '{0}' AND periode = '{1}'".format(time, period))
 
-        index = self.uiDatingPeriodDetailCombo.findText(periodDetail)
+        if self.initalLoad:
+            index = self.uiDatingPeriodDetailCombo.findText(periodDetail)
+        else:
+            index = self.uiDatingPeriodDetailCombo.findText(period)
+
+
         if index < 0 and self.uiDatingPeriodDetailCombo.count() == 1:
             self.uiDatingPeriodDetailCombo.setCurrentIndex(0)
-        #else:
-        #        self.uiDatingPeriodDetailCombo.setCurrentIndex(index)
+        else:
+            self.uiDatingPeriodDetailCombo.setCurrentIndex(index)
 
     def resetFindingTypeDetail(self, row):
         self.uiFindingTypeDetailEdit.clear()
@@ -614,6 +634,11 @@ class APISFindspot(QDialog, FORM_CLASS):
         res = findingTypeDetailDlg.loadList(self.uiFindingTypeCombo.currentText(), self.uiFindingTypeDetailEdit.text())
         if res and findingTypeDetailDlg.exec_():
             self.uiFindingTypeDetailEdit.setText(findingTypeDetailDlg.getFindingTypeDetailText())
+
+    def openChronologyDialog(self):
+        chronologyDlg = APISChronology(self.uiFindspotNumberEdit.text()[:3], self)
+        if chronologyDlg.isSetup and chronologyDlg.exec_():
+            pass
 
     def onAccept(self):
         '''
@@ -803,21 +828,22 @@ class APISFindspot(QDialog, FORM_CLASS):
             self.iface.mapCanvas().refreshAllLayers()
             self.done(1)
 
-    def apisLogger(self, action, fromTable, primaryKeysWhere):
-        toTable = fromTable + u"_log"
-        query = QSqlQuery(self.dbm.db)
-        query.prepare(u"INSERT INTO {0} SELECT * FROM {1} WHERE {2}".format(toTable, fromTable, primaryKeysWhere))
-
-        res = query.exec_()
-        #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-        if not res:
-            QMessageBox.information(self, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
-        import getpass
-        query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
-        res = query.exec_()
-        #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-        if not res:
-            QMessageBox.information(self, "SqlError", query.lastError().text())
+    # TODO remove
+    # def apisLogger(self, action, fromTable, primaryKeysWhere):
+    #     toTable = fromTable + u"_log"
+    #     query = QSqlQuery(self.dbm.db)
+    #     query.prepare(u"INSERT INTO {0} SELECT * FROM {1} WHERE {2}".format(toTable, fromTable, primaryKeysWhere))
+    #
+    #     res = query.exec_()
+    #     #QMessageBox.information(None, "SqlQuery", query.executedQuery())
+    #     if not res:
+    #         QMessageBox.information(self, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+    #     import getpass
+    #     query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
+    #     res = query.exec_()
+    #     #QMessageBox.information(None, "SqlQuery", query.executedQuery())
+    #     if not res:
+    #         QMessageBox.information(self, "SqlError", query.lastError().text())
 
     def getNextFindspotNumber(self, siteNumber):
         query = QSqlQuery(self.dbm.db)

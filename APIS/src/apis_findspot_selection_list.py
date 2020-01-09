@@ -261,7 +261,7 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                 if detail:
                     for findspot in findspotList:
                         if parentDetail:
-                            pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot[:8]], 'options': {'filmProject': printFilmProject}})
+                            pdfsToPrint.append({'type': APISTemplatePrinter.SITE, 'idList': [findspot.rsplit(".", 1)[0]], 'options': {'filmProject': printFilmProject}})
                         pdfsToPrint.append({'type': APISTemplatePrinter.FINDSPOT, 'idList': [findspot], 'options': {'personalData': printPersonalData}})
 
                 if pdfsToPrint:

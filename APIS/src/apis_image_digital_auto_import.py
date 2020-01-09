@@ -25,7 +25,7 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QMessageBox, QPushButton
+from PyQt5.QtWidgets import QDialog, QMessageBox, QPushButton, QTableWidgetItem
 from PyQt5.QtCore import QSettings, QDate
 from PyQt5.QtSql import QSqlQuery
 
@@ -41,7 +41,7 @@ FORM_CLASS, _ = loadUiType(os.path.join(
 
 
 class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
-    def __init__(self, iface, dbm, sourceLayerCP, sourceLayerFP, targetLayerCP, targetLayerFP, filmId, parent=None):
+    def __init__(self, iface, dbm, targetLayerCP, targetLayerFP, filmId, parent=None):
         """Constructor."""
         super(APISDigitalImageAutoImport, self).__init__(parent)
 
@@ -58,16 +58,71 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.parent = parent
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
+        # update UI regarding orientation
+        self.updateUiForFilmMode(self.parent.isOblique)
+
+
         self.targetLayerCP = targetLayerCP
         self.targetLayerFP = targetLayerFP
 
-        self.sourceLayerCP = sourceLayerCP
-        self.sourceLayerFP = sourceLayerFP
+        # self.sourceLayerCP = sourceLayerCP
+        # self.sourceLayerFP = sourceLayerFP
         # self.sourceLayerCP = self.uiCenterPointMLCombo.currentLayer()
         # self.sourceLayerFP = self.uiFootPrintMLCombo.currentLayer()
         self.uiReportPTxt.setCenterOnScroll(True)
-        self.writeMsg(u"Monoplot/INS2CAM import für Film: {0}".format(self.filmId))
-        self.uiImportBtn.clicked.connect(self.run)
+        self.writeMsg(u"Auto Import digitaler Bilder für Film: {0}".format(self.filmId))
+        self.uiImportBtn.clicked.connect(self.runImport)
+
+        self.uiMonoplotSourceGrp.toggled.connect(lambda: self.toggleSourceGroups(friend=self.uiOrientalSourceGrp))
+        self.uiOrientalSourceGrp.toggled.connect(lambda: self.toggleSourceGroups(friend=self.uiMonoplotSourceGrp))
+
+        self.setupTable()
+        self.detectAvailableImages()
+        self.autodetectSources()
+
+    def updateUiForFilmMode(self, isOblique):
+        self.uiMonoplotSourceGrp.setVisible(isOblique)
+        self.uiOrientalSourceGrp.setVisible(isOblique)
+        self.uiImageSourceGrp.setVisible(isOblique)
+        self.uiVexcelSourceGrp.setVisible(not isOblique)
+
+    def toggleSourceGroups(self, friend):
+        on = self.sender().isChecked()
+        friend.setChecked(not on)
+
+    def setupTable(self):
+        header = ["bildnummer", "status cp", "status fp"]
+        c = 0
+        for h in header:
+            self.uiImageTable.insertColumn(0)
+            c += 1
+        self.uiImageTable.setHorizontalHeaderLabels(header)
+
+    def detectAvailableImages(self):
+        existingFeaturesCP = QgsVectorLayerUtils.getValues(self.targetLayerCP, "bildnummer")[0]
+        existingFeaturesFP = QgsVectorLayerUtils.getValues(self.targetLayerFP, "bildnummer")[0]
+        existingTotal = list(set(existingFeaturesCP) | set(existingFeaturesFP))
+        existingTotal.sort()
+        for image in existingTotal:
+            self.uiImageTable.insertRow(self.uiImageTable.rowCount())
+            row = self.uiImageTable.rowCount() - 1
+            self.uiImageTable.setItem(row, 0, QTableWidgetItem(f"{image}"))
+            if image in existingFeaturesCP:
+                self.uiImageTable.setItem(row, 1, QTableWidgetItem("vorhanden"))
+            else:
+                self.uiImageTable.setItem(row, 1, QTableWidgetItem("fehlt"))
+            if image in existingFeaturesFP:
+                self.uiImageTable.setItem(row, 2, QTableWidgetItem("vorhanden"))
+            else:
+                self.uiImageTable.setItem(row, 2, QTableWidgetItem("fehlt"))
+
+        if existingTotal:
+            self.writeMsg("Es sind bereits kartierte Bilder vorhanden.")
+        else:
+            self.writeMsg("Es sind noch keine Bilder kartiert worden.")
+
+
+
 
     def autodetectSources(self):
         # sourceLayer
@@ -76,12 +131,20 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         epsg = self.settings.value("APIS/monoplot_epsg", type=int)
         sourceCpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_cp_shp"), u"shp")
         sourceFpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_fp_shp"), u"shp")
-        sourceCpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.currentFilmNumber, monoplotPath, sourceCpLayerShp))
-        sourceFpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.currentFilmNumber, monoplotPath, sourceFpLayerShp))
-        cpIsFile = os.path.isfile(sourceCpLayerPath)
-        fpIsFile = os.path.isfile(sourceFpLayerPath)
+        sourceCpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, monoplotPath, sourceCpLayerShp))
+        sourceFpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, monoplotPath, sourceFpLayerShp))
+        if os.path.isfile(sourceCpLayerPath):
+            self.uiCenterPointSourceEdit.setText(sourceCpLayerPath)
+        if os.path.isfile(sourceFpLayerPath):
+            self.uiFootprintSourceEdit.setText(sourceFpLayerPath)
+
+
+
         #sourceCpLayer = self.apisLayer.requestShapeFile(sourceCpLayerPath, epsg, None, "Bildkartierung", True, True)
         #sourceFpLayer = self.apisLayer.requestShapeFile(sourceFpLayerPath, epsg, None, "Bildkartierung", True, True)
+
+        # if sources are sufficient, check already mapped and compare to new infomration
+        # if not valid sources: prompt to manually define sources with file dialog (on add check if sources are suffieicnet like above)
 
     def areSourceLayerMonoplot(self):
         if self.sourceLayerCP.featureCount() == 0 or self.sourceLayerFP.featureCount() == 0:
@@ -147,7 +210,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 mil = u"20"
             else:
                 return False, u"Die Filmnummer im Footprint Layer entspricht weder dem alten (8-stellig) noch dem neuen (10-stellig) Filmnummernschema ({0}).".format()
-            filmNumber = u"01{0}{1}".format(mil,filmNumber[2:])
+            filmNumber = u"01{0}{1}".format(mil, filmNumber[2:])
         elif len(filmNumber) == 10:
             #new Id
             pass
@@ -292,7 +355,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.uiReportPTxt.insertPlainText(u"\n")
         #self.uiReportPTxt.ensureCursorVisible()
 
-    def run(self):
+    def runImport(self):
         self.uiImportBtn.setEnabled(False)
         res1, msg1 = self.areSourceLayerMonoplot()
         res2, msg2 = self.checkIfTargetIsClean()

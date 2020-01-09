@@ -234,6 +234,17 @@ def IdToIdLegacy(id):
 # Common DB Checks / Geometry Checks
 # ---------------------------------------------------------------------------
 
+def DbHasTable(db, table):
+    query = QSqlQuery(db)
+    query.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='{0}'".format(table))
+    query.exec_()
+    query.first()
+    #QMessageBox.information(None, "info", "{}".format(query.value(0) == table))
+    if query.value(0) == table:
+        return True
+    else:
+        return False
+
 # FIXME : relocate to apis_site_dialog.py if only usage is apis_site_dialog:showEvent() # Don't!
 def SiteHasFindspot(db, siteNumber):
     query = QSqlQuery(db)

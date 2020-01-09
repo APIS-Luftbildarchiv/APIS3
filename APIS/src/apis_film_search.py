@@ -142,8 +142,8 @@ class APISFilmSearch(QDialog, FORM_CLASS):
         self.uiFromDate.setMaximumDate(self.uiToDate.date())
         self.uiToDate.setMinimumDate(self.uiFromDate.date())
 
-    def generateSearchQuery(self):
-        # Search Mode ? byFilmModeOnly, byDate,b yMilitaryNumber, byTimeSpan
+    def generateSearchFilter(self):
+        # Search Mode ? byFilmModeOnly, byDate, byMilitaryNumber, byTimeSpan
         if self.uiVerticalChk.checkState() == Qt.Checked or self.uiObliqueChk.checkState() == Qt.Checked:
             #filmModePart = ()
             if self.uiVerticalChk.checkState() == Qt.Checked:

@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>700</height>
+    <width>1116</width>
+    <height>810</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,14 +29,41 @@
      <property name="sizeConstraint">
       <enum>QLayout::SetNoConstraint</enum>
      </property>
-     <item row="8" column="0">
-      <widget class="QLabel" name="label_34">
+     <item row="19" column="0">
+      <widget class="QLabel" name="label_26">
        <property name="text">
-        <string>Fundstelle ist:</string>
+        <string>Datierung (Zeitstufe):</string>
        </property>
       </widget>
      </item>
-     <item row="22" column="2">
+     <item row="22" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Feindatierung</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0" colspan="5">
+      <spacer name="verticalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>421</width>
+         <height>13</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="16" column="0">
+      <widget class="QLabel" name="label_33">
+       <property name="text">
+        <string>Fläche (ha):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="24" column="2">
       <widget class="QLineEdit" name="uiAbsoluteDatingFromEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -46,14 +73,27 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="0">
-      <widget class="QLabel" name="label_30">
-       <property name="text">
-        <string>Erhaltung:</string>
+     <item row="12" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiBdaNumberEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(218, 218, 218);</string>
        </property>
       </widget>
      </item>
-     <item row="21" column="5">
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_34">
+       <property name="text">
+        <string>Fundstelle ist:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="23" column="5">
       <widget class="QLabel" name="label_37">
        <property name="styleSheet">
         <string notr="true">color: rgb(255, 55, 55);</string>
@@ -63,14 +103,38 @@
        </property>
       </widget>
      </item>
-     <item row="20" column="4">
+     <item row="24" column="4">
+      <widget class="QLineEdit" name="uiAbsoluteDatingToEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item row="22" column="1">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>von:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_30">
+       <property name="text">
+        <string>Erhaltung:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="22" column="4">
       <widget class="QComboBox" name="uiFineDatingToCombo">
        <property name="editable">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="15" column="1" colspan="4">
+     <item row="16" column="1" colspan="4">
       <widget class="QLineEdit" name="uiAreaEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -86,122 +150,21 @@
        </property>
       </widget>
      </item>
-     <item row="17" column="0">
-      <widget class="QLabel" name="label_26">
-       <property name="text">
-        <string>Datierung (Zeitstufe):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="20" column="0">
-      <widget class="QLabel" name="label_8">
-       <property name="text">
-        <string>Feindatierung</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="0" colspan="5">
-      <spacer name="verticalSpacer_4">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>421</width>
-         <height>13</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="22" column="4">
-      <widget class="QLineEdit" name="uiAbsoluteDatingToEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
-     </item>
-     <item row="11" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiBdaNumberEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
-       </property>
-      </widget>
-     </item>
-     <item row="15" column="0">
-      <widget class="QLabel" name="label_33">
-       <property name="text">
-        <string>Fläche (ha):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="20" column="1">
-      <widget class="QLabel" name="label_9">
+     <item row="24" column="1">
+      <widget class="QLabel" name="label_13">
        <property name="text">
         <string>von:</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Erstmeldung:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="16" column="0" colspan="6">
-      <spacer name="verticalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>433</width>
-         <height>13</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="20" column="3">
-      <widget class="QLabel" name="label_10">
-       <property name="text">
-        <string>bis:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="24" column="0">
+     <item row="26" column="0">
       <widget class="QLabel" name="label_15">
        <property name="text">
         <string>Kultur:</string>
        </property>
       </widget>
      </item>
-     <item row="20" column="2">
-      <widget class="QComboBox" name="uiFineDatingFromCombo">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="17" column="5">
-      <widget class="QLabel" name="label_27">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 55, 55);</string>
-       </property>
-       <property name="text">
-        <string>*</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1" colspan="4">
+     <item row="7" column="1" colspan="4">
       <widget class="QLineEdit" name="uiPreservationStateEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -214,31 +177,7 @@
        </property>
       </widget>
      </item>
-     <item row="22" column="1">
-      <widget class="QLabel" name="label_13">
-       <property name="text">
-        <string>von:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_24">
-       <property name="text">
-        <string>KG Nummer:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="5">
-      <widget class="QLabel" name="label_35">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 55, 55);</string>
-       </property>
-       <property name="text">
-        <string>*</string>
-       </property>
-      </widget>
-     </item>
-     <item row="9" column="0">
+     <item row="10" column="0">
       <widget class="QPushButton" name="uiPlotNumberBtn">
        <property name="text">
         <string>Parzellen Nr:</string>
@@ -258,34 +197,13 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiPlotNumberEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+     <item row="19" column="5">
+      <widget class="QLabel" name="label_27">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 55, 55);</string>
        </property>
-      </widget>
-     </item>
-     <item row="11" column="0">
-      <widget class="QLabel" name="label_31">
        <property name="text">
-        <string>BDA Nummer:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="21" column="0">
-      <widget class="QLabel" name="label_11">
-       <property name="text">
-        <string>Datierung Quelle:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="21" column="1" colspan="4">
-      <widget class="QComboBox" name="uiDatingSourceCombo">
-       <property name="editable">
-        <bool>true</bool>
+        <string>*</string>
        </property>
       </widget>
      </item>
@@ -305,14 +223,72 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
+     <item row="12" column="0">
+      <widget class="QLabel" name="label_31">
+       <property name="text">
+        <string>BDA Nummer:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiPlotNumberEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Erstmeldung:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
       <widget class="QLabel" name="label_25">
        <property name="text">
         <string>Bearbeiter:</string>
        </property>
       </widget>
      </item>
-     <item row="24" column="1" colspan="4">
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_24">
+       <property name="text">
+        <string>KG Nummer:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="22" column="3">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>bis:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="23" column="1" colspan="4">
+      <widget class="QComboBox" name="uiDatingSourceCombo">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="17" column="0" colspan="6">
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>433</width>
+         <height>13</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="26" column="1" colspan="4">
       <widget class="QComboBox" name="uiCultureCombo">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -328,93 +304,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiFieldNameEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiCadastralCommunityEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_23">
-       <property name="text">
-        <string>Katastralgemeinde:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="18" column="0">
-      <widget class="QLabel" name="label_17">
-       <property name="text">
-        <string>Datierung (Periode):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiCaseWorkerEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="styleSheet">
-        <string notr="true"/>
-       </property>
-       <property name="readOnly">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_22">
-       <property name="text">
-        <string>Flurname:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="26" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiFindingTypeDetailEdit">
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_21">
-       <property name="text">
-        <string>Fundstelle Nummer:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="19" column="1" colspan="4">
+     <item row="21" column="1" colspan="4">
       <widget class="QComboBox" name="uiDatingPeriodDetailCombo">
        <property name="editable">
         <bool>true</bool>
@@ -424,7 +314,120 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="1" colspan="4">
+     <item row="20" column="5">
+      <widget class="QLabel" name="label_38">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 55, 55);</string>
+       </property>
+       <property name="text">
+        <string>*</string>
+       </property>
+      </widget>
+     </item>
+     <item row="21" column="0">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string>Datierung (Periode Detail):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="0" rowspan="2">
+      <widget class="QLabel" name="label_28">
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="whatsThis">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="text">
+        <string>Erstellt nach:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="25" column="0" colspan="6">
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>433</width>
+         <height>13</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="6" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiFirstReportYearEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maxLength">
+        <number>4</number>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiCommentEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item row="20" column="1" colspan="4">
+      <widget class="QComboBox" name="uiDatingPeriodCombo">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="27" column="5">
+      <widget class="QLabel" name="label_32">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 55, 55);</string>
+       </property>
+       <property name="text">
+        <string>*</string>
+       </property>
+      </widget>
+     </item>
+     <item row="24" column="3">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>bis:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="28" column="0">
+      <widget class="QPushButton" name="uiFindingTypeDetailBtn">
+       <property name="text">
+        <string>Befundart Detail:</string>
+       </property>
+       <property name="icon">
+        <iconset resource="resource.qrc">
+         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>11</width>
+         <height>11</height>
+        </size>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1" colspan="4">
       <widget class="QComboBox" name="uiSiteReliabilityCombo">
        <property name="editable">
         <bool>true</bool>
@@ -457,13 +460,10 @@
        </item>
       </widget>
      </item>
-     <item row="25" column="5">
-      <widget class="QLabel" name="label_32">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 55, 55);</string>
-       </property>
+     <item row="27" column="0">
+      <widget class="QLabel" name="label_16">
        <property name="text">
-        <string>*</string>
+        <string>Befundart:</string>
        </property>
       </widget>
      </item>
@@ -486,134 +486,20 @@
        </property>
       </widget>
      </item>
-     <item row="25" column="0">
-      <widget class="QLabel" name="label_16">
-       <property name="text">
-        <string>Befundart:</string>
+     <item row="14" column="1" rowspan="2" colspan="4">
+      <widget class="QComboBox" name="uiFindspotCreationCombo">
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
-      </widget>
-     </item>
-     <item row="19" column="0">
-      <widget class="QLabel" name="label_18">
-       <property name="text">
-        <string>Datierung (Periode Detail):</string>
+       <property name="whatsThis">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
-      </widget>
-     </item>
-     <item row="12" column="0" colspan="6">
-      <spacer name="verticalSpacer_3">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Expanding</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>433</width>
-         <height>13</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="26" column="0">
-      <widget class="QPushButton" name="uiFindingTypeDetailBtn">
-       <property name="text">
-        <string>Befundart Detail:</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>11</width>
-         <height>11</height>
-        </size>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="22" column="3">
-      <widget class="QLabel" name="label_14">
-       <property name="text">
-        <string>bis:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiFirstReportYearEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="maxLength">
-        <number>4</number>
-       </property>
-      </widget>
-     </item>
-     <item row="23" column="0" colspan="6">
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>433</width>
-         <height>13</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="25" column="1" colspan="4">
-      <widget class="QComboBox" name="uiFindingTypeCombo">
        <property name="editable">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="17" column="1" colspan="4">
-      <widget class="QComboBox" name="uiDatingTimeCombo">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-       <property name="insertPolicy">
-        <enum>QComboBox::NoInsert</enum>
-       </property>
-      </widget>
-     </item>
-     <item row="18" column="5">
-      <widget class="QLabel" name="label_38">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 55, 55);</string>
-       </property>
-       <property name="text">
-        <string>*</string>
-       </property>
-      </widget>
-     </item>
-     <item row="22" column="0">
-      <widget class="QLabel" name="label_12">
-       <property name="text">
-        <string>Absolut Datierung:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="18" column="1" colspan="4">
-      <widget class="QComboBox" name="uiDatingPeriodCombo">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-       <property name="insertPolicy">
-        <enum>QComboBox::NoInsert</enum>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="5">
+     <item row="5" column="5">
       <widget class="QLabel" name="label_36">
        <property name="styleSheet">
         <string notr="true">color: rgb(255, 55, 55);</string>
@@ -623,7 +509,17 @@
        </property>
       </widget>
      </item>
-     <item row="10" column="0">
+     <item row="14" column="5" rowspan="2">
+      <widget class="QLabel" name="label_29">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 55, 55);</string>
+       </property>
+       <property name="text">
+        <string>*</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="0">
       <widget class="QPushButton" name="uiCommentBtn">
        <property name="text">
         <string>Bemerkung zur Lage:</string>
@@ -643,8 +539,39 @@
        </property>
       </widget>
      </item>
-     <item row="10" column="1" colspan="4">
-      <widget class="QLineEdit" name="uiCommentEdit">
+     <item row="20" column="0">
+      <widget class="QLabel" name="label_17">
+       <property name="text">
+        <string>Datierung (Periode):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="28" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiFindingTypeDetailEdit">
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(218, 218, 218);</string>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_21">
+       <property name="text">
+        <string>Fundstelle Nummer:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="22" column="2">
+      <widget class="QComboBox" name="uiFineDatingFromCombo">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiFieldNameEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -653,39 +580,143 @@
        </property>
       </widget>
      </item>
-     <item row="13" column="0" rowspan="2">
-      <widget class="QLabel" name="label_28">
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="whatsThis">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_23">
        <property name="text">
-        <string>Erstellt nach:</string>
+        <string>Katastralgemeinde:</string>
        </property>
       </widget>
      </item>
-     <item row="13" column="1" rowspan="2" colspan="4">
-      <widget class="QComboBox" name="uiFindspotCreationCombo">
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <item row="5" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiCaseWorkerEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-       <property name="whatsThis">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       <property name="styleSheet">
+        <string notr="true"/>
        </property>
-       <property name="editable">
-        <bool>true</bool>
+       <property name="readOnly">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="13" column="5" rowspan="2">
-      <widget class="QLabel" name="label_29">
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_19">
+       <property name="text">
+        <string>Gebräuchlicher Name:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="5">
+      <widget class="QLabel" name="label_35">
        <property name="styleSheet">
         <string notr="true">color: rgb(255, 55, 55);</string>
        </property>
        <property name="text">
         <string>*</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_22">
+       <property name="text">
+        <string>Flurname:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiCommonNameEdit"/>
+     </item>
+     <item row="1" column="1" colspan="4">
+      <widget class="QLineEdit" name="uiCadastralCommunityEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(218, 218, 218);</string>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="23" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Datierung Quelle:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="27" column="1" colspan="4">
+      <widget class="QComboBox" name="uiFindingTypeCombo">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="24" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Absolut Datierung:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0" colspan="6">
+      <spacer name="verticalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Expanding</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>433</width>
+         <height>13</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="19" column="1" colspan="4">
+      <widget class="QComboBox" name="uiDatingTimeCombo">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="18" column="0">
+      <widget class="QPushButton" name="uiDatingBtn">
+       <property name="text">
+        <string>Datierung (Neu):</string>
+       </property>
+       <property name="icon">
+        <iconset resource="resource.qrc">
+         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>11</width>
+         <height>11</height>
+        </size>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="18" column="1" colspan="4">
+      <widget class="QLabel" name="label_20">
+       <property name="text">
+        <string>TextLabel</string>
        </property>
       </widget>
      </item>
@@ -883,6 +914,12 @@
     <layout class="QHBoxLayout" name="uiBottomHorizontalLayout">
      <item>
       <widget class="QToolButton" name="uiLayerTBtn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Layer ...</string>
        </property>

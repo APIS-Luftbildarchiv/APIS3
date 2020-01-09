@@ -401,9 +401,21 @@ class APIS:
             if not self.imageRegistry.registryIsLoaded():
                 self.imageRegistry.setupRegistry()
             self.settingsDlg.uiUpdateImageRegistryBtn.setEnabled(True)
+
+            if self.dbm and self.settings:
+                self.settingsDlg.setDbm(self.dbm)
+                self.settingsDlg.setSettings(self.settings)
+                self.settingsDlg.uiEditSystemTableBtn.setEnabled(True)
+                self.settingsDlg.uiSystemTableCombo.setEnabled(True)
+            else:
+                self.settingsDlg.uiEditSystemTableBtn.setEnabled(False)
+                self.settingsDlg.uiSystemTableCombo.setEnabled(False)
         else:
             self.settingsDlg.uiUpdateImageRegistryBtn.setEnabled(False)
+            self.settingsDlg.uiEditSystemTableBtn.setEnabled(False)
+            self.settingsDlg.uiSystemTableCombo.setEnabled(False)
 
+        self.settingsDlg.updateSysTablesCombo()
         self.settingsDlg.show()
         # Run the src event loop
         if self.settingsDlg.exec_():

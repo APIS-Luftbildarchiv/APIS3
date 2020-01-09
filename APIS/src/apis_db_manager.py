@@ -43,6 +43,7 @@ class ApisDbManager:
 
         #QMessageBox.warning(None, "DB", "QSPATIALITE: {0}".format(QSqlDatabase.isDriverAvailable('QSPATIALITE')))
         self.connectToDb("QSPATIALITE", path) #("QSQLITE", path)
+        self.__dbWasUpdated = False
 
     def connectToDb(self, type, path):
         self.__db = QSqlDatabase.addDatabase(type)
@@ -63,14 +64,20 @@ class ApisDbManager:
     def db(self):
         return self.__db
 
+    @property
+    def dbRequiresUpdate(self):
+        return self.__dbWasUpdated
+
+    @dbRequiresUpdate.setter
+    def dbRequiresUpdate(self, value):
+        self.__dbWasUpdated = value
+
     def spatialQuery(self, qryStr, qryTpl = ()):
         con = spatialite_connect(self.__db.databaseName())
         c = con.cursor()
         q = c.execute(qryStr, qryTpl)
         #con.close()
         return q
-
-    # I should lock my latop before leaving - Johannes
 
     def queryToQStandardItemModel(self, query):
         '''

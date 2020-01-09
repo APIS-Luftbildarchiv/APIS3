@@ -105,45 +105,25 @@
    </item>
    <item row="0" column="0">
     <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Fundort Nummer:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="uiSiteNumberEdit">
-       <property name="autoFillBackground">
-        <bool>false</bool>
-       </property>
+     <item row="7" column="2">
+      <widget class="QLabel" name="label_18">
        <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
+        <string notr="true">color: rgb(255, 55, 55);</string>
        </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Land:</string>
+        <string>*</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="uiCountryEdit">
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Erstmeldung:</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="uiCadastralCommunityEdit">
+     <item row="5" column="1">
+      <widget class="QLineEdit" name="uiProjectOrFilmEdit">
        <property name="styleSheet">
         <string notr="true"/>
        </property>
@@ -152,10 +132,60 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_21">
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_20">
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="whatsThis">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
        <property name="text">
-        <string>KG Nummer:</string>
+        <string>Erstellt nach:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="2">
+      <widget class="QLabel" name="label_17">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 55, 55);</string>
+       </property>
+       <property name="text">
+        <string>*</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QComboBox" name="uiSiteCreationCombo">
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="whatsThis">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_22">
+       <property name="text">
+        <string>Film/Projekt:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>FO entdeckt durch:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QComboBox" name="uiSiteDiscoveryCombo">
+       <property name="editable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -169,39 +199,54 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_22">
-       <property name="text">
-        <string>Film/Projekt:</string>
-       </property>
-      </widget>
+     <item row="13" column="1">
+      <widget class="QLineEdit" name="uiFieldNameEdit"/>
      </item>
-     <item row="4" column="1">
-      <widget class="QLineEdit" name="uiProjectOrFilmEdit">
-       <property name="styleSheet">
-        <string notr="true"/>
+     <item row="14" column="0">
+      <widget class="QPushButton" name="uiPlotNumberBtn">
+       <property name="text">
+        <string>Parzellen Nr:</string>
        </property>
-       <property name="readOnly">
+       <property name="icon">
+        <iconset resource="resource.qrc">
+         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>11</width>
+         <height>11</height>
+        </size>
+       </property>
+       <property name="autoDefault">
         <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_4">
+     <item row="15" column="0">
+      <widget class="QPushButton" name="uiCommentBtn">
        <property name="text">
-        <string>FO entdeckt durch:</string>
+        <string>Bemerkung zur Lage:</string>
+       </property>
+       <property name="icon">
+        <iconset resource="resource.qrc">
+         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>11</width>
+         <height>11</height>
+        </size>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="uiSiteDiscoveryCombo">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
+     <item row="9" column="1">
+      <widget class="QLineEdit" name="uiImagesEdit"/>
      </item>
-     <item row="5" column="2">
-      <widget class="QLabel" name="label_17">
+     <item row="12" column="2">
+      <widget class="QLabel" name="label_19">
        <property name="styleSheet">
         <string notr="true">color: rgb(255, 55, 55);</string>
        </property>
@@ -210,104 +255,14 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="0">
-      <widget class="QLabel" name="label_20">
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="whatsThis">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="text">
-        <string>Erstellt nach:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QComboBox" name="uiSiteCreationCombo">
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="whatsThis">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt;Als &lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; font-weight:600; color:#333333; background-color:#ffffff;&quot;&gt;Vermessung&lt;/span&gt;&lt;span style=&quot; font-family:'Helvetica Neue,Helvetica,Segoe UI,Arial,freesans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol'; font-size:14px; color:#333333; background-color:#ffffff;&quot;&gt; zählen auch Orthofotos, geophysikalische Prospektion, ALS, AHS, u.Ä.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="2">
-      <widget class="QLabel" name="label_18">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 55, 55);</string>
-       </property>
-       <property name="text">
-        <string>*</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Erstmeldung:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="1">
-      <widget class="QLineEdit" name="uiFirstReportYearEdit">
-       <property name="maxLength">
-        <number>4</number>
-       </property>
-       <property name="placeholderText">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="0">
+     <item row="9" column="0">
       <widget class="QLabel" name="label_6">
        <property name="text">
         <string>Bild(er):</string>
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
-      <widget class="QLineEdit" name="uiImagesEdit"/>
-     </item>
-     <item row="9" column="0">
-      <widget class="QLabel" name="label_10">
-       <property name="text">
-        <string>Raster:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="9" column="1">
-      <widget class="QLineEdit" name="uiRasterEdit"/>
-     </item>
-     <item row="10" column="0">
-      <widget class="QLabel" name="label_11">
-       <property name="text">
-        <string>Fläche (ha):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="10" column="1">
-      <widget class="QLineEdit" name="uiAreaEdit">
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(218, 218, 218);</string>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="11" column="0">
-      <widget class="QLabel" name="label_12">
-       <property name="text">
-        <string>Fundort ist:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="11" column="1">
+     <item row="12" column="1">
       <widget class="QComboBox" name="uiSiteReliabilityCombo">
        <property name="editable">
         <bool>true</bool>
@@ -340,73 +295,61 @@
        </item>
       </widget>
      </item>
-     <item row="11" column="2">
-      <widget class="QLabel" name="label_19">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 55, 55);</string>
+     <item row="8" column="1">
+      <widget class="QLineEdit" name="uiFirstReportYearEdit">
+       <property name="maxLength">
+        <number>4</number>
        </property>
-       <property name="text">
-        <string>*</string>
+       <property name="placeholderText">
+        <string/>
        </property>
       </widget>
      </item>
+     <item row="11" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Fläche (ha):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="1">
+      <widget class="QLineEdit" name="uiPlotNumberEdit"/>
+     </item>
+     <item row="10" column="1">
+      <widget class="QLineEdit" name="uiRasterEdit"/>
+     </item>
      <item row="12" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Fundort ist:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QLineEdit" name="uiAreaEdit">
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(218, 218, 218);</string>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0">
       <widget class="QLabel" name="label_13">
        <property name="text">
         <string>Flurname:</string>
        </property>
       </widget>
      </item>
-     <item row="12" column="1">
-      <widget class="QLineEdit" name="uiFieldNameEdit"/>
-     </item>
-     <item row="13" column="0">
-      <widget class="QPushButton" name="uiPlotNumberBtn">
+     <item row="10" column="0">
+      <widget class="QLabel" name="label_10">
        <property name="text">
-        <string>Parzellen Nr:</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>11</width>
-         <height>11</height>
-        </size>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
+        <string>Raster:</string>
        </property>
       </widget>
      </item>
-     <item row="13" column="1">
-      <widget class="QLineEdit" name="uiPlotNumberEdit"/>
-     </item>
-     <item row="14" column="0">
-      <widget class="QPushButton" name="uiCommentBtn">
-       <property name="text">
-        <string>Bemerkung zur Lage:</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>11</width>
-         <height>11</height>
-        </size>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="14" column="1">
-      <widget class="QLineEdit" name="uiCommentEdit"/>
-     </item>
-     <item row="15" column="0">
+     <item row="16" column="0">
       <widget class="QLabel" name="label_14">
        <property name="text">
         <string>Ortshöhe:</string>
@@ -414,6 +357,9 @@
       </widget>
      </item>
      <item row="15" column="1">
+      <widget class="QLineEdit" name="uiCommentEdit"/>
+     </item>
+     <item row="16" column="1">
       <widget class="QLineEdit" name="uiElevationEdit"/>
      </item>
      <item row="2" column="0">
@@ -432,6 +378,70 @@
         </size>
        </property>
       </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Fundort Nummer:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="uiCountryEdit">
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(218, 218, 218);</string>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_21">
+       <property name="text">
+        <string>KG Nummer:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="uiSiteNumberEdit">
+       <property name="autoFillBackground">
+        <bool>false</bool>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(218, 218, 218);</string>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Land:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="uiCadastralCommunityEdit">
+       <property name="styleSheet">
+        <string notr="true"/>
+       </property>
+       <property name="readOnly">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Gebräuchlicher Name:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="uiCommonNameEdit"/>
      </item>
     </layout>
    </item>
@@ -580,6 +590,12 @@
      </item>
      <item>
       <widget class="QToolButton" name="uiLayerTBtn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Layer ...</string>
        </property>

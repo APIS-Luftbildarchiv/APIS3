@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>578</width>
-    <height>1387</height>
+    <width>301</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowIcon">
@@ -237,6 +237,41 @@
             </size>
            </property>
           </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="1" column="0">
+          <widget class="QgsMapLayerComboBox" name="uiGeometryFromMapLayerCombo">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="uiAddGeometryFromMapLayerBtn">
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/plugins/APIS/icons/add.png</normaloff>:/plugins/APIS/icons/add.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="2">
+          <widget class="QLabel" name="label_10">
+           <property name="text">
+            <string>Geometrie aus Layer übernehmen (Single Geometry):</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -553,6 +588,13 @@
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsMapLayerComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resource.qrc"/>
  </resources>

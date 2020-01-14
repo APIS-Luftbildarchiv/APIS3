@@ -32,8 +32,9 @@ from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QStandardIt
 
 from qgis.core import (QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
                        QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
-                       QgsCentroidFillSymbolLayer, QgsSimpleLineSymbolLayer, QgsSingleSymbolRenderer, QgsWkbTypes)
-from qgis.gui import QgsRubberBand
+                       QgsCentroidFillSymbolLayer, QgsSimpleLineSymbolLayer, QgsSingleSymbolRenderer, QgsWkbTypes,
+                       QgsFeatureRequest, QgsExpression)
+from qgis.gui import QgsRubberBand, QgsHighlight
 
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
@@ -47,7 +48,7 @@ from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter
 from APIS.src.apis_thumb_viewer import APISThumbViewer
-
+from APIS.src.apis_site_edit_findspot_conflict_handling import APISSiteEditFindspotConflictHandling
 from functools import partial
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -164,6 +165,8 @@ class APISSite(QDialog, FORM_CLASS):
 
         self.rubberBand = None
         self.siteLayerId = None
+        self.findspotLayerId = None
+        self.findspotHighlight = None
 
         self.copyImageFinished.connect(self.onCopyImageFinished)
 
@@ -397,7 +400,7 @@ class APISSite(QDialog, FORM_CLASS):
     def setupFindspotList(self):
 
         query = QSqlQuery(self.dbm.db)
-        query.prepare("SELECT fundstellenummer AS 'Nummer', datierung_zeitstufe AS 'Datierung', befundart AS 'Befundart', befundart_detail AS 'Befundart Detail' FROM fundstelle WHERE fundortnummer = '{0}'".format(self.siteNumber))
+        query.prepare("SELECT fundstellenummer AS 'Nummer', datierung_zeitstufe AS 'Zeittufe', datierung_periode AS 'Periode', befundart AS 'Befundart', befundart_detail AS 'Befundart Detail' FROM fundstelle WHERE fundortnummer = '{0}'".format(self.siteNumber))
         query.exec_()
 
         model = self.dbm.queryToQStandardItemModel(query)
@@ -408,8 +411,29 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiFindspotListTableV.resizeColumnsToContents()
         self.uiFindspotListTableV.resizeRowsToContents()
         self.uiFindspotListTableV.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.uiFindspotListTableV.selectionModel().selectionChanged.connect(self.findspotListSelectionChanged)
 
         query.finish()
+
+    def findspotListSelectionChanged(self, selected, deselected):
+        # deselect all
+        if self.findspotLayerId:
+            findspotLayer = QgsProject.instance().mapLayer(self.findspotLayerId)
+            findspotLayer.removeSelection()
+            if self.findspotHighlight:
+                self.uiSiteMapCanvas.scene().removeItem(self.findspotHighlight)
+                self.findspotHighlight = None
+            if selected.indexes():
+                fsNumber = self.uiFindspotListTableV.model().data(selected.indexes()[0])
+                # findspotLayer.selectByExpression("\"fundstellenummer\" = {0}".format(fsNumber))
+                feature = findspotLayer.getFeatures(QgsFeatureRequest(QgsExpression(f"\"fundstellenummer\" = {fsNumber}")))
+                feat = QgsFeature()
+                feature.nextFeature(feat)
+                self.findspotHighlight = QgsHighlight(self.uiSiteMapCanvas, feat, findspotLayer)
+                self.findspotHighlight.setColor(QColor(Qt.red))
+                # color.setAlpha(50)
+                # highlight.setFillColor(color)
+                self.findspotHighlight.show()
 
 
     def openFindspotDialog(self, idx):
@@ -452,7 +476,7 @@ class APISSite(QDialog, FORM_CLASS):
         if self.findspotDlg.exec_():
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            pass
+            self.reloadMapCanvas()
             # QMessageBox.warning(None, self.tr(u"Load Site"), self.tr(u"For Site: {0}".format(siteNumber)))
 
         self.findspotDlg.uiDatingTimeCombo.currentIndexChanged.disconnect(self.findspotDlg.loadPeriodContent)
@@ -471,10 +495,10 @@ class APISSite(QDialog, FORM_CLASS):
 
     def getSiteInfo(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
-        query.prepare(u"SELECT parzellennummern,gkx,gky,meridian,longitude,latitude,flaeche, AsBinary(geometry) FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
+        query.prepare(u"SELECT flurname,parzellennummern,kommentar_lage,common_name,gkx,gky,meridian,longitude,latitude,flaeche, AsBinary(geometry) FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
         res = query.exec_()
         query.first()
-        return [query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5), query.value(6)], query.value(7)
+        return [query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5), query.value(6), query.value(7), query.value(8), query.value(9)], query.value(10)
 
     def addNewFindspot(self):
 
@@ -484,7 +508,7 @@ class APISSite(QDialog, FORM_CLASS):
         siteInfo, siteGeometry = self.getSiteInfo(self.siteNumber)
 
         query = QSqlQuery(self.dbm.db)
-        query.prepare(u"INSERT INTO fundstelle(geometry,fundortnummer,fundstellenummer,parzellennummern,gkx,gky,meridian,longitude,latitude,flaeche,erstmeldung_jahr,datum_ersteintrag,datum_aenderung,aktion,aktionsdatum,aktionsuser) VALUES (GeomFromWKB(?, 4312), ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        query.prepare(u"INSERT INTO fundstelle(geometry,fundortnummer,fundstellenummer,flurname,parzellennummern,kommentar_lage,common_name,gkx,gky,meridian,longitude,latitude,flaeche,erstmeldung_jahr,datum_ersteintrag,datum_aenderung,aktion,aktionsdatum,aktionsuser) VALUES (GeomFromWKB(?, 4312), ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
         query.addBindValue(siteGeometry)
         query.addBindValue(self.siteNumber)
@@ -584,6 +608,7 @@ class APISSite(QDialog, FORM_CLASS):
         '''
 
         # Save Settings
+        self.uiFindspotListTableV.clearSelection()
         SetWindowSizeAndPos("site", self.size(), self.pos())
         self.accept()
 
@@ -592,6 +617,7 @@ class APISSite(QDialog, FORM_CLASS):
         Run some actions when
         the user closes the dialog
         '''
+        self.uiFindspotListTableV.clearSelection()
         if self.editMode:
             res = self.cancelEdit()
             if res:
@@ -663,7 +689,7 @@ class APISSite(QDialog, FORM_CLASS):
 
     def openImageSelectionListDialog(self):
         #layer = self.uiSiteMapCanvas.layers()
-        layer = self.uiSiteMapCanvas.layers()[0]
+        layer = self.uiSiteMapCanvas.layers()[0] # TODO: use self.siteLayerId instead!!!
 
         i = 0
         for feature in layer.getFeatures():
@@ -1100,18 +1126,25 @@ class APISSite(QDialog, FORM_CLASS):
 
         siteLayer = QgsVectorLayer(uri.uri(), 'fundort {0}'.format(siteNumber), 'spatialite')
         self.siteLayerId = siteLayer.id()
-        siteLayer.setSubsetString(u'"fundortnummer" = "{0}"'.format(siteNumber))
+        siteLayer.setSubsetString('"fundortnummer" = "{0}"'.format(siteNumber))
 
-        siteLayer.loadNamedStyle(os.path.join(self.stylesDir, u"fundort_preview.qml"))
-        #siteLayer.setRendererV2(self.getSiteRenderer())
+        uri.setDataSource('', 'fundstelle', 'geometry')
+        findspotLayer = QgsVectorLayer(uri.uri(), 'fundstellen {0}'.format(siteNumber), 'spatialite')
+        self.findspotLayerId = findspotLayer.id()
+        findspotLayer.setSubsetString('"fundortnummer" = "{0}"'.format(siteNumber))
+
+        siteLayer.loadNamedStyle(os.path.join(self.stylesDir, "fundort_preview.qml"))
+        findspotLayer.loadNamedStyle(os.path.join(self.stylesDir, "fundstelle_preview.qml"))
 
         extent = siteLayer.extent()
         extent.scale(1.1)
 
         QgsProject.instance().addMapLayer(siteLayer, False)
+        QgsProject.instance().addMapLayer(findspotLayer, False)
 
         layerSet = []
         layerSet.append(siteLayer)
+        layerSet.append(findspotLayer)
 
         # ÖK Background
 
@@ -1252,12 +1285,19 @@ class APISSite(QDialog, FORM_CLASS):
        # self.uiSiteMapCanvas.zoomToFeatureIds(siteLayer, set([0]))
 
     def reloadMapCanvas(self):
+        if self.findspotHighlight:
+            self.uiSiteMapCanvas.scene().removeItem(self.findspotHighlight)
+            self.findspotHighlight = None
         if self.rubberBand:
             self.uiSiteMapCanvas.scene().removeItem(self.rubberBand)
             self.rubberBand = None
 
         siteLayer = QgsProject.instance().mapLayer(self.siteLayerId)
+        findspotLayer = QgsProject.instance().mapLayer(self.findspotLayerId)
         if siteLayer:
+            if findspotLayer:
+                findspotLayer.reload()
+                findspotLayer.updateExtents()
             siteLayer.reload()
             siteLayer.updateExtents()
             extent = siteLayer.extent()
@@ -1265,6 +1305,7 @@ class APISSite(QDialog, FORM_CLASS):
             targetExtent = self.uiSiteMapCanvas.mapSettings().layerExtentToOutputExtent(siteLayer, extent)
             self.uiSiteMapCanvas.refresh()
             self.uiSiteMapCanvas.setExtent(targetExtent)
+
         #self.saveCanvasAsImage()
         #self.uiSiteMapCanvas.refreshAllLayers()
 
@@ -1300,7 +1341,7 @@ class APISSite(QDialog, FORM_CLASS):
     def loadRepresentativeImagesForSite(self):
         # get path from settings
         path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
-        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, u'{0}*.*'.format(self.siteNumber.replace('.', '_')))))
+        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, u'{0}*(_).*'.format(self.siteNumber.replace('.', '_')))))
         self.scene = QGraphicsScene()
         self.uiSiteImageView.setScene(self.scene)
         if self.repImagesPathList:

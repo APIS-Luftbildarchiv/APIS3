@@ -31,7 +31,7 @@ from PyQt5.QtSql import QSqlQuery
 
 from qgis.core import (QgsProject, QgsFeatureRequest, QgsGeometry, QgsCoordinateReferenceSystem, QgsDataSourceUri,
                        QgsVectorLayer, QgsExpression, QgsVectorDataProvider, QgsFeature, QgsCoordinateTransform,
-                       QgsDistanceArea, QgsUnitTypes)
+                       QgsDistanceArea, QgsUnitTypes, QgsMapLayerProxyModel)
 
 from APIS.src.apis_map_tools import APISMapToolEmitPointAndSquare, APISMapToolEmitPolygonAndPoint
 from APIS.src.apis_utils import GetMeridianAndEpsgGK, SitesHaveFindspots, TransformGeometry, IsFilm, ApisLogger
@@ -99,6 +99,9 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
         self.uiMapPolygonAndPointBtn.toggled.connect(self.onTogglePolygonMapping)
         self.siteMapToolByPolygon.mappingFinished.connect(self.onMappingFinished)
 
+        self.uiGeometryFromMapLayerCombo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.uiAddGeometryFromMapLayerBtn.clicked.connect(self.onUseGeometryFromLayer)
+
         self.uiCheckIfFilmBtn.clicked.connect(self.onCheckIfFilm)
 
         self.uiFilmOrProjectEdit.textChanged.connect(self.onFilmOrProjectChanged)
@@ -118,6 +121,8 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
 
         self.uiEditFindspotGeometryStartBtn.clicked.connect(self.startEditingFindspotLayer)
         self.uiEditFindspotGeometryCancelBtn.clicked.connect(self.cancelEditingFindspotLayer)
+
+
 
 # ---------------------------------------------------------------------------
 # Slots
@@ -144,6 +149,30 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
             self.addNewSite()
         else:
             self.checkEditSite()
+
+    def onUseGeometryFromLayer(self):
+        vlayer = self.uiGeometryFromMapLayerCombo.currentLayer()
+        selection = vlayer.selectedFeatures()
+        if len(selection) == 1:
+            self.crs = vlayer.crs()
+            # check if has single selection
+            # if not: warning not possible
+
+            # get selected polygon geometry
+            feature = selection[0]
+            self.polygon = feature.geometry()
+            #
+            self.point = self.polygon.centroid()
+            if not self.polygon.contains(self.point):
+                self.point = self.polygon.pointOnSurface()
+
+            if self.uiNewSiteYesRBtn.isChecked():
+                self.addNewSite()
+            else:
+                self.checkEditSite()
+        else:
+            QMessageBox.warning(self, "Anzahl selektierter Features", "Für diese Funktion bitte exakt ein Feature selektieren.")
+
 
     def onNewSiteChanged(self):
         self.uiMapPointAndSquareBtn.setChecked(False)

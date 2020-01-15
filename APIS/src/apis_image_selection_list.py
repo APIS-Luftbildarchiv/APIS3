@@ -146,8 +146,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             else:
                 newRow.append(QStandardItem("nein"))
 
-            #ortho
-            if self.imageRegistry.hasOrtho(imageNumber):
+            #ortho and mosaic
+            if self.imageRegistry.hasOrthoOrMosaic(imageNumber): # hasOrtho(imageNumber):
                 newRow.append(QStandardItem("ja"))
             else:
                 newRow.append(QStandardItem("nein"))
@@ -471,6 +471,26 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     #QMessageBox.warning(None, "Ortho", "{0}".format(os.path.splitext(orthoFile)[1]))
                 #if os.path.basename(orthoFile)
                 #orthoPathList.append()
+
+        # mosaics
+        mosaicsToLoad = []
+        for ortho in orthoList:
+            mosaicsToLoad = mosaicsToLoad + self.imageRegistry.hasMosaic(ortho)
+        if mosaicsToLoad:
+            uniqueMosaicsToLoad = list(set(mosaicsToLoad))
+            for mosaic in uniqueMosaicsToLoad:
+                mosaicFileNames = glob.glob(os.path.normpath(orthoDir + "\\{0}\\{1}_op*.*".format(mosaic[:10], mosaic.replace('.', '_').replace('-', '_'))))
+                for mosaicFile in mosaicFileNames:
+                    if os.path.splitext(mosaicFile)[1] in ['.sid', '.tif', '.tiff', '.jpg']:
+                        fileInfo = QFileInfo(mosaicFile)
+                        baseName = fileInfo.baseName()
+                        rlayer = QgsRasterLayer(mosaicFile, baseName)
+                        if not rlayer.isValid():
+                            QMessageBox.warning(self, "Mosaic", "{0}".format(os.path.splitext(mosaicFile)[1]))
+                        else:
+                            QgsProject.instance().addMapLayer(rlayer)
+            #QMessageBox.information(None, "MosaicInfo", "{0}; {1}".format(", ".join(mosaicsToLoad), ", ".join(list(set(mosaicsToLoad)))))
+
 
     def exportImagesAsShape(self):
         if self.uiImageListTableV.selectionModel().hasSelection():

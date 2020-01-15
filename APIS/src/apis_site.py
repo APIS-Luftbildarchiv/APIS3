@@ -125,11 +125,11 @@ class APISSite(QDialog, FORM_CLASS):
         mLayer.addSection("Fundort")
         aLayerLoadSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "In QGIS laden")
         aLayerLoadSite.triggered.connect(self.loadSiteInQgis)
-        aLayerShowSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen")
+        aLayerShowSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort zoomen")
         aLayerShowSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=False))
-        aLayerSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundort(e) selektieren")
+        aLayerSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundort selektieren")
         aLayerSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=False, select=True))
-        aLayerShowAndSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen und selektieren")
+        aLayerShowAndSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort zoomen und selektieren")
         aLayerShowAndSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=True))
         mLayer.addSection("Fundstellen")
         mLayer.addSection("Interpretation")
@@ -1508,7 +1508,7 @@ class SiteDelegate(QSqlRelationalDelegate):
         #QMessageBox.warning(None, "Test", str(editor.metaObject().className(index))()) + str
         value = str(index.model().data(index, Qt.EditRole))
 
-        if value == 'NULL':
+        if value == 'NULL' or value == 'None':
             value = ''
 
         if editor.metaObject().className() == 'QTimeEdit' and value == '':

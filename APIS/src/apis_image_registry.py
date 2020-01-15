@@ -20,12 +20,15 @@ class ApisImageRegistry(QObject):
         self.iface = iface
         self.registryFile = pluginDir + "\\" + "apis_image_registry.json" #self.settings.value("APIS/image_registry_file", None)
 
+        # NE ... NoExtension
         self.__imageRegistryNE = None
         self.__hiResRegistryNE = None
         self.__orthoRegistryNE = None
+        self.__mosaicRegistryNE = None
         self.__imageRegistry = None
         self.__hiResRegistry = None
         self.__orthoRegistry = None
+        self.__mosaicRegistry = None
 
         self.isLoaded = False
         self.isSetup = False
@@ -95,9 +98,12 @@ class ApisImageRegistry(QObject):
                 self.__imageRegistryNE = registryDict["imageRegistryNE"]
                 self.__hiResRegistryNE = registryDict["hiResRegistryNE"]
                 self.__orthoRegistryNE = registryDict["orthoRegistryNE"]
+                self.__mosaicRegistryNE = registryDict["mosaicRegistryNE"]
+
                 self.__imageRegistry = registryDict["imageRegistry"]
                 self.__hiResRegistry = registryDict["hiResRegistry"]
                 self.__orthoRegistry = registryDict["orthoRegistry"]
+                self.__mosaicRegistry = registryDict["mosaicRegistry"]
             self.isLoaded = True
             self.loaded.emit(True)
         else:
@@ -114,9 +120,11 @@ class ApisImageRegistry(QObject):
                 "imageRegistryNE": self.__imageRegistryNE,
                 "hiResRegistryNE" : self.__hiResRegistryNE,
                 "orthoRegistryNE" : self.__orthoRegistryNE,
+                "mosaicRegistryNE": self.__mosaicRegistryNE,
                 "imageRegistry" : self.__imageRegistry,
                 "hiResRegistry" : self.__hiResRegistry,
-                "orthoRegistry" : self.__orthoRegistry
+                "orthoRegistry" : self.__orthoRegistry,
+                "mosaicRegistry": self.__mosaicRegistry
             }
             json.dump(registryDict, f)
 
@@ -148,6 +156,22 @@ class ApisImageRegistry(QObject):
     def hasOrtho(self, imageNumber):
         return True if imageNumber in self.__orthoRegistryNE else False
 
+    def hasMosaic(self, imageNumber):
+        filmNumber = imageNumber[:10]
+        image = int(imageNumber[11:14])
+        r = re.compile(r"^{0}*".format(filmNumber), re.IGNORECASE)
+        mosaicCandidates = list(filter(r.match, self.__mosaicRegistryNE))
+        mosaicsValid = []
+        for mC in mosaicCandidates:
+            fromTo = range(int(mC[11:14]), int(mC[15:18]) + 1)
+            if image in fromTo:
+                mosaicsValid.append(mC)
+        return mosaicsValid
+            # QMessageBox.information(None, "MosaicInfo", "{0}: {1}".format(imageNumber, ", ".join(mosaicsValid)))
+
+    def hasOrthoOrMosaic(self, imageNumber):
+        return self.hasOrtho(imageNumber) or bool(self.hasMosaic(imageNumber))
+
     def hasImageRE(self, imageNumber):
         r = re.compile(r"^{0}\.({1})$".format(imageNumber, self.imageFormatsStr), re.IGNORECASE)
         r = list(filter(r.match, self.__imageRegistry))
@@ -162,6 +186,9 @@ class ApisImageRegistry(QObject):
         r = re.compile(r"^{0}_op.+\.({1})$".format(imageNumber, self.orthoFormatsStr), re.IGNORECASE)
         r = list(filter(r.match, self.__orthoRegistry))
         return len(r)
+
+    def hasMosaicRE(self, imageNumber):
+        pass
 
     #filmNumber = OLD Film Number
     def getImageRegistryForFilm(self, filmNumber):
@@ -226,9 +253,12 @@ class ApisImageRegistry(QObject):
                 self.__imageRegistryNE = ret["imageRegistryNE"]
                 self.__hiResRegistryNE = ret["hiResRegistryNE"]
                 self.__orthoRegistryNE = ret["orthoRegistryNE"]
+                self.__mosaicRegistryNE = ret["mosaicRegistryNE"]
+
                 self.__imageRegistry = ret["imageRegistry"]
                 self.__hiResRegistry = ret["hiResRegistry"]
                 self.__orthoRegistry = ret["orthoRegistry"]
+                self.__mosaicRegistry = ret["mosaicRegistry"]
                 self.writeRegistryToFile()
 
                 self.iface.messageBar().pushMessage(u"Update Image Registry", u"Das Update wurde erfolgreich abgeschloßen!", level=Qgis.Success, duration=5)
@@ -279,7 +309,7 @@ class UpdateRegistryWorker(QObject):
     def run(self):
         try:
             self.updateImageRegistries()
-            self.updateOrthoRegistry()
+            self.updateOrthoRegistries()
 
             if self.killed is False:
                 ret = True
@@ -287,9 +317,11 @@ class UpdateRegistryWorker(QObject):
                     "imageRegistryNE": self.imageRegistryNE,
                     "hiResRegistryNE": self.hiResRegistryNE,
                     "orthoRegistryNE": self.orthoRegistryNE,
+                    "mosaicRegistryNE": self.mosaicRegistryNE,
                     "imageRegistry": self.imageRegistry,
                     "hiResRegistry": self.hiResRegistry,
-                    "orthoRegistry": self.orthoRegistry
+                    "orthoRegistry": self.orthoRegistry,
+                    "mosaicRegistry": self.mosaicRegistry
                 }
             else:
                 ret = False
@@ -328,18 +360,24 @@ class UpdateRegistryWorker(QObject):
             self.imageRegistryNE = [img[:14].replace('_', '.') for img in self.imageRegistry]
             self.hiResRegistryNE = [img[:14].replace('_', '.') for img in self.hiResRegistry]
 
-    def updateOrthoRegistry(self):
+    def updateOrthoRegistries(self):
         import glob, os
         self.orthoRegistryNE = []
         self.orthoRegistry = []
-        self.orthoEntryList = self.orthoDir.entryList(['??????????'], QDir.Dirs)
-        for o in self.orthoEntryList:
+        self.mosaicRegistryNE = []
+        self.mosaicRegistry = []
+        orthoEntryList = self.orthoDir.entryList(['??????????'], QDir.Dirs)
+        for o in orthoEntryList:
             if self.killed is True:
                 # kill request received, exit loop early
                 break
             orthoFilters = [o + '_???_op*.' + ext for ext in self.orthoFormats]
+            mosaicFilters = [o + '_???_???_op*.' + ext for ext in self.orthoFormats]
             oDir = QDir(self.orthoDir.path() + '\\' + o)
             oEntryList = oDir.entryList(orthoFilters, QDir.Files)
+            mEntryList = oDir.entryList(mosaicFilters, QDir.Files)
             self.orthoRegistry = self.orthoRegistry + oEntryList
+            self.mosaicRegistry = self.mosaicRegistry + mEntryList
         if self.killed is False:
             self.orthoRegistryNE = [img[:14].replace('_', '.') for img in self.orthoRegistry]
+            self.mosaicRegistryNE = [f"{img[:10]}.{img[11:14]}-{img[15:18]}" for img in self.mosaicRegistry]

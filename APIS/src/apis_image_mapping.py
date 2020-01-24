@@ -165,10 +165,11 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.reloadFpLayer()
         self.reloadCpLayer()
 
-        autoImportDlg = APISDigitalImageAutoImport(self.iface, self.dbm, self.cpLayer, self.fpLayer, self.currentFilmNumber, parent=self)
+        autoImportDlg = APISDigitalImageAutoImport(self.iface, self.dbm, self.apisLayer, self.cpLayer, self.fpLayer, self.currentFilmNumber, parent=self)
         autoImportDlg.show()
         if autoImportDlg.exec_():
-            pass
+            self.cpLayer.updateExtents()
+            self.fpLayer.updateExtents()
 
     # TODO remove when AutoImporter finished
     # def openMonoplotImportDialog(self):
@@ -217,7 +218,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.updateMappingDetails()
 
         # Enable Controls
-        self.setCurrentLayout(True, True, True, False)
+        self.setCurrentLayout(True, True, self.isOblique, False)
         if not self.imageCenterPoint:
             self.uiAddCenterPointBtn.setEnabled(False)
         self.mappingMode = False
@@ -446,7 +447,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             QgsProject.instance().removeMapLayer(self.fpLayer.id())
 
     def onCancelAddCenterPoint(self):
-        self.setCurrentLayout(True, True, True, False)
+        self.setCurrentLayout(True, True, self.isOblique, False)
         self.getMappingStats()
         self.updateMappingDetails()
         #self.canvas.setMapTool(self.setPointMapTool)

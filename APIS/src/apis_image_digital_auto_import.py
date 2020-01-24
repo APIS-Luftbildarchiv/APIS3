@@ -23,10 +23,12 @@
 """
 
 import os
+import re
+import glob
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QMessageBox, QPushButton, QTableWidgetItem
-from PyQt5.QtCore import QSettings, QDate
+from PyQt5.QtWidgets import QDialog, QMessageBox, QPushButton, QFileDialog, QTableWidgetItem
+from PyQt5.QtCore import QSettings, QDate, QDir
 from PyQt5.QtSql import QSqlQuery
 
 from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsCoordinateReferenceSystem, QgsPointXY,
@@ -41,7 +43,7 @@ FORM_CLASS, _ = loadUiType(os.path.join(
 
 
 class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
-    def __init__(self, iface, dbm, targetLayerCP, targetLayerFP, filmId, parent=None):
+    def __init__(self, iface, dbm, apisLayer, targetLayerCP, targetLayerFP, filmId, parent=None):
         """Constructor."""
         super(APISDigitalImageAutoImport, self).__init__(parent)
 
@@ -54,6 +56,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         self.iface = iface
         self.dbm = dbm
+        self.apisLayer = apisLayer
         self.filmId = filmId
         self.parent = parent
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
@@ -65,80 +68,148 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.targetLayerCP = targetLayerCP
         self.targetLayerFP = targetLayerFP
 
-        # self.sourceLayerCP = sourceLayerCP
-        # self.sourceLayerFP = sourceLayerFP
+        self.sourceLayerCP = None # sourceLayerCP
+        self.sourceLayerFP = None # sourceLayerFP
         # self.sourceLayerCP = self.uiCenterPointMLCombo.currentLayer()
         # self.sourceLayerFP = self.uiFootPrintMLCombo.currentLayer()
         self.uiReportPTxt.setCenterOnScroll(True)
         self.writeMsg(u"Auto Import digitaler Bilder für Film: {0}".format(self.filmId))
         self.uiImportBtn.clicked.connect(self.runImport)
+        self.uiImportBtn.setEnabled(False)
 
         self.uiMonoplotSourceGrp.toggled.connect(lambda: self.toggleSourceGroups(friend=self.uiOrientalSourceGrp))
         self.uiOrientalSourceGrp.toggled.connect(lambda: self.toggleSourceGroups(friend=self.uiMonoplotSourceGrp))
 
-        self.setupTable()
-        self.detectAvailableImages()
-        self.autodetectSources()
+        self.uiMonoplotSourceGrp.clicked.connect(self.activateIns2CamMode)
+        self.uiOrientalSourceGrp.clicked.connect(self.activateOrientalMode)
+
+        self.importMode = 0 # 0 .. ins2cam, 1 .. oriental, 2 .. vexcel
+
+        self.uiCenterPointFootprintDirTBtn.clicked.connect(self.getSourceDir)
+        self.uiOrientalDirTBtn.clicked.connect(self.getSourceDir)
+
+        self.getExistingImages()
+        self.autodetectSourcesIns2Cam()
+
+        # self.setupTable()
 
     def updateUiForFilmMode(self, isOblique):
         self.uiMonoplotSourceGrp.setVisible(isOblique)
         self.uiOrientalSourceGrp.setVisible(isOblique)
-        self.uiImageSourceGrp.setVisible(isOblique)
+        # self.uiImageSourceGrp.setVisible(isOblique)
         self.uiVexcelSourceGrp.setVisible(not isOblique)
 
     def toggleSourceGroups(self, friend):
         on = self.sender().isChecked()
         friend.setChecked(not on)
 
-    def setupTable(self):
-        header = ["bildnummer", "status cp", "status fp"]
-        c = 0
-        for h in header:
-            self.uiImageTable.insertColumn(0)
-            c += 1
-        self.uiImageTable.setHorizontalHeaderLabels(header)
+    def activateIns2CamMode(self, checked):
+       if checked:
+           self.importMode = 0
+           self.autodetectSourcesIns2Cam(self.uiCenterPointFootprintSourceEdit.text())
 
-    def detectAvailableImages(self):
-        existingFeaturesCP = QgsVectorLayerUtils.getValues(self.targetLayerCP, "bildnummer")[0]
-        existingFeaturesFP = QgsVectorLayerUtils.getValues(self.targetLayerFP, "bildnummer")[0]
-        existingTotal = list(set(existingFeaturesCP) | set(existingFeaturesFP))
-        existingTotal.sort()
-        for image in existingTotal:
-            self.uiImageTable.insertRow(self.uiImageTable.rowCount())
-            row = self.uiImageTable.rowCount() - 1
-            self.uiImageTable.setItem(row, 0, QTableWidgetItem(f"{image}"))
-            if image in existingFeaturesCP:
-                self.uiImageTable.setItem(row, 1, QTableWidgetItem("vorhanden"))
-            else:
-                self.uiImageTable.setItem(row, 1, QTableWidgetItem("fehlt"))
-            if image in existingFeaturesFP:
-                self.uiImageTable.setItem(row, 2, QTableWidgetItem("vorhanden"))
-            else:
-                self.uiImageTable.setItem(row, 2, QTableWidgetItem("fehlt"))
+    def activateOrientalMode(self, checked):
+        if checked:
+            self.importMode = 1
+            self.autodetectSourcesOriental(self.uiOrientalSourceEdit.text())
 
-        if existingTotal:
-            self.writeMsg("Es sind bereits kartierte Bilder vorhanden.")
-        else:
-            self.writeMsg("Es sind noch keine Bilder kartiert worden.")
+    # def setupTable(self):
+    #     header = ["bildnummer", "status cp", "status fp"]
+    #     c = 0
+    #     for h in header:
+    #         self.uiImageTable.insertColumn(0)
+    #         c += 1
+    #     self.uiImageTable.setHorizontalHeaderLabels(header)
+
+    def getExistingImages(self):
+        existingImagesCP = QgsVectorLayerUtils.getValues(self.targetLayerCP, "bildnummer")[0]
+        existingImagesFP = QgsVectorLayerUtils.getValues(self.targetLayerFP, "bildnummer")[0]
+        return existingImagesCP, existingImagesFP
+        # existingTotal = list(set(existingImagesCP) | set(existingImagesFP))
+        # existingTotal.sort()
+        # for image in existingTotal:
+        #     self.uiImageTable.insertRow(self.uiImageTable.rowCount())
+        #     row = self.uiImageTable.rowCount() - 1
+        #     self.uiImageTable.setItem(row, 0, QTableWidgetItem(f"{image}"))
+        #     if image in existingFeaturesCP:
+        #         self.uiImageTable.setItem(row, 1, QTableWidgetItem("vorhanden"))
+        #     else:
+        #         self.uiImageTable.setItem(row, 1, QTableWidgetItem("fehlt"))
+        #     if image in existingFeaturesFP:
+        #         self.uiImageTable.setItem(row, 2, QTableWidgetItem("vorhanden"))
+        #     else:
+        #         self.uiImageTable.setItem(row, 2, QTableWidgetItem("fehlt"))
+        #
+        # if existingTotal:
+        #     self.writeMsg("Es sind bereits kartierte Bilder vorhanden.")
+        # else:
+        #     self.writeMsg("Es sind noch keine Bilder kartiert worden.")
 
 
-
-
-    def autodetectSources(self):
+    def autodetectSourcesIns2Cam(self, sourceDir=None):
         # sourceLayer
-        imageBasePath = self.settings.value("APIS/image_dir")
-        monoplotPath = self.settings.value("APIS/monoplot_dir")
+        if sourceDir:
+            imageBasePath = ""
+            monoplotPath = sourceDir
+        else:
+            imageBasePath = self.settings.value("APIS/image_dir")
+            monoplotPath = self.settings.value("APIS/monoplot_dir")
         epsg = self.settings.value("APIS/monoplot_epsg", type=int)
         sourceCpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_cp_shp"), u"shp")
         sourceFpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_fp_shp"), u"shp")
         sourceCpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, monoplotPath, sourceCpLayerShp))
         sourceFpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, monoplotPath, sourceFpLayerShp))
-        if os.path.isfile(sourceCpLayerPath):
-            self.uiCenterPointSourceEdit.setText(sourceCpLayerPath)
-        if os.path.isfile(sourceFpLayerPath):
-            self.uiFootprintSourceEdit.setText(sourceFpLayerPath)
+
+        if os.path.isfile(sourceCpLayerPath) and os.path.isfile(sourceFpLayerPath):
+            self.sourceLayerCP = self.apisLayer.requestShapeFile(sourceCpLayerPath, epsg, None, "Bildkartierung", True, True)
+            self.sourceLayerFP = self.apisLayer.requestShapeFile(sourceFpLayerPath, epsg, None, "Bildkartierung", True, True)
+            self.uiCenterPointFootprintSourceEdit.setText(os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, monoplotPath)))
+            self.uiImportBtn.setEnabled(True)
+        else:
+            self.uiImportBtn.setEnabled(False)
+            res = QMessageBox.warning(self, "Daten wurden nicht gefunden.", f"Monoplot/ins2cam/imu Daten wurden nicht im angegebenen Verzeichnis gefunden. Wählen Sie bitte ein Verzeichnis aus, in dem die {sourceCpLayerShp} und {sourceFpLayerShp} Dateien für den Film {self.parent.currentFilmNumber} gespeichert sind.")
+            # active open monoplot dir
+            if res:
+                self.getSourceDir()
+
+    def autodetectSourcesOriental(self, sourceDir=None):
+        imageBasePath = self.settings.value("APIS/image_dir")
+        orientalPath = self.settings.value("APIS/oriental_dir")
+        self.orientalSourcePath = None
+        self.orientalTargetPath = None
+        if sourceDir:
+            self.orientalSourcePath = sourceDir
+            self.uiCopyToOrientalDirChk.setEnabled(True)
+            self.orientalTargetPath = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, orientalPath))
+        else:
+            self.orientalSourcePath = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, orientalPath))
+            self.uiCopyToOrientalDirChk.setEnabled(False)
+
+        if os.path.isdir(self.orientalSourcePath):
+            self.uiOrientalSourceEdit.setText(self.orientalSourcePath)
+
+            orientalFileNames = glob.glob(os.path.normpath(self.orientalSourcePath + "\\{0}_[0-9][0-9][0-9].shp".format(self.parent.currentFilmNumber)))
+            # QMessageBox.information(None, "info", ",".join(orientalFileNames))
+            if orientalFileNames:
+                # activate Import Button!
+                self.uiImportBtn.setEnabled(True)
+            else:
+                self.uiImportBtn.setEnabled(False)
+                # cannot find ... getSourceDir
+                # deactivate
+                self.uiCopyToOrientalDirChk.setEnabled(False)
+        else:
+            self.uiImportBtn.setEnabled(False)
+            QMessageBox.warning(self, "", "")
 
 
+    def getSourceDir(self):
+        sourceDirName = QFileDialog.getExistingDirectory(self, u"Ziel Ordner auswählen", self.settings.value("APIS/working_dir"), QFileDialog.DontUseNativeDialog)
+        if sourceDirName:
+            if self.importMode == 0:
+                self.autodetectSourcesIns2Cam(sourceDirName)
+            elif self.importMode == 1:
+                self.autodetectSourcesOriental(sourceDirName)
 
         #sourceCpLayer = self.apisLayer.requestShapeFile(sourceCpLayerPath, epsg, None, "Bildkartierung", True, True)
         #sourceFpLayer = self.apisLayer.requestShapeFile(sourceFpLayerPath, epsg, None, "Bildkartierung", True, True)
@@ -156,15 +227,14 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         fieldNamesCP = set([field.name() for field in provCP.fields()])
         if "Image" not in fieldNamesCP:
             return False, u"Der Centerpoint Layer hat kein Attribut 'Image'."
-        if "ERROR" not in fieldNamesCP:
-            return False, u"Der Centerpoint Layer hat kein Attribut 'ERROR'."
+        # if "ERROR" not in fieldNamesCP:
+        #     return False, u"Der Centerpoint Layer hat kein Attribut 'ERROR'."
 
         provFP = self.sourceLayerFP.dataProvider()
         fieldNamesFP = set([field.name() for field in provFP.fields()])
         if "Image" not in fieldNamesFP:
             return False, u"Der Footprint Layer hat kein Attribut 'Image'."
-        if "ERROR" not in fieldNamesFP:
-            return False, u"Der Footprint Layer hat kein Attribut 'ERROR'."
+
 
         numOfImagesCPSet = set([feature["Image"] for feature in self.sourceLayerCP.getFeatures()])
         numOfImagesFPSet = set([feature["Image"] for feature in self.sourceLayerFP.getFeatures()])
@@ -254,101 +324,101 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         else:
             return query.value(0)
 
-    # TODO remove
-    def _get_if_exist(self, data, key):
-        return data[key] if key in data else None
+    # # TODO remove
+    # def _get_if_exist(self, data, key):
+    #     return data[key] if key in data else None
+    #
+    # # TODO remove
+    # def _convert_to_degress(self, value):
+    #     """
+    #     Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
+    #     :param value:
+    #     :type value: exifread.utils.Ratio
+    #     :rtype: float
+    #     """
+    #     return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
 
-    # TODO remove
-    def _convert_to_degress(self, value):
-        """
-        Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
-        :param value:
-        :type value: exifread.utils.Ratio
-        :rtype: float
-        """
-        return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
-
-    # TODO remove
-    def getExifForImage(self, imageNumber):
-        exif = [None, None, None, None, None, None]
-
-        dirName = self.settings.value("APIS/image_dir")
-        imageName = imageNumber.replace('.', '_') + '.jpg'
-        image = os.path.normpath(dirName + '\\' + self.filmId + '\\' + imageName)
-        if os.path.isfile(image):
-            with open(image, 'rb') as f:
-                tags = exifread.process_file(f, details=False)
-
-                gps_altitude = self._get_if_exist(tags, 'GPS GPSAltitude')
-                gps_altitude_ref = self._get_if_exist(tags, 'GPS GPSAltitudeRef')
-                if gps_altitude and gps_altitude_ref:
-                    alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
-                    if gps_altitude_ref.values[0] == 1:
-                        alt *= -1
-                    exif[0] = alt
-
-                gps_longitude = self._get_if_exist(tags, 'GPS GPSLongitude')
-                gps_longitude_ref = self._get_if_exist(tags, 'GPS GPSLongitudeRef')
-                if gps_longitude and gps_longitude_ref:
-                    lon = self._convert_to_degress(gps_longitude)
-                    if gps_longitude_ref.values[0] != 'E':
-                        lon = 0 - lon
-                    exif[1] = lon
-
-                gps_latitude = self._get_if_exist(tags, 'GPS GPSLatitude')
-                gps_latitude_ref = self._get_if_exist(tags, 'GPS GPSLatitudeRef')
-                if gps_latitude and gps_latitude_ref:
-                    lat = self._convert_to_degress(gps_latitude)
-                    if gps_latitude_ref.values[0] != 'N':
-                        lat = 0 - lat
-                    exif[2] = lat
-
-                exif_exposure_time = self._get_if_exist(tags, 'EXIF ExposureTime')
-                if exif_exposure_time:
-                    exif[3] = float(exif_exposure_time.values[0].num / exif_exposure_time.values[0].den)
-
-                exif_focal_length = self._get_if_exist(tags, 'EXIF FocalLength')
-                if exif_focal_length:
-                    exif[4] = float(exif_focal_length.values[0].num / exif_focal_length.values[0].den)
-
-                exif_fnumber = self._get_if_exist(tags, 'EXIF FNumber')
-                if exif_fnumber:
-                    exif[5] = float(exif_fnumber.values[0].num / exif_fnumber.values[0].den)
-
-        return exif
-
-    # TODO remove
-    def OLDgetExifForImage(self, imageNumber):
-        exif = [None, None, None, None, None, None]
-        dirName = self.settings.value("APIS/image_dir")
-        imageName = imageNumber.replace('.', '_') + '.jpg'
-        image = os.path.normpath(dirName+'\\'+self.filmId+'\\'+imageName)
-
-        if os.path.isfile(image):
-            md = exiv.ImageMetadata(image)
-            md.read()
-
-            if "Exif.GPSInfo.GPSAltitude" in md.exif_keys:
-                exif[0] = float(md["Exif.GPSInfo.GPSAltitude"].value)
-
-            if "Exif.GPSInfo.GPSLongitude" in md.exif_keys:
-                lon = md["Exif.GPSInfo.GPSLongitude"].value
-                exif[1] = float(lon[0])+((float(lon[1])+(float(lon[2])/60))/60)
-
-            if "Exif.GPSInfo.GPSLatitude" in md.exif_keys:
-                lat = md["Exif.GPSInfo.GPSLatitude"].value
-                exif[2] = float(lat[0])+((float(lat[1])+(float(lat[2])/60))/60)
-
-            if "Exif.Photo.ExposureTime" in md.exif_keys:
-                exif[3] = float(md["Exif.Photo.ExposureTime"].value)
-
-            if "Exif.Photo.FocalLength" in md.exif_keys:
-                exif[4] = float(md["Exif.Photo.FocalLength"].value)
-
-            if "Exif.Photo.FNumber" in md.exif_keys:
-                exif[5] = md["Exif.Photo.FNumber"].value
-
-        return exif
+    # # TODO remove
+    # def getExifForImage(self, imageNumber):
+    #     exif = [None, None, None, None, None, None]
+    #
+    #     dirName = self.settings.value("APIS/image_dir")
+    #     imageName = imageNumber.replace('.', '_') + '.jpg'
+    #     image = os.path.normpath(dirName + '\\' + self.filmId + '\\' + imageName)
+    #     if os.path.isfile(image):
+    #         with open(image, 'rb') as f:
+    #             tags = exifread.process_file(f, details=False)
+    #
+    #             gps_altitude = self._get_if_exist(tags, 'GPS GPSAltitude')
+    #             gps_altitude_ref = self._get_if_exist(tags, 'GPS GPSAltitudeRef')
+    #             if gps_altitude and gps_altitude_ref:
+    #                 alt = float(gps_altitude.values[0].num / gps_altitude.values[0].den)
+    #                 if gps_altitude_ref.values[0] == 1:
+    #                     alt *= -1
+    #                 exif[0] = alt
+    #
+    #             gps_longitude = self._get_if_exist(tags, 'GPS GPSLongitude')
+    #             gps_longitude_ref = self._get_if_exist(tags, 'GPS GPSLongitudeRef')
+    #             if gps_longitude and gps_longitude_ref:
+    #                 lon = self._convert_to_degress(gps_longitude)
+    #                 if gps_longitude_ref.values[0] != 'E':
+    #                     lon = 0 - lon
+    #                 exif[1] = lon
+    #
+    #             gps_latitude = self._get_if_exist(tags, 'GPS GPSLatitude')
+    #             gps_latitude_ref = self._get_if_exist(tags, 'GPS GPSLatitudeRef')
+    #             if gps_latitude and gps_latitude_ref:
+    #                 lat = self._convert_to_degress(gps_latitude)
+    #                 if gps_latitude_ref.values[0] != 'N':
+    #                     lat = 0 - lat
+    #                 exif[2] = lat
+    #
+    #             exif_exposure_time = self._get_if_exist(tags, 'EXIF ExposureTime')
+    #             if exif_exposure_time:
+    #                 exif[3] = float(exif_exposure_time.values[0].num / exif_exposure_time.values[0].den)
+    #
+    #             exif_focal_length = self._get_if_exist(tags, 'EXIF FocalLength')
+    #             if exif_focal_length:
+    #                 exif[4] = float(exif_focal_length.values[0].num / exif_focal_length.values[0].den)
+    #
+    #             exif_fnumber = self._get_if_exist(tags, 'EXIF FNumber')
+    #             if exif_fnumber:
+    #                 exif[5] = float(exif_fnumber.values[0].num / exif_fnumber.values[0].den)
+    #
+    #     return exif
+    #
+    # # TODO remove
+    # def OLDgetExifForImage(self, imageNumber):
+    #     exif = [None, None, None, None, None, None]
+    #     dirName = self.settings.value("APIS/image_dir")
+    #     imageName = imageNumber.replace('.', '_') + '.jpg'
+    #     image = os.path.normpath(dirName+'\\'+self.filmId+'\\'+imageName)
+    #
+    #     if os.path.isfile(image):
+    #         md = exiv.ImageMetadata(image)
+    #         md.read()
+    #
+    #         if "Exif.GPSInfo.GPSAltitude" in md.exif_keys:
+    #             exif[0] = float(md["Exif.GPSInfo.GPSAltitude"].value)
+    #
+    #         if "Exif.GPSInfo.GPSLongitude" in md.exif_keys:
+    #             lon = md["Exif.GPSInfo.GPSLongitude"].value
+    #             exif[1] = float(lon[0])+((float(lon[1])+(float(lon[2])/60))/60)
+    #
+    #         if "Exif.GPSInfo.GPSLatitude" in md.exif_keys:
+    #             lat = md["Exif.GPSInfo.GPSLatitude"].value
+    #             exif[2] = float(lat[0])+((float(lat[1])+(float(lat[2])/60))/60)
+    #
+    #         if "Exif.Photo.ExposureTime" in md.exif_keys:
+    #             exif[3] = float(md["Exif.Photo.ExposureTime"].value)
+    #
+    #         if "Exif.Photo.FocalLength" in md.exif_keys:
+    #             exif[4] = float(md["Exif.Photo.FocalLength"].value)
+    #
+    #         if "Exif.Photo.FNumber" in md.exif_keys:
+    #             exif[5] = md["Exif.Photo.FNumber"].value
+    #
+    #     return exif
 
     def writeMsg(self, msg):
         self.uiReportPTxt.insertPlainText(msg)
@@ -400,21 +470,26 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 while iterCP.nextFeature(sourceFeatCP):
                     i += 1
                     iterFP.nextFeature(sourceFeatFP)
-
-                    imageNumber = int(sourceFeatCP["Image"].split('_')[1].split('.')[0])
-                    imageNumberFP = int(sourceFeatFP["Image"].split('_')[1].split('.')[0])
-                    if imageNumber != imageNumberFP:
-                        self.writeMsg(u"SKIP: Die fortlaufende Bildnummer in Reihe {i} stimmen im Centerpoint ({1}) und Footprint ({2}) Layer nicht überein.".format(i, imageNumber, imageNumberFP))
+                    sINCP = re.search('^(.+\d)_([0-9][0-9][0-9][0-9][0-9]\.tif|[0-9][0-9][0-9]\.tif|[0-9][0-9][0-9])$', sourceFeatCP["Image"])
+                    sINFP = re.search('^(.+\d)_([0-9][0-9][0-9][0-9][0-9]\.tif|[0-9][0-9][0-9]\.tif|[0-9][0-9][0-9])$', sourceFeatCP["Image"])
+                    if sINCP and sINFP:
+                        if sINCP.group(0) == sINFP.group(0):
+                            imageNumber = int(sINCP.group(0).split('_')[1].split('.')[0])
+                            imageNumberFP = int(sINFP.group(0).split('_')[1].split('.')[0])
+                        else:
+                            self.writeMsg(u"SKIP: Die fortlaufende Bildnummer in Reihe {0} stimmen im Centerpoint ({1}) und Footprint ({2}) Layer nicht überein.".format(i, imageNumber, imageNumberFP))
+                            continue
+                    else:
+                        self.writeMsg(u"SKIP: Die Eintrag in Reihe {0} hat keine entsprechende Bildnummer (Filmnummer + fortlaufende Bildnummer)".format(i))
                         continue
 
                     bn = '{0}.{1:03d}'.format(self.filmId, imageNumber)
 
-                    errorCP = int(sourceFeatCP["ERROR"])
-                    errorFP = int(sourceFeatFP["ERROR"])
-
-                    if errorCP > 0 or errorFP > 0:
-                        self.writeMsg(u"SKIP: {0}: Zumindest in einem Layer ist der ERROR Wert > 0 (CP: {1}, FP: {2})".format(bn, errorCP, errorFP))
-                        continue
+                    # errorCP = int(sourceFeatCP["ERROR"])
+                    # errorFP = int(sourceFeatFP["ERROR"])
+                    # if errorCP > 0 or errorFP > 0:
+                    #     self.writeMsg(u"SKIP: {0}: Zumindest in einem Layer ist der ERROR Wert > 0 (CP: {1}, FP: {2})".format(bn, errorCP, errorFP))
+                    #     continue
 
                     if bn in existingFeaturesCP or bn in existingFeaturesFP:
                         if mode == 2:
@@ -514,7 +589,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     da.setEllipsoid(self.targetLayerFP.crs().ellipsoidAcronym())
                     targetFeatFP.setAttribute('shape_length', da.measurePerimeter(targetGeometryFP))
                     targetFeatFP.setAttribute('shape_area', da.measureArea(targetGeometryFP))
-
+                    targetFeatFP.setAttribute('source', 'imu')
 
                     featuresCP.append(targetFeatCP)
                     featuresFP.append(targetFeatFP)

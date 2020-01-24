@@ -68,6 +68,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         mImage = QMenu()
         aImageThumbs= mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Vorschau")
         aImageThumbs.triggered.connect(self.viewAsThumbs)
+        aIns2CamThumbs = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Vorschau (Ins2Cam)")
+        aIns2CamThumbs.triggered.connect(self.viewIns2CamAsThumbs)
         aImageCopy = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Kopieren")
         aImageCopy.triggered.connect(self.copyImages)
         aImageExif = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'exif_export.png')), "EXIF Export")
@@ -82,6 +84,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         aLayerLoadImages.triggered.connect(self.loadImagesInQgis)
         aLayerLoadOrtho = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Orthofoto(s)")
         aLayerLoadOrtho.triggered.connect(self.loadOrthosInQgis)
+        aLayerLoadIns2Cam = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Ins2Cam Bild(er)")
+        aLayerLoadIns2Cam.triggered.connect(self.loadIns2CamsInQgis)
         mLayer.addSection("SHP Export")
         aLayerExportFootprints = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "Bild(er) als SHP exportieren")
         aLayerExportFootprints.triggered.connect(self.exportImagesAsShape)
@@ -341,13 +345,6 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def viewAsThumbs(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            # msgBox = QMessageBox(self)
-            # msgBox.setWindowTitle(u'Vorschau der Bilder')
-            # msgBox.setText(u'Wollen Sie die Vorschau der ausgewählten Bilder oder der gesamten Liste öffnen?')
-            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            # ret = msgBox.exec_()
             ret = SelectionOrAll(parent=self)
 
             if ret == 0:
@@ -383,6 +380,40 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         widget.show()
         if widget.exec_():
             pass
+
+    def viewIns2CamAsThumbs(self):
+        if self.uiImageListTableV.selectionModel().hasSelection():
+            ret = SelectionOrAll(parent=self)
+            if ret == 0:
+                imageList = self.getImageList(False)
+            elif ret == 1:
+                imageList = self.getImageList(True)
+            else:
+                return
+        else:
+            imageList = self.getImageList(True)
+
+        ins2camImages = []
+        for image in imageList:
+            if self.imageRegistry.hasIns2Cam(image):
+                ins2camImages.append(image)
+        if len(ins2camImages) == 0:
+            QMessageBox.warning(self, "Bildvorschau", u"Es sind keine Bilder vorhanden!")
+            return
+
+        pathList = []
+        ins2camImages.sort()
+        imageDir = self.settings.value("APIS/image_dir")
+        i2cDir = self.settings.value("APIS/monoplot_dir")
+        for image in imageList:
+            pathList.append(os.path.normpath(imageDir + "\\{0}\\{1}\\{2}.tif".format(image.split('.')[0], i2cDir, image.replace('.', '_'))))
+
+        widget = APISThumbViewer()
+        widget.load(pathList)
+        widget.show()
+        if widget.exec_():
+            pass
+
 
     def loadImagesInQgis(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
@@ -467,7 +498,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     if not rlayer.isValid():
                         QMessageBox.warning(self, "Ortho", "{0}".format(os.path.splitext(orthoFile)[1]))
                     else:
-                        QgsProject.instance().addMapLayer(rlayer)
+                        # QgsProject.instance().addMapLayer(rlayer)
+                        self.apisLayer.addLayerToCanvas(rlayer, groupName="Orthofotos")
                     #QMessageBox.warning(None, "Ortho", "{0}".format(os.path.splitext(orthoFile)[1]))
                 #if os.path.basename(orthoFile)
                 #orthoPathList.append()
@@ -488,9 +520,31 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                         if not rlayer.isValid():
                             QMessageBox.warning(self, "Mosaic", "{0}".format(os.path.splitext(mosaicFile)[1]))
                         else:
-                            QgsProject.instance().addMapLayer(rlayer)
+                            # QgsProject.instance().addMapLayer(rlayer)
+                            self.apisLayer.addLayerToCanvas(rlayer, groupName="Orthofotos")
             #QMessageBox.information(None, "MosaicInfo", "{0}; {1}".format(", ".join(mosaicsToLoad), ", ".join(list(set(mosaicsToLoad)))))
 
+    def loadIns2CamsInQgis(self):
+        imageList = self.getImageList()
+        imageList.sort()
+        ins2camToLoad = []
+        imageDir = self.settings.value("APIS/image_dir")
+        for image in imageList:
+            if self.imageRegistry.hasIns2Cam(image):
+                ins2camToLoad.append(image)
+        if ins2camToLoad:
+            for i2c in ins2camToLoad:
+                ins2camFileNames = glob.glob(os.path.normpath(imageDir + "\\{0}\\{1}\\{2}.*".format(i2c[:10], self.settings.value("APIS/monoplot_dir"), i2c.replace('.', '_'))))
+                for ins2camFile in ins2camFileNames:
+                    if os.path.splitext(ins2camFile)[1] in ['.tif', '.tiff', '.jpg']:
+                        fileInfo = QFileInfo(ins2camFile)
+                        baseName = fileInfo.baseName()
+                        rlayer = QgsRasterLayer(ins2camFile, baseName)
+                        if not rlayer.isValid():
+                            QMessageBox.warning(self, "ins2cam", "{0}".format(os.path.splitext(ins2camFile)[1]))
+                        else:
+                            # QgsProject.instance().addMapLayer(rlayer)
+                            self.apisLayer.addLayerToCanvas(rlayer, groupName="Orthofotos")
 
     def exportImagesAsShape(self):
         if self.uiImageListTableV.selectionModel().hasSelection():

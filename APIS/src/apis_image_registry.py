@@ -23,10 +23,12 @@ class ApisImageRegistry(QObject):
         # NE ... NoExtension
         self.__imageRegistryNE = None
         self.__hiResRegistryNE = None
+        self.__i2cRegistryNE = None
         self.__orthoRegistryNE = None
         self.__mosaicRegistryNE = None
         self.__imageRegistry = None
         self.__hiResRegistry = None
+        self.__i2cRegistry = None
         self.__orthoRegistry = None
         self.__mosaicRegistry = None
 
@@ -97,11 +99,13 @@ class ApisImageRegistry(QObject):
                 registryDict = json.load(registry)
                 self.__imageRegistryNE = registryDict["imageRegistryNE"]
                 self.__hiResRegistryNE = registryDict["hiResRegistryNE"]
+                self.__i2cRegistryNE = registryDict["i2cRegistryNE"]
                 self.__orthoRegistryNE = registryDict["orthoRegistryNE"]
                 self.__mosaicRegistryNE = registryDict["mosaicRegistryNE"]
 
                 self.__imageRegistry = registryDict["imageRegistry"]
                 self.__hiResRegistry = registryDict["hiResRegistry"]
+                self.__i2cRegistry = registryDict["i2cRegistry"]
                 self.__orthoRegistry = registryDict["orthoRegistry"]
                 self.__mosaicRegistry = registryDict["mosaicRegistry"]
             self.isLoaded = True
@@ -119,10 +123,12 @@ class ApisImageRegistry(QObject):
             registryDict = {
                 "imageRegistryNE": self.__imageRegistryNE,
                 "hiResRegistryNE" : self.__hiResRegistryNE,
+                "i2cRegistryNE": self.__i2cRegistryNE,
                 "orthoRegistryNE" : self.__orthoRegistryNE,
                 "mosaicRegistryNE": self.__mosaicRegistryNE,
                 "imageRegistry" : self.__imageRegistry,
                 "hiResRegistry" : self.__hiResRegistry,
+                "i2cRegistry": self.__i2cRegistry,
                 "orthoRegistry" : self.__orthoRegistry,
                 "mosaicRegistry": self.__mosaicRegistry
             }
@@ -153,6 +159,9 @@ class ApisImageRegistry(QObject):
     def hasHiRes(self, imageNumber):
         return True if imageNumber in self.__hiResRegistryNE else False
 
+    def hasIns2Cam(self, imageNumber):
+        return True if imageNumber in self.__i2cRegistryNE else False
+
     def hasOrtho(self, imageNumber):
         return True if imageNumber in self.__orthoRegistryNE else False
 
@@ -181,6 +190,9 @@ class ApisImageRegistry(QObject):
         r = re.compile(r"^{0}\.({1})$".format(imageNumber, self.hiResFormatsStr), re.IGNORECASE)
         r = list(filter(r.match, self.__hiResRegistry))
         return len(r)
+
+    def hasIns2CamRE(self, imageNumber):
+        pass
 
     def hasOrthoRE(self, imageNumber):
         r = re.compile(r"^{0}_op.+\.({1})$".format(imageNumber, self.orthoFormatsStr), re.IGNORECASE)
@@ -252,11 +264,13 @@ class ApisImageRegistry(QObject):
             if not self.worker.killed:
                 self.__imageRegistryNE = ret["imageRegistryNE"]
                 self.__hiResRegistryNE = ret["hiResRegistryNE"]
+                self.__i2cRegistryNE = ret["i2cRegistryNE"]
                 self.__orthoRegistryNE = ret["orthoRegistryNE"]
                 self.__mosaicRegistryNE = ret["mosaicRegistryNE"]
 
                 self.__imageRegistry = ret["imageRegistry"]
                 self.__hiResRegistry = ret["hiResRegistry"]
+                self.__i2cRegistry = ret["i2cRegistry"]
                 self.__orthoRegistry = ret["orthoRegistry"]
                 self.__mosaicRegistry = ret["mosaicRegistry"]
                 self.writeRegistryToFile()
@@ -316,10 +330,12 @@ class UpdateRegistryWorker(QObject):
                 ret = {
                     "imageRegistryNE": self.imageRegistryNE,
                     "hiResRegistryNE": self.hiResRegistryNE,
+                    "i2cRegistryNE": self.i2cRegistryNE,
                     "orthoRegistryNE": self.orthoRegistryNE,
                     "mosaicRegistryNE": self.mosaicRegistryNE,
                     "imageRegistry": self.imageRegistry,
                     "hiResRegistry": self.hiResRegistry,
+                    "i2cRegistry": self.i2cRegistry,
                     "orthoRegistry": self.orthoRegistry,
                     "mosaicRegistry": self.mosaicRegistry
                 }
@@ -336,8 +352,10 @@ class UpdateRegistryWorker(QObject):
     def updateImageRegistries(self):
         self.imageRegistry = []
         self.hiResRegistry = []
-        self.imageEntryList = self.imageDir.entryList(['??????????'], QDir.Dirs)
-        for i in self.imageEntryList:
+        self.i2cRegistry = []
+
+        imageEntryList = self.imageDir.entryList(['??????????'], QDir.Dirs)
+        for i in imageEntryList:
             if self.killed is True:
                 # kill request received, exit loop early
                 break
@@ -346,9 +364,9 @@ class UpdateRegistryWorker(QObject):
             iEntryList = iDir.entryList([i + '_???.jpg'], QDir.Files)
             self.imageRegistry = self.imageRegistry + iEntryList
 
-            hiResEntryList = iDir.entryList(["highres*", "mrsid", "raw"], QDir.Dirs)
+            hiResDirsEntryList = iDir.entryList(["highres*", "mrsid", "raw"], QDir.Dirs)
             hiResFilters = [i + '_???.' + ext for ext in self.hiResFormats]
-            for hr in hiResEntryList:
+            for hr in hiResDirsEntryList:
                 if self.killed is True:
                     # kill request received, exit loop early
                     break
@@ -356,9 +374,21 @@ class UpdateRegistryWorker(QObject):
                 hrEntryList = hrDir.entryList(hiResFilters, QDir.Files)
                 self.hiResRegistry = self.hiResRegistry + hrEntryList
 
+            i2cDirEntryList = iDir.entryList(["ins2cam"], QDir.Dirs)
+            i2cFilters = [i + '_???.' + ext for ext in ['jpg', 'tif', 'tiff']]
+            for i2c in i2cDirEntryList:
+                if self.killed is True:
+                    # kill request received, exit loop early
+                    break
+                i2cDir = QDir(iDir.path() + '\\' + i2c)
+                i2cEntryList = i2cDir.entryList(i2cFilters, QDir.Files)
+                self.i2cRegistry = self.i2cRegistry + i2cEntryList
+
+
         if self.killed is False:
             self.imageRegistryNE = [img[:14].replace('_', '.') for img in self.imageRegistry]
             self.hiResRegistryNE = [img[:14].replace('_', '.') for img in self.hiResRegistry]
+            self.i2cRegistryNE = [img[:14].replace('_', '.') for img in self.i2cRegistry]
 
     def updateOrthoRegistries(self):
         import glob, os

@@ -639,14 +639,6 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def copyImages(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            # TODO remove
-            # msgBox = QMessageBox(self)
-            # msgBox.setWindowTitle(u'Bilder Kopieren')
-            # msgBox.setText(u'Wollen Sie die ausgewählten Bilder oder die gesamte Liste kopieren?')
-            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            # ret = msgBox.exec_()
             ret = SelectionOrAll(parent=self)
 
             if ret == 0:
@@ -700,7 +692,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             if destinationDir.mkdir(newDirName):
                 destinationDirName = selectedDirName + '\\' + newDirName
                 destinationDir = QDir(destinationDirName)
-                #QMessageBox.warning(None, "Bilder kopieren", u"ZielVZ: {0}".format(destinationDirName))
+                # QMessageBox.warning(None, "Bilder kopieren", u"ZielVZ: {0}".format(destinationDirName))
                 imageDir = self.settings.value("APIS/image_dir")
                 for image in imageList:
                     if loRes or hiRes:
@@ -711,14 +703,14 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                         if loRes:
                             sourceFileName = os.path.normpath(imageDir + "\\{0}\\{1}.jpg".format(filmDirName, image.replace('.','_')))
                             destinationFileName = os.path.normpath(destinationDirName + "\\{0}\\{1}.jpg".format(filmDirName, image.replace('.','_')))
-                            #MessageBox.warning(None, "Bilder kopieren", u"SourceVZ: {0}, DestVZ: {1}".format(sourceFileName, destinationFileName))
+                            # QMessageBox.warning(None, "Bilder kopieren", u"SourceVZ: {0}, DestVZ: {1}".format(sourceFileName, destinationFileName))
                             sourceFile = QFile(sourceFileName)
                             sourceFile.copy(destinationFileName)
 
-                        #HiRes Kopieren
-                        #QMessageBox.warning(None, "Bilder kopieren", u"{0}, {1}".format(hiRes, ', '.join(hiResImageList)))
+                        # HiRes Kopieren
+                        # QMessageBox.warning(None, "Bilder kopieren", u"{0}, {1}".format(hiRes, ', '.join(hiResImageList)))
                         if hiRes and image in hiResImageList:
-                            #copy hi res image files
+                            # copy hi res image files
                             filmDirPathName = imageDir + "\\" + filmDirName
                             filmDir = QDir(filmDirPathName)
                             hiResDirs = filmDir.entryList(["highres*", "mrsid", "raw"], QDir.Dirs)
@@ -754,14 +746,6 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
         if self.uiImageListTableV.selectionModel().hasSelection():
             #Abfrage Footprints der selektierten Bilder Exportieren oder alle
-            # TODO remove
-            # msgBox = QMessageBox(self)
-            # msgBox.setWindowTitle(u'Schreibe EXIF/IPTC')
-            # msgBox.setText(u'Wollen Sie die Metadaten der ausgewählten Bilder oder der gesamten Liste exportieren?')
-            # msgBox.addButton(QPushButton(u'Auswahl'), QMessageBox.YesRole)
-            # msgBox.addButton(QPushButton(u'Gesamte Liste'), QMessageBox.NoRole)
-            # msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
-            # ret = msgBox.exec_()
             ret = SelectionOrAll(parent=self)
 
             if ret == 0:

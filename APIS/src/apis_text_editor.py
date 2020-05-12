@@ -21,12 +21,14 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+# Standard Libs
 import os
 
+# PyQt
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog
 
+# APIS
 from APIS.src.apis_utils import SetWindowSize, GetWindowSize
 
 FORM_CLASS, _ = loadUiType(os.path.join(

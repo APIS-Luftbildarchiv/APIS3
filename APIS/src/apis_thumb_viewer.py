@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect, QSize, QObject, QMutex, QMutexLo
 
 from APIS.src.apis_utils import OpenFileOrFolder, GetWindowSize, GetWindowPos, SetWindowSizeAndPos
 
+
 class QdGraphicsPixmapItem(QGraphicsPixmapItem):
 
     def __init__(self, path, size, parent=None):
@@ -20,7 +21,7 @@ class QdGraphicsPixmapItem(QGraphicsPixmapItem):
         self._text.setPos(0, size.height())
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        self.setFlags(self.flags() | QGraphicsItem.ItemIsSelectable) #| QtGui.QGraphicsItem.ItemIsMovable )
+        self.setFlags(self.flags() | QGraphicsItem.ItemIsSelectable)  # | QtGui.QGraphicsItem.ItemIsMovable )
 
     def setImage(self, image):
         self.setPixmap(QPixmap.fromImage(image))
@@ -44,6 +45,7 @@ class QdGraphicsPixmapItem(QGraphicsPixmapItem):
 
         else:
             QMessageBox.warning(self, "Bild", u"Bild unter {0} nicht vorhanden".format(self._path))
+
 
 class QdThumbnailView(QGraphicsView):
 
@@ -91,7 +93,7 @@ class QdThumbnailView(QGraphicsView):
         self.standardPixmap = QPixmap(self._width, self._height)
 
         painter = QPainter(self.standardPixmap)
-        painter.fillRect(QRect(0,0,self._width,self._height), QBrush(self.palette().color(self.backgroundRole())))
+        painter.fillRect(QRect(0, 0, self._width, self._height), QBrush(self.palette().color(self.backgroundRole())))
         standardPixmapsvg.render(painter)
 
         imagesToLoad = images
@@ -110,12 +112,10 @@ class QdThumbnailView(QGraphicsView):
             if os.path.isdir(path) or os.path.basename(path).startswith('.'):
                 continue
 
-            cachePath = os.path.join(dirname, ".thumbnails/"+basename)
-            if os.path.exists( cachePath ) and os.stat(cachePath).st_mtime > os.stat(path):
+            cachePath = os.path.join(dirname, ".thumbnails/" + basename)
+            if os.path.exists(cachePath) and os.stat(cachePath).st_mtime > os.stat(path):
                 print('cache hit')
                 imagePath = cachePath
-
-
 
             item = QdGraphicsPixmapItem(path, QSize(self._width, self._height))
             if positionedImages and path in positionedImages:
@@ -128,7 +128,7 @@ class QdThumbnailView(QGraphicsView):
                         row += 1
                     x = padding
                 else:
-                    x = padding + modresult*(self._width + padding)
+                    x = padding + modresult * (self._width + padding)
                 y = self._height * row
             current += 1
             minX = min(minX, x)
@@ -176,13 +176,13 @@ class QdThumbnailView(QGraphicsView):
 
             numDegrees = evt.angleDelta().y() / 8
             numSteps = numDegrees / 15
-            scaleBy = (5*numSteps)/100.0
-            #newScale = self._scale + scaleBy
-            #QMessageBox.information(None, "degrees", "{0}".format(scaleBy))
-            #if newScale > 0.0 and newScale < 5.0:
-                #self.resetMatrix()
-                # self.centerOn(self.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos())))
-            self.scale(1+scaleBy, 1+scaleBy)
+            scaleBy = (5 * numSteps) / 100.0
+            # newScale = self._scale + scaleBy
+            # QMessageBox.information(None, "degrees", "{0}".format(scaleBy))
+            # if newScale > 0.0 and newScale < 5.0:
+            #     self.resetMatrix()
+            #     self.centerOn(self.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos())))
+            self.scale(1 + scaleBy, 1 + scaleBy)
             self._scale += scaleBy
             return
         elif mods == Qt.ShiftModifier and self.scene().selectedItems():
@@ -195,7 +195,7 @@ class QdThumbnailView(QGraphicsView):
         rect = None
         items = self.scene().selectedItems()
         for item in items:
-            if rect == None:
+            if rect is None:
                 rect = item.sceneBoundingRect()
                 continue
             rect = rect.united(item.sceneBoundingRect())
@@ -225,13 +225,13 @@ class QdThumbnailView(QGraphicsView):
 class QdImageOptions(QObject):
     def __init__(self):
         QObject.__init__(self, None)
-        self._width   = 0
-        self._height  = 0
-        self._ratio   = Qt.KeepAspectRatio
+        self._width = 0
+        self._height = 0
+        self._ratio = Qt.KeepAspectRatio
         self._quality = Qt.SmoothTransformation
 
     def setSize(self, width, height):
-        self._width  = width
+        self._width = width
         self._height = height
 
     def setAspectRatio(self, aspectRatio):
@@ -303,7 +303,7 @@ class QdImageLoader(QObject):
             return None
 
         path = self._paths[self._index]
-        self._index +=1
+        self._index += 1
         return path
 
     def loaded(self, path, image):
@@ -332,6 +332,7 @@ class QdImageLoader(QObject):
         self.stopLoading()
         self._stopped = True
 
+
 class QdImageLoaderThread(QThread):
     loaded = pyqtSignal(str, object)
     finished = pyqtSignal()
@@ -348,12 +349,12 @@ class QdImageLoaderThread(QThread):
 
     def run(self):
         while not self._loader.stopped():
-            path = self._loader.consume() # path, options
+            path = self._loader.consume()  # path, options
             if not path:
                 break
 
             if self._options:
-                self.emitLoaded( path, self._options.load(path) )
+                self.emitLoaded(path, self._options.load(path))
                 self.msleep(10)
                 continue
 
@@ -414,7 +415,7 @@ class APISThumbViewer(QDialog):
 
 
 if __name__ == '__main__':
-    import sys, glob
+    import glob
 
     app = QApplication([])
     widget = APISThumbViewer()

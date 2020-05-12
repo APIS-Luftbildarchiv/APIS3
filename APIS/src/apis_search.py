@@ -163,8 +163,6 @@ class APISSearch(QDockWidget, FORM_CLASS):
         self.uiFindTypeDetailsCombo.setEnabled(False)
         self.uiFindTypeDetailsChk.stateChanged.connect(self.onFindTypeDetailsChkChanged)
 
-
-
     def loadPeriodContent(self, idx):
         time = self.uiTimeCombo.currentText()
         self.setupSearchComboBoxByQuery(self.uiPeriodCombo, u"SELECT DISTINCT periode FROM zeit WHERE zeit ='{0}'".format(time))
@@ -209,8 +207,8 @@ class APISSearch(QDockWidget, FORM_CLASS):
 
     def toggleSpatialSearch(self, isChecked):
         if isChecked:
-             self.iface.mapCanvas().setMapTool(self.spatialSearchTool)
-             self.iface.messageBar().pushMessage(u"APIS räumliche Suche", u"Klicken Sie auf die Karte oder ziehen Sie ein Rechteck auf, um in der ausgewählten Kategorie zu suchen!", level=Qgis.MessageLevel.Info)
+            self.iface.mapCanvas().setMapTool(self.spatialSearchTool)
+            self.iface.messageBar().pushMessage(u"APIS räumliche Suche", u"Klicken Sie auf die Karte oder ziehen Sie ein Rechteck auf, um in der ausgewählten Kategorie zu suchen!", level=Qgis.Info)
         else:
             self.iface.mapCanvas().unsetMapTool(self.spatialSearchTool)
             self.iface.actionPan().trigger()
@@ -287,15 +285,14 @@ class APISSearch(QDockWidget, FORM_CLASS):
             #QMessageBox.warning(None, "Query", "Query finished")
 
         else:
-            self.iface.messageBar().pushMessage(u"Error", u"Bitte selektieren sie zumindest ein Feature im Layer {0} für die Suche!".format(vlayer.name()), level=Qgis.MessageLevel.Warning, duration=5)
-
+            self.iface.messageBar().pushMessage(u"Error", u"Bitte selektieren sie zumindest ein Feature im Layer {0} für die Suche!".format(vlayer.name()), level=Qgis.Warning, duration=5)
 
     def spatialSearchByCadastralCommunity(self):
         if self.uiSpatialSearchBtn.isChecked():
             self.uiSpatialSearchBtn.toggle()
 
         searchValue = self.uiSearchByCadastralCommunityCombo.lineEdit().text()
-        searchValues = [sV.strip().replace("'","").replace("\"", "") for sV in searchValue.split(",") if len(sV.strip().replace("'","").replace("\"", "")) > 0]
+        searchValues = [sV.strip().replace("'", "").replace("\"", "") for sV in searchValue.split(",") if len(sV.strip().replace("'", "").replace("\"", "")) > 0]
         if len(searchValues) < 1:
             return
         likeSearch = False
@@ -351,7 +348,6 @@ class APISSearch(QDockWidget, FORM_CLASS):
                 self.findspotSelectionListDlg.show()
                 #if self.findspotSelectionListDlg.exec_():
                 #    pass
-
 
     def attributeSearchSiteBySiteNumber(self):
         # Fundortsuche
@@ -497,11 +493,9 @@ class APISSearch(QDockWidget, FORM_CLASS):
         #qryStr = u"SELECT fundortnummer, fundstellenummer, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, sicherheit, kultur FROM fundstelle WHERE {0}".format(whereStr)
         qryStr = u"SELECT fs.fundortnummer, fs.fundstellenummer, fo.katastralgemeinde, datierung_zeitstufe, datierung_periode, datierung_periode_detail, befundart, befundart_detail, fs.sicherheit, kultur FROM fundstelle fs, fundort fo WHERE {0} ORDER BY fo.land, fo.katastralgemeindenummer, fo.fundortnummer_nn, fs.fundstellenummer".format(whereStr)
 
+        # QMessageBox.warning(None, self.tr(u"findspot search"), u"{0}".format(qryStr))
 
-        #QMessageBox.warning(None, self.tr(u"findspot search"), u"{0}".format(qryStr))
-
-
-        #return
+        # return
         query.prepare(qryStr)
         query.exec_()
         self.findspotSelectionListDlg = APISFindspotSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, parent=self.iface.mainWindow())
@@ -510,7 +504,6 @@ class APISSearch(QDockWidget, FORM_CLASS):
             self.findspotSelectionListDlg.show()
             # if self.findspotSelectionListDlg.exec_():
             #    pass
-
 
     def isFilm(self, filmNumber):
         # check if filmNumber is a filmNumber in film Table
@@ -582,7 +575,6 @@ class APISSearch(QDockWidget, FORM_CLASS):
         if not isVisible:
             if self.uiSpatialSearchBtn.isChecked():
                 self.uiSpatialSearchBtn.toggle()
-
 
     def joinRowValues(self, row):
         editor = self.sender()

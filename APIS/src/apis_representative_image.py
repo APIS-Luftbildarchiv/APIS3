@@ -64,7 +64,6 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.scene = QGraphicsScene()
         self.uiRepresentativeImageView.setScene(self.scene)
 
-
         # ist FilmProjekt ein FILM?
         if IsFilm(self.dbm.db, self.filmNumber):
             self.populateFilmCombo(self.filmNumber)
@@ -113,12 +112,10 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
     def populateAvailableImagesCombo(self, idx=None):
         self.filmNumber = self.uiFilmNumberCombo.currentText()
         # query image registry
-        #TODO RM availableImages = self.imageRegistry.getImageRegistryForFilm(IdToIdLegacy(self.filmNumber))
         availableImages = self.imageRegistry.getImageRegistryForFilm(self.filmNumber)
         self.uiAvailableImagesCombo.clear()
         self.uiAvailableImagesCombo.addItems(availableImages)
         self.uiAvailableImagesCombo.setCurrentIndex(-1)
-
 
     def showEvent(self, event):
         if self.currentPath:
@@ -151,9 +148,8 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
     def loadNewImageByFilm(self):
         # generatePath
         imgDir = self.settings.value("APIS/image_dir")
-        #TODO RM filmDir = IdToIdLegacy(self.filmNumber)
         filmDir = self.filmNumber
-        self.newPath = os.path.normpath(imgDir +  "\\" + filmDir + "\\" + self.uiAvailableImagesCombo.currentText().replace('.','_') + ".jpg")
+        self.newPath = os.path.normpath(imgDir + "\\" + filmDir + "\\" + self.uiAvailableImagesCombo.currentText().replace('.', '_') + ".jpg")
         self.uiImagePathLbl.setText(self.newPath)
         self.loadImage(self.newPath)
 

@@ -59,13 +59,13 @@ class APISFilmSearch(QDialog, FORM_CLASS):
         self.uiToDate.setMaximumDate(now)
 
         self.wildcardEditsList = [self.uiWcP1Edit, self.uiWcP2Edit, self.uiWcY1Edit, self.uiWcY2Edit, self.uiWcY3Edit,
-                             self.uiWcY4Edit, self.uiWcM1Edit, self.uiWcM2Edit, self.uiWcN1Edit, self.uiWcN2Edit]
+                                  self.uiWcY4Edit, self.uiWcM1Edit, self.uiWcM2Edit, self.uiWcN1Edit, self.uiWcN2Edit]
 
         e = 0
         for editor in self.wildcardEditsList:
             editor.setValidator(QIntValidator(1, 9))
             if e < len(self.wildcardEditsList) - 1:
-                editor.textEdited.connect(partial(self.setFocusTo, self.wildcardEditsList[e+1]))
+                editor.textEdited.connect(partial(self.setFocusTo, self.wildcardEditsList[e + 1]))
             e += 1
 
         self.uiResetWcBtn.clicked.connect(self.resetWildcardEdits)
@@ -190,7 +190,7 @@ class APISFilmSearch(QDialog, FORM_CLASS):
                 # byMilitaryNumber
                 milNum = self.uiMilitaryNumberCombo.currentText()
                 milNum = ''.join(i for i in milNum if i not in '/() ')
-                searchString = '%' + '%'.join(milNum[i:i+1] for i in range(0, len(milNum), 1)) + '%'
+                searchString = '%' + '%'.join(milNum[i:i + 1] for i in range(0, len(milNum), 1)) + '%'
                 searchModePart = u"(militaernummer like '{0}' or militaernummer_alt like '{0}')".format(searchString)
                 searchModeSearchModePart = u"Militärnummer: '{0}'".format(milNum)
             elif self.uiSearchModeTBox.currentIndex() == 2:
@@ -203,9 +203,7 @@ class APISFilmSearch(QDialog, FORM_CLASS):
                 searchModeSearchModePart = u"Zeitspanne: von '{0}' bis '{1}'".format(fromDate, toDate)
             elif self.uiSearchModeTBox.currentIndex() == 3:
                 # byWildcard
-                # ToDo: Wildcard parsing
                 wildcardString = "".join([(editor.text() if editor.text().strip() != '' else "_") for editor in self.wildcardEditsList])
-                #wildcardString = self.uiWildcardEdit.text()
                 searchModePart = u"(filmnummer like '{0}')".format(wildcardString)
                 searchModeSearchModePart = u"Wildcard: '{0}'".format(wildcardString)
 

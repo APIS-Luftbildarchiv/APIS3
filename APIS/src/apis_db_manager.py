@@ -30,6 +30,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 
 from qgis.utils import spatialite_connect
 
+
 class ApisDbManager:
     def __init__(self, path):
         #db = QSqlDatabase.addDatabase('QSQLITE')
@@ -39,10 +40,10 @@ class ApisDbManager:
         #else:
         #    query = db.exec_("""SELECT sqlite_version()""")
         #    query.next()
-            #QMessageBox.information(None, "DB", "sqlite: {0}, spatialite: {1}".format(query.value(0), query.value(1)))
+        #    QMessageBox.information(None, "DB", "sqlite: {0}, spatialite: {1}".format(query.value(0), query.value(1)))
 
         #QMessageBox.warning(None, "DB", "QSPATIALITE: {0}".format(QSqlDatabase.isDriverAvailable('QSPATIALITE')))
-        self.connectToDb("QSPATIALITE", path) #("QSQLITE", path)
+        self.connectToDb("QSPATIALITE", path)  # ("QSQLITE", path)
         self.__dbWasUpdated = False
 
     def connectToDb(self, type, path):
@@ -72,7 +73,7 @@ class ApisDbManager:
     def dbRequiresUpdate(self, value):
         self.__dbWasUpdated = value
 
-    def spatialQuery(self, qryStr, qryTpl = ()):
+    def spatialQuery(self, qryStr, qryTpl=()):
         con = spatialite_connect(self.__db.databaseName())
         c = con.cursor()
         q = c.execute(qryStr, qryTpl)

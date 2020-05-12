@@ -22,12 +22,15 @@
  ***************************************************************************/
 """
 
+# Standard Libs
 import os
 
+# PyQt
 from PyQt5.uic import loadUiType
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog  # , QMessageBox
 
+# APIS
 from APIS.src.apis_printer import OutputMode
 
 FORM_CLASS, _ = loadUiType(os.path.join(

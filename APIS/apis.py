@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import QAction, QMessageBox, QActionGroup, QToolButton, QMe
 # Initialize Qt resources from file resources.py
 
 # Import the code for the src #APIS.src
-from APIS.src.apis_settings import APISSettings
+from .src.apis_settings import APISSettings
 from APIS.src.apis_film import APISFilm
 from APIS.src.apis_image_mapping import APISImageMapping
 from APIS.src.apis_site_mapping import APISSiteMapping
@@ -41,6 +41,7 @@ from APIS.src.apis_layer_manager import ApisLayerManager
 
 import os.path
 from functools import partial
+
 
 class APIS:
     """QGIS Plugin Implementation."""
@@ -71,7 +72,6 @@ class APIS:
 
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
-
 
         # Declare instance attributes
         self.actions = []
@@ -121,17 +121,17 @@ class APIS:
                 self.activateDialogs(False)
 
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        checkable=False,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            checkable=False,
+            parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -331,7 +331,7 @@ class APIS:
             parent=self.iface.mainWindow())
         )
 
-        #Image Mapping Dialog
+        # Image Mapping Dialog
         icon_path = os.path.join(self.plugin_dir, 'ui', 'icons', 'mapping_vertical.png')
         self.imageMappingActionBtn = self.add_action(
             icon_path,
@@ -342,8 +342,7 @@ class APIS:
             checkable=True)
         self.openDialogButtons.append(self.imageMappingActionBtn)
 
-
-        #Site Mapping Dialog
+        # Site Mapping Dialog
         icon_path = os.path.join(self.plugin_dir, 'ui', 'icons', 'site.png')
         self.siteMappingActionBtn = self.add_action(
             icon_path,
@@ -354,7 +353,7 @@ class APIS:
             checkable=True)
         self.openDialogButtons.append(self.siteMappingActionBtn)
 
-        #Search Dialog
+        # Search Dialog
         icon_path = os.path.join(self.plugin_dir, 'ui', 'icons', 'search.png')
         self.searchActionBtn = self.add_action(
             icon_path,
@@ -376,7 +375,6 @@ class APIS:
         del self.toolbar
 
         # ToDo: disconnect DB
-
 
     def run(self):
         """Run method that performs all the real work"""
@@ -432,8 +430,11 @@ class APIS:
 
     def loadApisLayerTree(self, layerGroup):
         #QMessageBox.information(None, "Apis Layer", layerGroup)
-        if self.apisLayer and self.apisLayer.isLoaded and layerGroup == "all":
-            self.apisLayer.loadDefaultLayerTree()
+        if self.apisLayer and self.apisLayer.isLoaded:
+            if layerGroup == "all":
+                self.apisLayer.loadDefaultLayerTree()
+            elif layerGroup == "oek50":
+                self.apisLayer.loadOEK50Layers()
         else:
             VersionToCome()
 

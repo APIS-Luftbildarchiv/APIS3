@@ -49,7 +49,7 @@ class APISPrinterQueue(QObject):
         self.parent = parent
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
         self.saveTimestamp = None
-        self.tempDirName = "temp_apis_print" #ToDo get from config
+        self.tempDirName = "temp_apis_print"
 
         if len(self.printerQueue) <= 1:
             self.outputMode = OutputMode.MergeNone
@@ -58,7 +58,7 @@ class APISPrinterQueue(QObject):
         self.isCanceled = False
 
         if self.saveTo:
-            QgsMessageLog().logMessage("SaveTo: {0}".format(self.printerQueue), 'APIS', Qgis.MessageLevel.Warning, notifyUser=True)
+            QgsMessageLog().logMessage("SaveTo: {0}".format(self.printerQueue), 'APIS', Qgis.Warning, notifyUser=True)
             SetExportPath(os.path.dirname(os.path.abspath(self.saveTo)))
 
             # if outputMode is OutputMode.OneFile and more than one element in queue create a temporary folder in saveTo folder
@@ -215,7 +215,7 @@ class APISPrinterQueue(QObject):
 
         except Exception as inst:
             #tag, message = inst.args
-            QgsMessageLog().logMessage("{0}".format(inst.args), 'APIS', Qgis.MessageLevel.Warning, notifyUser=True)
+            QgsMessageLog().logMessage("{0}".format(inst.args), 'APIS', Qgis.Warning, notifyUser=True)
             if inst.args[1] == 'PrintingCanceled':
                 self._printingInterrupted()
 
@@ -225,7 +225,7 @@ class APISPrinterQueue(QObject):
 
     def _cancelPrinting(self):
         self.isCanceled = True
-        QgsMessageLog().logMessage("Printing was Canceled!", 'APIS', Qgis.MessageLevel.Warning, notifyUser=True)
+        QgsMessageLog().logMessage("Printing was Canceled!", 'APIS', Qgis.Warning, notifyUser=True)
 
     def _printingInterrupted(self):
 
@@ -358,7 +358,7 @@ class APISTemplatePrinter:
         else:
             wasPrinted = False
 
-        #QgsMessageLog().logMessage("Number of Items: {0}".format(len(layout.pageCollection().itemsOnPage(0))), 'APIS', Qgis.MessageLevel.Warning, notifyUser=True)
+        #QgsMessageLog().logMessage("Number of Items: {0}".format(len(layout.pageCollection().itemsOnPage(0))), 'APIS', Qgis.Warning, notifyUser=True)
 
 
         # Remove MapLayers
@@ -883,7 +883,7 @@ class APISListPrinter:
         self.queryStr = queryStr
 
     def printPdf(self):
-        # QgsMessageLog().logMessage("ListPrinter: {0}".format(self.FILENAMETEMPLATE), 'APIS', Qgis.MessageLevel.Warning, notifyUser=True)
+        # QgsMessageLog().logMessage("ListPrinter: {0}".format(self.FILENAMETEMPLATE), 'APIS', Qgis.Warning, notifyUser=True)
 
         query = QSqlQuery(self.dbm.db)
         query.prepare(self.queryStr)
@@ -892,8 +892,8 @@ class APISListPrinter:
         # c = 0
         # while(query.next()):
         #     c += 1
-
-        QMessageBox.information(None, "SQL", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+        if query.lastError().isValid():
+            QMessageBox.information(None, "SQL", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
 
         layout = QgsLayout(QgsProject.instance())
 
@@ -930,8 +930,8 @@ class APISListPrinter:
         while query.next():
             totalCount += 1
 
-        QgsMessageLog().logMessage("QuerySize: {0}".format(len(str(totalCount))), 'APIS',
-                                   Qgis.MessageLevel.Warning, notifyUser=True)
+        QgsMessageLog().logMessage("QuerySize: {0}".format(len(str(totalCount))), tag='APIS',
+                                   level=Qgis.Warning, notifyUser=True)
 
         query.seek(-1)
         rows = []

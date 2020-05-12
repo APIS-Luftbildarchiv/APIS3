@@ -22,20 +22,26 @@
  ***************************************************************************/
 """
 
-import os, math, glob, shutil
+# Standard Libs
+import os
+import glob
+import shutil
+from functools import partial
 
+# PyQt
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView, QMessageBox, QPushButton, QFileDialog, QGraphicsScene, QGraphicsTextItem, QMenu
+from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView, QMessageBox, QPushButton, QGraphicsScene, QGraphicsTextItem, QMenu
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
-from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QTime, QDate, QDateTime, QFile, QDir, QRectF
-from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QStandardItem, QStandardItemModel, QColor, QImage, QPixmap, QIcon, QFont
+from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QTime, QDate, QFile, QDir, QRectF
+from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QColor, QImage, QPixmap, QIcon
 
-from qgis.core import (QgsGeometry, QgsCoordinateReferenceSystem, QgsMapSettings, QgsUnitTypes, QgsProject, QgsVectorLayer,
-                       QgsRasterLayer, QgsRectangle, QgsDataSourceUri, QgsFillSymbol, QgsFeature, QgsMarkerSymbol,
-                       QgsCentroidFillSymbolLayer, QgsSimpleLineSymbolLayer, QgsSingleSymbolRenderer, QgsWkbTypes,
+# PyQGIS
+from qgis.core import (QgsGeometry, QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer,
+                       QgsRasterLayer, QgsDataSourceUri, QgsFeature, QgsWkbTypes,
                        QgsFeatureRequest, QgsExpression)
 from qgis.gui import QgsRubberBand, QgsHighlight
 
+# APIS
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
 from APIS.src.apis_overpass_request import APISOverpassRequest
@@ -49,7 +55,6 @@ from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter
 from APIS.src.apis_thumb_viewer import APISThumbViewer
 from APIS.src.apis_site_edit_findspot_conflict_handling import APISSiteEditFindspotConflictHandling
-from functools import partial
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_site.ui'), resource_suffix='')
@@ -93,7 +98,6 @@ class APISSite(QDialog, FORM_CLASS):
         self.repImagesPathList = None
         self.currentRepImage = None
 
-
         self.rejected.connect(self.onReject)
 
         self.uiOkBtn.clicked.connect(self.onAccept)
@@ -110,8 +114,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.shardingDlg = None
         self.findspotHandlingDlg = None
         self.printingOptionsDlg = None
-        # TODO remove deprecated
-        # self.uiLoadSiteInQGisBtn.clicked.connect(self.loadSiteInQGis)
+
         self.uiLoadSiteInterpretationInQGisBtn.clicked.connect(self.loadSiteInterpretationInQGis)
         self.uiListImagesOfSiteBtn.clicked.connect(self.openImageSelectionListDialog)
         self.uiSelectRepresentativeImageBtn.clicked.connect(self.openRepresentativeImageDialog)
@@ -172,7 +175,6 @@ class APISSite(QDialog, FORM_CLASS):
 
         self.initalLoad = False
 
-
     def openInViewMode(self, siteNumber):
         self.initalLoad = True
         self.siteNumber = siteNumber
@@ -181,7 +183,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
         self.model.setTable("fundort")
         self.model.setFilter("fundortnummer='{0}'".format(self.siteNumber))
-        res = self.model.select()
+        self.model.select()
         self.setupMapper()
         self.mapper.toFirst()
 
@@ -205,7 +207,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
         self.model.setTable("fundort")
         self.model.setFilter("fundortnummer='{0}'".format(self.siteNumber))
-        res = self.model.select()
+        self.model.select()
         self.setupMapper()
         self.mapper.toFirst()
 
@@ -224,7 +226,6 @@ class APISSite(QDialog, FORM_CLASS):
         if self.uiAreaEdit.text() != siteArea:
             self.uiAreaEdit.setText(str(siteArea))
 
-
     def openInAddMode(self, siteNumber, isFilmBased):
         self.initalLoad = True
         self.siteNumber = siteNumber
@@ -234,7 +235,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
         self.model.setTable("fundort")
         self.model.setFilter("fundortnummer='{0}'".format(self.siteNumber))
-        res = self.model.select()
+        self.model.select()
         self.setupMapper()
         self.mapper.toFirst()
 
@@ -270,7 +271,7 @@ class APISSite(QDialog, FORM_CLASS):
             "katastralgemeindenummer": {
                 "editor": self.uiCadastralCommunityNumberEdit
             },
-            "land":{
+            "land": {
                 "editor": self.uiCountryEdit
             },
             "katastralgemeinde": {
@@ -279,7 +280,7 @@ class APISSite(QDialog, FORM_CLASS):
             "common_name": {
                 "editor": self.uiCommonNameEdit
             },
-            "flurname":{
+            "flurname": {
                 "editor": self.uiFieldNameEdit
             },
             "parzellennummern": {
@@ -354,7 +355,6 @@ class APISSite(QDialog, FORM_CLASS):
             self.setupComboBox(item["editor"], item["table"], item["modelcolumn"], item["depend"])
             item["editor"].editTextChanged.connect(self.onLineEditChanged)
 
-
     def setupComboBox(self, editor, table, modelColumn, depend):
         model = QSqlRelationalTableModel(self, self.dbm.db)
         model.setTable(table)
@@ -388,19 +388,17 @@ class APISSite(QDialog, FORM_CLASS):
         if depend:
             editor.currentIndexChanged.connect(partial(self.updateDepends, editor, depend))
 
-
     def updateDepends(self, editor, depend):
-         for dep in depend:
+        for dep in depend:
             for key, value in dep.iteritems():
                 idx = editor.model().createIndex(editor.currentIndex(), editor.model().fieldIndex(key))
                 value.setText(str(editor.model().data(idx)))
                 #QMessageBox.warning(None, "Test", str(idx))
 
-
     def setupFindspotList(self):
 
         query = QSqlQuery(self.dbm.db)
-        query.prepare("SELECT fundstellenummer AS 'Nummer', datierung_zeitstufe AS 'Zeittufe', datierung_periode AS 'Periode', befundart AS 'Befundart', befundart_detail AS 'Befundart Detail' FROM fundstelle WHERE fundortnummer = '{0}'".format(self.siteNumber))
+        query.prepare("SELECT fundstellenummer AS 'Nummer', datierung_zeitstufe AS 'Zeittufe', datierung_periode_detail AS 'Periode Detail', befundart AS 'Befundart', befundart_detail AS 'Befundart Detail' FROM fundstelle WHERE fundortnummer = '{0}'".format(self.siteNumber))
         query.exec_()
 
         model = self.dbm.queryToQStandardItemModel(query)
@@ -435,14 +433,15 @@ class APISSite(QDialog, FORM_CLASS):
                 # highlight.setFillColor(color)
                 self.findspotHighlight.show()
 
-
     def openFindspotDialog(self, idx):
         findspotNumber = self.uiFindspotListTableV.model().item(idx.row(), 0).text()
         siteNumber = self.uiSiteNumberEdit.text()
-        if self.findspotDlg == None:
+        if self.findspotDlg is None:
             self.findspotDlg = APISFindspot(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self)
             self.findspotDlg.findspotEditsSaved.connect(self.setupFindspotList)
+            self.findspotDlg.findspotEditsSaved.connect(self.reloadMapCanvas)
             self.findspotDlg.findspotDeleted.connect(self.setupFindspotList)
+            self.findspotDlg.findspotDeleted.connect(self.reloadMapCanvas)
             if isinstance(self.parentWidget(), APISFindspotSelectionList):
                 self.findspotDlg.findspotEditsSaved.connect(self.updateParentTable)
                 self.findspotDlg.findspotDeleted.connect(self.updateParentTable)
@@ -459,13 +458,14 @@ class APISSite(QDialog, FORM_CLASS):
         self.findspotDlg.uiDatingTimeCombo.currentIndexChanged.disconnect(self.findspotDlg.loadPeriodContent)
         self.findspotDlg.uiDatingPeriodCombo.currentIndexChanged.disconnect(self.findspotDlg.loadPeriodDetailsContent)
 
-
     def openFindspotDialogInAddMode(self, siteNumber, findspotNumber):
 
-        if self.findspotDlg == None:
+        if self.findspotDlg is None:
             self.findspotDlg = APISFindspot(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self)
             self.findspotDlg.findspotEditsSaved.connect(self.setupFindspotList)
+            self.findspotDlg.findspotEditsSaved.connect(self.reloadMapCanvas)
             self.findspotDlg.findspotDeleted.connect(self.setupFindspotList)
+            self.findspotDlg.findspotDeleted.connect(self.reloadMapCanvas)
             if isinstance(self.parentWidget(), APISFindspotSelectionList):
                 self.findspotDlg.findspotEditsSaved.connect(self.updateParentTable)
                 self.findspotDlg.findspotDeleted.connect(self.updateParentTable)
@@ -489,14 +489,14 @@ class APISSite(QDialog, FORM_CLASS):
     def getNextFindspotNumber(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT CASE WHEN max(fundstellenummer) IS NULL THEN 1 ELSE max(fundstellenummer)+1 END AS nextFindspot FROM fundstelle WHERE fundortnummer = '{0}'".format(siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         return query.value(0)
 
     def getSiteInfo(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT flurname,parzellennummern,kommentar_lage,common_name,gkx,gky,meridian,longitude,latitude,flaeche, AsBinary(geometry) FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         return [query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5), query.value(6), query.value(7), query.value(8), query.value(9)], query.value(10)
 
@@ -527,7 +527,7 @@ class APISSite(QDialog, FORM_CLASS):
         query.addBindValue(now.toString("yyyy-MM-dd"))
         query.addBindValue(getpass.getuser())
 
-        res = query.exec_()
+        query.exec_()
         #MessageBox.information(None, "Neue Fundstelle", "Neue Fundstelle Result: {0}, {1}".format(res, query.lastError().text()))
 
         query.finish()
@@ -540,7 +540,6 @@ class APISSite(QDialog, FORM_CLASS):
             if layout.itemAt(i).widget():
                 layout.itemAt(i).widget().setEnabled(enable)
 
-
     def onLineEditChanged(self):
         sender = self.sender()
         if not self.editMode and not self.initalLoad:
@@ -549,26 +548,8 @@ class APISSite(QDialog, FORM_CLASS):
             sender.setStyleSheet("{0} {{background-color: rgb(153, 204, 255);}}".format(sender.metaObject().className()))
             self.editorsEdited.append(sender)
 
-
     def onComboBoxChanged(self, editor):
         pass
-
-    # TODO remove
-    def apisLogger(self, action, fromTable, primaryKeysWhere):
-        toTable = fromTable + u"_log"
-        query = QSqlQuery(self.dbm.db)
-        query.prepare(u"INSERT INTO {0} SELECT * FROM {1} WHERE {2}".format(toTable, fromTable, primaryKeysWhere))
-
-        res = query.exec_()
-        #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-        if not res:
-            QMessageBox.information(self, "SqlError", query.lastError().text())
-        import getpass
-        query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
-        res = query.exec_()
-        #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-        if not res:
-            QMessageBox.information(self, "SqlError", query.lastError().text())
 
     def openTextEditor(self, title, editor):
         textEditorDlg = APISTextEditor(self)
@@ -581,7 +562,7 @@ class APISSite(QDialog, FORM_CLASS):
         overpassRequestDlg = APISOverpassRequest(self)
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT latitude, longitude FROM fundort WHERE fundortnummer = '{0}'".format(self.siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         overpassRequestDlg.setLatLon(query.value(0), query.value(1))
         if overpassRequestDlg.exec_():
@@ -621,9 +602,9 @@ class APISSite(QDialog, FORM_CLASS):
         if self.editMode:
             res = self.cancelEdit()
             if res:
-               SetWindowSizeAndPos("site", self.size(), self.pos())
-               self.close()
-               return "ABC"
+                SetWindowSizeAndPos("site", self.size(), self.pos())
+                self.close()
+                return "ABC"  # FIXME Investigate where to this is returned
             else:
                 self.show()
         else:
@@ -689,7 +670,7 @@ class APISSite(QDialog, FORM_CLASS):
 
     def openImageSelectionListDialog(self):
         #layer = self.uiSiteMapCanvas.layers()
-        layer = self.uiSiteMapCanvas.layers()[0] # TODO: use self.siteLayerId instead!!!
+        layer = self.uiSiteMapCanvas.layers()[0]  # TODO: use self.siteLayerId instead!!!
 
         i = 0
         for feature in layer.getFeatures():
@@ -757,10 +738,10 @@ class APISSite(QDialog, FORM_CLASS):
             return False
 
         # Check if fins spots will change due to site geometry edits
-        if self.geometryEditing and SiteHasFindspot(self.dbm.db, self.siteNumber): # SiteHasFindspot in apis_utils.py
+        if self.geometryEditing and SiteHasFindspot(self.dbm.db, self.siteNumber):  # SiteHasFindspot in apis_utils.py
             fSEditActions = self.openSiteEditFindspotHandlingDialog()
-            if fSEditActions == None:
-                return True #Only return False if Dialog should be shown again
+            if fSEditActions is None:
+                return True  # Only return False if Dialog should be shown again
 
         #saveToModel
         currIdx = self.mapper.currentIndex()
@@ -772,7 +753,7 @@ class APISSite(QDialog, FORM_CLASS):
         else:
             action = u"editAG" if self.geometryEditing else u"editA"
             #Update AKTION
-            self.model.setData(self.model.createIndex(currIdx, self.model.fieldIndex("aktion")),action)
+            self.model.setData(self.model.createIndex(currIdx, self.model.fieldIndex("aktion")), action)
             self.model.setData(self.model.createIndex(currIdx, self.model.fieldIndex("aktionsdatum")), now.toString("yyyy-MM-dd"))
             import getpass
             self.model.setData(self.model.createIndex(currIdx, self.model.fieldIndex("aktionsuser")), getpass.getuser())
@@ -786,8 +767,6 @@ class APISSite(QDialog, FORM_CLASS):
             self.geometryEditing = False
         else:
             # log only if not geometryEditing envolved, otherwise log in site_mapping_dialog.saveSiteEdits()
-            # TODO remove
-            # self.apisLogger(action, u"fundort", u"fundortnummer = '{0}' ".format(self.siteNumber))
             ApisLogger(self.dbm.db, action, "fundort", "fundortnummer = '{0}' ".format(self.siteNumber))
 
         self.mapper.setCurrentIndex(currIdx)
@@ -813,7 +792,7 @@ class APISSite(QDialog, FORM_CLASS):
             result = QMessageBox.question(self,
                                           header,
                                           question,
-                                          QMessageBox.Yes | QMessageBox.No ,
+                                          QMessageBox.Yes | QMessageBox.No,
                                           QMessageBox.Yes)
 
             #save or not save
@@ -865,11 +844,11 @@ class APISSite(QDialog, FORM_CLASS):
     def isGeometrySaved(self):
         return self.isGeometryEditingSaved and self.geometryEditing
 
-    #def showEvent(self, evnt):
-     #   pass
-        #self.model.select()
-        #while (self.model.canFetchMore()):
-        #    self.model.fetchMore()
+    # def showEvent(self, evnt):
+    #     pass
+    #     self.model.select()
+    #     while (self.model.canFetchMore()):
+    #         self.model.fetchMore()
 
     def deleteSite(self):
         # has findspots
@@ -904,8 +883,6 @@ class APISSite(QDialog, FORM_CLASS):
                         repImageFile.remove()
 
                 # log eintragen
-                # TODO remove
-                # self.apisLogger(u"delete", u"fundort", u"fundortnummer = '{0}'".format(self.siteNumber))
                 ApisLogger(self.dbm.db, "delete", "fundort", "fundortnummer = '{0}'".format(self.siteNumber))
 
                 # löschen
@@ -915,11 +892,10 @@ class APISSite(QDialog, FORM_CLASS):
                 self.iface.mapCanvas().refreshAllLayers()
                 self.done(1)
 
-
     def siteHasFindspots(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT count(*) FROM fundstelle WHERE fundortnummer = '{0}'".format(siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         return query.value(0)
 
@@ -1043,10 +1019,7 @@ class APISSite(QDialog, FORM_CLASS):
             if ret == 0 or ret == 1:
                 # Create Folder Path
                 intPath = os.path.normpath(os.path.join(intBaseDir, country, u"{0}{1}".format(kgName, siteNumberN), intDir))
-                try:
-                    os.makedirs(intPath)
-                except Exception as e:
-                    pass
+                os.makedirs(intPath, exist_ok=True)
                 # Copy Dummy Template
                 srcPath = os.path.normpath(os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "shp"]))
                 template = self.settings.value("APIS/int_master_shp")
@@ -1064,59 +1037,6 @@ class APISSite(QDialog, FORM_CLASS):
             if ret == 1:
                 stylePath = self.apisLayer.getStylePath("interpretation")
                 self.apisLayer.requestShapeFile(intShpPath, epsg=None, layerName=None, groupName="Interpretationen", useLayerFromTree=True, addToCanvas=True, stylePath=stylePath)
-
-    def generateCenterPointLayer(self, polygonLayer, displayName=None):
-        if not displayName:
-            displayName = polygonLayer.name()
-        epsg = polygonLayer.crs().authid()
-        # QMessageBox.warning(None, "EPSG", u"{0}".format(epsg))
-        layer = QgsVectorLayer("Point?crs={0}".format(epsg), displayName, "memory")
-        layer.setCrs(polygonLayer.crs())
-        provider = layer.dataProvider()
-        provider.addAttributes(polygonLayer.dataProvider().fields())
-
-        layer.updateFields()
-
-        pointFeatures = []
-        for polygonFeature in polygonLayer.getFeatures():
-            polygonGeom = polygonFeature.geometry()
-            pointGeom = polygonGeom.centroid()
-            # if center point is not on polygon get the nearest Point
-            if not polygonGeom.contains(pointGeom):
-                pointGeom = polygonGeom.pointOnSurface()
-
-            pointFeature = QgsFeature()
-            pointFeature.setGeometry(pointGeom)
-            pointFeature.setAttributes(polygonFeature.attributes())
-            pointFeatures.append(pointFeature)
-
-        provider.addFeatures(pointFeatures)
-
-        layer.updateExtents()
-
-        return layer
-
-    def getSiteRenderer(self):
-        # Symbology für Layer
-        symbol = QgsFillSymbol.createSimple({})
-        symbol.deleteSymbolLayer(0)  # Remove default symbol layer
-
-        symbol_layer = QgsSimpleLineSymbolLayer()
-        symbol_layer.setWidth(0.6)
-        symbol_layer.setColor(QColor(100, 50, 140, 255))
-        symbol.appendSymbolLayer(symbol_layer)
-
-        symbol_centroid = QgsMarkerSymbol.createSimple({u'name': u'circle', u'color': u'210,180,200,255', u'outline_color': u'100,50,140,255', u'outline_width': u'0.4'})
-
-        symbol_layer = QgsCentroidFillSymbolLayer()
-        symbol_layer.setPointOnSurface(True)
-        symbol_layer.setSubSymbol(symbol_centroid)
-        symbol.appendSymbolLayer(symbol_layer)
-
-        renderer = QgsSingleSymbolRenderer(symbol)
-
-        return renderer
-
 
     def loadSiteInSiteMapCanvas(self, polygon=None):
         siteNumber = self.uiSiteNumberEdit.text()
@@ -1161,97 +1081,12 @@ class APISSite(QDialog, FORM_CLASS):
         layerSet.append(oekLayer31)
         layerSet.append(oekLayer34)
 
+        # TODO: Allow any wms/xyz to be loaded as background map!
         # # Tile Layer (Background Map)
-        # ds = {}
-        # ds['type'] = 'TMS'
-        # ds['alias'] = 'basemap'
-        # ds['copyright_text'] = 'basemaop'
-        # ds['copyright_link'] = 'http://www.basemap.at'
         # #ds['tms_url'] = "https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
         # #ds['tms_url'] = "http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg"
         # ds['tms_url'] = "http://maps.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png"
-        #
-        # #service_info = TileServiceInfo(ds['alias'], ds['alias'], ds['tms_url'])
-        # #service_info.zmin = 0
-        # #service_info.zmax = 17 #int(z)
-        # #if ds.tms_y_origin_top is not None:
-        # #   service_info.yOriginTop = ds.tms_y_origin_top
-        # #service_info.epsg_crs_id = 3857
-        # #service_info.postgis_crs_id = None
-        # #service_info.custom_proj = None
-        # #service_info.bbox = BoundingBox(-180, -85.05, 180, 85.05)
-        #
-        # service_info = TileServiceInfo(ds['alias'], ds['copyright_text'], ds['tms_url'])
-        # service_info.zmin = 0
-        # service_info.zmax = 17
-        # #if ds.tms_y_origin_top is not None:
-        # #    service_info.yOriginTop = ds.tms_y_origin_top
-        # service_info.epsg_crs_id = 3857
-        # service_info.postgis_crs_id = None
-        # service_info.custom_proj = None
-        # layer = TileLayer(service_info, False)
-        #
-        #
-        # if not layer.isValid():
-        #     error_message = ('Layer %s can\'t be added to the map!') % ds['alias']
-        #     self.iface.messageBar().pushMessage('Error',
-        #                                    error_message,
-        #                                    level=QgsMessageBar.CRITICAL)
-        #     QgsMessageLog.logMessage(error_message, level=QgsMessageLog.CRITICAL)
-        # else:
-        #     # Set attribs
-        #     layer.setAttribution(ds['copyright_text'])
-        #     layer.setAttributionUrl(ds['copyright_link'])
-        #     # Insert layer
-        #     #toc_root = QgsProject.instance().layerTreeRoot()
-        #     #position = len(toc_root.children())  # Insert to bottom if wms\tms
-        #     QgsMapLayerRegistry.instance().addMapLayer(layer, False)
-        #     canvasLayer2 = QgsMapCanvasLayer(layer)
-        #     layerSet.append(canvasLayer2)
-        #     #toc_root.insertLayer(position, layer)
-        #     #self.iface.mapCanvass()
-        #
-        #     # Save link
-        #     #service_layers.append(layer)
-        #     # Set OTF CRS Transform for map
-        #     #if PluginSettings.enable_otf_3857() and ds.type == KNOWN_DRIVERS.TMS:
-        #     self.uiSiteMapCanvas.setCrsTransformEnabled(True)
-        #     self.uiSiteMapCanvas.setDestinationCrs(TileLayer.CRS_3857)
-        #     #self.iface.mapCanvas().setDestinationCrs(QgsCoordinateReferenceSystem(3857, QgsCoordinateReferenceSystem.EpsgCrsId))
-
-
-        # ds = {}
-        # ds['title'] = 'basemap.at'
-        # ds['attribution'] = 'basemap.at'
-        # ds['attributionUrl'] = 'http://www.basemap.at'
         # ds['serviceUrl'] = "http://maps.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png"  # "https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
-        # ds['yOriginTop'] = 1
-        # ds['zmin'] = 0
-        # ds['zmax'] = 19
-        # ds['bbox'] = BoundingBox(-180, -85.05, 180, 85.05)
-        #layerDef = TileLayerDefinition(ds['title'], ds['attribution'], ds['attributionUrl'], ds['serviceUrl'], ds['yOriginTop'], ds['zmin'], ds['zmax'], ds['bbox'])
-        #tileLayer = TileLayer(self, service_info, False)
-        #tileLayer = TileLayer(layerDef, False)
-        #tileLayer.setCrs(QgsCoordinateReferenceSystem(3857, QgsCoordinateReferenceSystem.EpsgCrsId))
-        #tileLayer = TileLayer(service_info, 0)
-        #tileLayer.setCrs(QgsCoordinateReferenceSystem(3857, QgsCoordinateReferenceSystem.EpsgCrsId))
-
-       # if not tileLayer.isValid():
-        #    QMessageBox.information(None, "TileLayer", "TileLayer Is Not Valid")
-            #error_message = self.tr('Background Layer %s can\'t be added to the map!') % ds['alias']
-            #self.iface.messageBar().pushMessage(self.tr('Error'),
-            #                                    error_message,
-            #                                    level=QgsMessageBar.CRITICAL)
-            #QgsMessageLog.logMessage(error_message, level=QgsMessageLog.CRITICAL)
-        #else:
-            # Set Attributes
-            #QMessageBox.information(None, "TileLayer", "TileLayer Is Valid")
-            #tileLayer.setAttribution(ds['copyright_text'])
-            #tileLayer.setAttributionUrl(ds['copyright_url'])
-        #    QgsMapLayerRegistry.instance().addMapLayer(tileLayer, False)
-        #    canvasLayer2 = QgsMapCanvasLayer(tileLayer)
-        #    layerSet.append(canvasLayer2)
-
 
         self.uiSiteMapCanvas.setLayers(layerSet)
         #self.uiSiteMapCanvas.refreshAllLayers()
@@ -1272,7 +1107,6 @@ class APISSite(QDialog, FORM_CLASS):
             extentNewPolygon.scale(1.1)
             extent.combineExtentWith(extentNewPolygon)
 
-
         else:
             if self.rubberBand:
                 self.uiSiteMapCanvas.scene().removeItem(self.rubberBand)
@@ -1281,8 +1115,6 @@ class APISSite(QDialog, FORM_CLASS):
         targetExtent = self.uiSiteMapCanvas.mapSettings().layerExtentToOutputExtent(siteLayer, extent)
 
         self.uiSiteMapCanvas.setExtent(targetExtent)
-       # self. saveCanvasAsImage() # FIXME: DELTETE NOT NEEDED
-       # self.uiSiteMapCanvas.zoomToFeatureIds(siteLayer, set([0]))
 
     def reloadMapCanvas(self):
         if self.findspotHighlight:
@@ -1306,25 +1138,16 @@ class APISSite(QDialog, FORM_CLASS):
             self.uiSiteMapCanvas.refresh()
             self.uiSiteMapCanvas.setExtent(targetExtent)
 
-        #self.saveCanvasAsImage()
-        #self.uiSiteMapCanvas.refreshAllLayers()
-
     def removeSitesFromSiteMapCanvas(self):
         layers = self.uiSiteMapCanvas.layers()
         for layer in layers:
             QgsProject.instance().removeMapLayer(layer.id())
 
-    def saveCanvasAsImage(self):
-        saveDir = self.settings.value("APIS/site_image_dir", QDir.home().dirName())
-        # fileName = QFileDialog.getSaveFileName(self, 'Film Details', 'c://FilmDetails_{0}'.format(self.uiCurrentFilmNumberEdit.text()), '*.pdf')
-        fileName = saveDir + "\\" + "Fundort_{0}.png".format(self.siteNumber)
-        self.uiSiteMapCanvas.saveAsImage(fileName)
-
     def getRepresentativeImage(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         #query.prepare(u"SELECT CASE WHEN repraesentatives_luftbild IS NULL THEN replace(fundortnummer_legacy, '.','_') WHEN repraesentatives_luftbild ='_1' THEN replace(fundortnummer_legacy, '.','_') || '_1' ELSE repraesentatives_luftbild END as repImage FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
         query.prepare(u"SELECT CASE WHEN repraesentatives_luftbild IS NULL THEN 0 WHEN repraesentatives_luftbild ='_1' THEN 0 ELSE repraesentatives_luftbild END as repImage FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         if query.value(0) == 0:
             return False
@@ -1334,14 +1157,14 @@ class APISSite(QDialog, FORM_CLASS):
     def getSiteNumberLegacy(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT fundortnummer_legacy FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         return str(query.value(0))
 
     def loadRepresentativeImagesForSite(self):
         # get path from settings
         path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
-        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, u'{0}*(_).*'.format(self.siteNumber.replace('.', '_')))))
+        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, '{0}*.*'.format(self.siteNumber.replace('.', '_')))))
         self.scene = QGraphicsScene()
         self.uiSiteImageView.setScene(self.scene)
         if self.repImagesPathList:
@@ -1421,9 +1244,8 @@ class APISSite(QDialog, FORM_CLASS):
             if destinationFile.exists():
                 destinationFile.remove()
             copyResult = sourceFile.copy(destinationFilePath)
-            sqlResult = self.saveNewFileNameInDb(destinationFileName)
+            self.saveNewFileNameInDb(destinationFileName)  # sqlResult
             self.copyImageFinished.emit(copyResult)
-
 
     def saveNewFileNameInDb(self, repImage):
         query = QSqlQuery(self.dbm.db)
@@ -1470,7 +1292,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiSiteImageView.fitInView(self.rect, Qt.KeepAspectRatio)
 
     def openSiteEditFindspotHandlingDialog(self):
-        if self.findspotHandlingDlg == None:
+        if self.findspotHandlingDlg is None:
             self.findspotHandlingDlg = APISSiteEditFindspotConflictHandling(self.iface, self.dbm, {self.siteNumber: [self.newPolygon, self.oldPolygon, self.newPolygon.buffer(0.0001, 12)]}, parent=self)
         res = self.findspotHandlingDlg.exec_()
         if res:
@@ -1483,14 +1305,12 @@ class APISSite(QDialog, FORM_CLASS):
             # QMessageBox.information(None, u"FO Updates", u"Abbrechen")
             return None
 
-
     def showEvent(self, event):
         # self.loadRepresentativeImageForSite()
         self.loadRepresentativeImagesForSite()
         #self.isActive = True
         if self.addMode and self.isFilmBased:
             self.openRepresentativeImageDialog()
-
 
     def resizeEvent(self, event):
         if self.repImageLoaded:
@@ -1499,7 +1319,7 @@ class APISSite(QDialog, FORM_CLASS):
 
 class SiteDelegate(QSqlRelationalDelegate):
     def __init__(self):
-       QSqlRelationalDelegate.__init__(self)
+        QSqlRelationalDelegate.__init__(self)
 
     def createEditor(self, parent, option, index):
         pass
@@ -1512,20 +1332,20 @@ class SiteDelegate(QSqlRelationalDelegate):
             value = ''
 
         if editor.metaObject().className() == 'QTimeEdit' and value == '':
-            editor.setTime(QTime(0,0,0))
-            #if value == '':
-                #value ="00:00:00"
-                #QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
+            editor.setTime(QTime(0, 0, 0))
+            # if value == '':
+            #     value ="00:00:00"
+            #     QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
 
         elif editor.metaObject().className() == 'QLineEdit':
             editor.setText(value)
 
         elif editor.metaObject().className() == 'QComboBox':
-            if index.column() == 26: #sicherheit
+            if index.column() == 26:  # sicherheit
                 if value == '':
                     editor.setCurrentIndex(-1)
                 else:
-                    editor.setCurrentIndex(int(value)-1)
+                    editor.setCurrentIndex(int(value) - 1)
             else:
                 editor.setEditText(value)
 
@@ -1537,12 +1357,11 @@ class SiteDelegate(QSqlRelationalDelegate):
             QSqlRelationalDelegate.setEditorData(self, editor, index)
 
     def setModelData(self, editor, model, index):
-        #if editor.metaObject().className() == 'QLineEdit':
-            #QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
-            #if unicode(index.data(Qt.DisplayRole)) != unicode(editor.text()):
-            #    QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
-            #    model.setData(index, editor.text())
-
+        # if editor.metaObject().className() == 'QLineEdit':
+        #     QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
+        #     if unicode(index.data(Qt.DisplayRole)) != unicode(editor.text()):
+        #         QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
+        #         model.setData(index, editor.text())
 
         if editor.metaObject().className() == 'QDateEdit':
             model.setData(index, editor.date().toString("yyyy-MM-dd"))
@@ -1556,33 +1375,33 @@ class SiteDelegate(QSqlRelationalDelegate):
         #elif (editor.metaObject().className() == 'QLineEdit' and editor.text()==''):
         #    model.setData(model.createIndex(index.row(), 0), None)
         elif editor.metaObject().className() == 'QComboBox':
-            if index.column() == 26: #26 = sicherheit
-                model.setData(index, editor.currentIndex()+1)
+            if index.column() == 26:  # 26 = sicherheit
+                model.setData(index, editor.currentIndex() + 1)
             else:
                 model.setData(index, editor.currentText())
         else:
             QSqlRelationalDelegate.setModelData(self, editor, model, index)
 
+
 class InListValidator(QValidator):
-        def __init__(self, itemList, editor, depend, parent):
-            QValidator.__init__(self, parent)
+    def __init__(self, itemList, editor, depend, parent):
+        QValidator.__init__(self, parent)
 
-            self.itemList = itemList
-            self.editor = editor
-            self.depend = depend
+        self.itemList = itemList
+        self.editor = editor
+        self.depend = depend
 
-        def validate(self, s, pos):
+    def validate(self, s, pos):
 
-            if str(s) in self.itemList or str(s).strip()=='':
-                if self.depend and str(s).strip()=='':
-                    for dep in self.depend:
-                        for key, value in dep.iteritems():
-                            value.setText("")
-                return (QValidator.Acceptable, s, pos)
+        if str(s) in self.itemList or str(s).strip() == '':
+            if self.depend and str(s).strip() == '':
+                for dep in self.depend:
+                    for key, value in dep.iteritems():
+                        value.setText("")
+            return (QValidator.Acceptable, s, pos)
 
-            return (QValidator.Invalid, "", pos)
+        return (QValidator.Invalid, "", pos)
 
-
-        def fixup(self, s):
-            #QMessageBox.warning(None, "Test", unicode(s))
-            self.editor.setText("")
+    def fixup(self, s):
+        #QMessageBox.warning(None, "Test", unicode(s))
+        self.editor.setText("")

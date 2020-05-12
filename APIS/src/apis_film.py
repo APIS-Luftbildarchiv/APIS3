@@ -26,7 +26,7 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QSettings, Qt, QDate, QTime, QPoint, QSize
+from PyQt5.QtCore import QSettings, Qt, QDate, QTime
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtWidgets import (QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QMessageBox,
@@ -41,12 +41,12 @@ from APIS.src.apis_film_selection_list import APISFilmSelectionList
 from APIS.src.apis_flight_path import APISFlightPath
 from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_site_selection_list import APISSiteSelectionList
-from APIS.src.apis_utils import VersionToCome, SetWindowSizeAndPos, GetWindowSize, GetWindowPos
+from APIS.src.apis_utils import SetWindowSizeAndPos, GetWindowSize, GetWindowPos
 from APIS.src.apis_weather import APISWeather
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_exif2points import Exif2Points
-from APIS.src.apis_system_table_editor import APISSystemTableEditor, APISAdvancedInputDialog
+from APIS.src.apis_system_table_editor import APISAdvancedInputDialog
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -129,7 +129,7 @@ class APISFilm(QDialog, FORM_CLASS):
         # Setup Sub-Dialogs
         self.filmSelectionDlg = APISFilmNumberSelection(self)
         self.newFilmDlg = APISFilmNew(parent=self)
-        self.searchFilmDlg = APISFilmSearch(self.dbm, self)# (self.iface, self.dbm)
+        self.searchFilmDlg = APISFilmSearch(self.dbm, self)  # (self.iface, self.dbm)
         self.editWeatherDlg = APISWeather(self.iface, self.dbm, self)
         self.flightPathDlg = APISFlightPath(self.iface, self.dbm, self.apisLayer, self)
         self.siteSelectionListDlg = APISSiteSelectionList(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self)
@@ -177,54 +177,54 @@ class APISFilm(QDialog, FORM_CLASS):
             "hersteller": {
                 "editor": self.uiProducerEdit
             },
-            "anzahl_bilder":{
+            "anzahl_bilder": {
                 "editor": self.uiImageCountEdit,
                 "validator": self.intValidator
             },
-            "militaernummer":{
+            "militaernummer": {
                 "editor": self.uiMilitaryNumberEdit
             },
-            "militaernummer_alt":{
+            "militaernummer_alt": {
                 "editor": self.uiOldMilitaryNumberEdit
             },
-            "form1":{
+            "form1": {
                 "editor": self.uiFormat1Edit
             },
-            "form2":{
+            "form2": {
                 "editor": self.uiFormat2Edit
             },
-            "kalibrierungsnummer":{
+            "kalibrierungsnummer": {
                 "editor": self.uiCameraNumberEdit
             },
-            "kammerkonstante":{
+            "kammerkonstante": {
                 "editor": self.uiCalibratedFocalLengthEdit,
                 "validator": self.doubleValidator
             },
-            "kassettennummer":{
+            "kassettennummer": {
                 "editor": self.uiCassetteEdit
             },
-            "art_ausarbeitung":{
+            "art_ausarbeitung": {
                 "editor": self.uiFilmMakeEdit
             },
-            "fotograf":{
+            "fotograf": {
                 "editor": self.uiPhotographerEdit
             },
-            "pilot":{
+            "pilot": {
                 "editor": self.uiPilotEdit
             },
-            "flugzeug":{
+            "flugzeug": {
                 "editor": self.uiAirplaneEdit
             },
-            "abflug_flughafen":{
+            "abflug_flughafen": {
                 "editor": self.uiDepartureAirportEdit
             },
-            "ankunft_flughafen":{
+            "ankunft_flughafen": {
                 "editor": self.uiArrivalAirportEdit
             },
-            "flugzeit":{
+            "flugzeit": {
                 "editor": self.uiFlightDurationEdit
             },
-            "wetter":{
+            "wetter": {
                 "editor": self.uiWeatherCodeEdit
             },
             "kommentar": {
@@ -375,7 +375,6 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiCurrentFilmCountEdit.editingFinished.connect(lambda: self.loadRecordById(int(self.uiCurrentFilmCountEdit.text()) - 1))
         # QMessageBox.warning(None, "Test", str(self.mapper.itemDelegate()))
 
-
     def enableItemsInLayout(self, layout, enable):
         for i in range(layout.count()):
             if layout.itemAt(i).widget():
@@ -429,7 +428,7 @@ class APISFilm(QDialog, FORM_CLASS):
         query.first()
         fn = query.value(0)
 
-        if fn != None:
+        if fn is not None:
             self.loadRecordById(fn)
             return True
         else:
@@ -453,7 +452,7 @@ class APISFilm(QDialog, FORM_CLASS):
         dTime = self.uiDepartureTime.time()
         aTime = self.uiArrivalTime.time()
         flightDuration = dTime.secsTo(aTime)
-        self.uiFlightDurationEdit.setText(str(flightDuration/60))
+        self.uiFlightDurationEdit.setText(str(flightDuration / 60))
 
     def disableIfOblique(self, isOblique):
         for editor in self.disableEditorsIfOblique:
@@ -494,7 +493,7 @@ class APISFilm(QDialog, FORM_CLASS):
                 self.editorsEdited.append(editor)
 
     def removeProject(self):
-        editor =  self.uiProjectList
+        editor = self.uiProjectList
         editor.takeItem(self.uiProjectList.currentRow())
         if not self.editMode and not self.initalLoad:
             self.startEditMode()
@@ -502,14 +501,12 @@ class APISFilm(QDialog, FORM_CLASS):
             editor.setStyleSheet("{0} {{background-color: rgb(153, 204, 255);}}".format(editor.metaObject().className()))
             self.editorsEdited.append(editor)
 
-
     def onAccept(self):
         '''
         Check DB
         Save options when pressing OK button
         Update Plugin Status
         '''
-
         self.accept()
 
     def onReject(self):
@@ -539,12 +536,7 @@ class APISFilm(QDialog, FORM_CLASS):
         e2p = Exif2Points(self.iface, key)
         layer = e2p.run()
         if layer:
-            #self.apisLayer.addLayerToCanvas(layer, "Flugwege")
             self.apisLayer.requestShapeFile(layer, groupName="Flugwege", addToCanvas=True)
-
-            #requestShapeFile(self, shapeFilePath, epsg=None, layerName=None, groupName=None, useLayerFromTree=True,
-             #                    addToCanvas=False):
-            #self.iface.addVectorLayer(layer, "flugstrecke {0} gps p".format(key), 'ogr')
 
     def exportDetailsPdf(self):
         if self.printingOptionsDlg is None:
@@ -620,7 +612,6 @@ class APISFilm(QDialog, FORM_CLASS):
             if not self.loadRecordByKeyAttribute("filmnummer", self.filmSelectionDlg.filmNumber()):
                 self.openFilmSelectionDialog()
 
-
     def openNewFilmDialog(self):
         """Run method that performs all the real work"""
         self.newFilmDlg.show()
@@ -646,14 +637,14 @@ class APISFilm(QDialog, FORM_CLASS):
         help = 0
         weatherDescription = ""
         for c in weatherCode:
-            qryStr = "select description from wetter where category = '{0}' and code = '{1}' limit 1".format(categories[pos-help], c)
+            qryStr = "select description from wetter where category = '{0}' and code = '{1}' limit 1".format(categories[pos - help], c)
             query.exec_(qryStr)
             query.first()
             fn = query.value(0)
             if pos <= 5:
                 weatherDescription += categories[pos] + ': ' + fn
                 if pos < 5:
-                   weatherDescription += '\n'
+                    weatherDescription += '\n'
             else:
                 weatherDescription += '; ' + fn
 
@@ -695,7 +686,7 @@ class APISFilm(QDialog, FORM_CLASS):
                                 updateEditor.lineEdit(), None, self))
 
     def openFlightPathDialog(self, filmList, toClose=None):
-        self.flightPathDlg.viewFilms(filmList) #DEBUG
+        self.flightPathDlg.viewFilms(filmList)  # DEBUG
         self.flightPathDlg.show()
 
         if self.flightPathDlg.exec_():
@@ -751,8 +742,8 @@ class APISFilm(QDialog, FORM_CLASS):
         if useLastEntry:
             #copy last row
             for c in range(1, self.model.columnCount()):
-                value = self.model.data(self.model.createIndex(row-1, c))
-                self.model.setData(self.model.createIndex(row,c), value)
+                value = self.model.data(self.model.createIndex(row - 1, c))
+                self.model.setData(self.model.createIndex(row, c), value)
                 editor = self.mapper.mappedWidgetAt(c)
 
                 if editor and not (value == 'NULL' or value == ''):
@@ -780,7 +771,6 @@ class APISFilm(QDialog, FORM_CLASS):
         self.uiLastChangesDate.setDate(now)
         #self.uiLastChangesQgsDate.setDateTime(now)
         self.uiFilmModeCombo.setEnabled(True)
-
 
         #Filmnummer
         hh = producerCode
@@ -860,7 +850,7 @@ class APISFilm(QDialog, FORM_CLASS):
             result = QMessageBox.question(self,
                                           self.tr(u"Änderungen wurden vorgenommen!"),
                                           self.tr(u"Möchten Sie die Änerungen speichern?"),
-                                          QMessageBox.Yes | QMessageBox.No ,
+                                          QMessageBox.Yes | QMessageBox.No,
                                           QMessageBox.Yes)
 
             #save or not save
@@ -914,14 +904,15 @@ class APISFilm(QDialog, FORM_CLASS):
             currIdx = self.mapper.currentIndex()
             self.model.select()
             while (self.model.canFetchMore()):
-               self.model.fetchMore()
+                self.model.fetchMore()
             self.mapper.setCurrentIndex(currIdx)
             self.dbm.dbRequiresUpdate = False
             self.initalLoad = False
 
+
 class FilmDelegate(QSqlRelationalDelegate):
     def __init__(self):
-       QSqlRelationalDelegate.__init__(self)
+        QSqlRelationalDelegate.__init__(self)
 
     def createEditor(self, parent, option, index):
         pass
@@ -936,10 +927,10 @@ class FilmDelegate(QSqlRelationalDelegate):
             value = ''
 
         if editor.metaObject().className() == 'QTimeEdit' and value == '':
-            editor.setTime(QTime(0,0,0))
-            #if value == '':
-                #value ="00:00:00"
-                #QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
+            editor.setTime(QTime(0, 0, 0))
+            # if value == '':
+            #     value ="00:00:00"
+            #     QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
 
         elif editor.metaObject().className() == 'QDateEdit' and value == '':
             editor.setDate(QDate())
@@ -961,7 +952,6 @@ class FilmDelegate(QSqlRelationalDelegate):
         elif editor.metaObject().className() == 'QgsDateTimeEdit' and value != '':
             editor.setAllowNull(False)
             QSqlRelationalDelegate.setEditorData(self, editor, index)
-
 
         elif editor.metaObject().className() == 'QLineEdit':
             editor.setText(value)
@@ -989,7 +979,7 @@ class FilmDelegate(QSqlRelationalDelegate):
     def setModelData(self, editor, model, index):
         fieldName = model.record().fieldName(index.column())
         if fieldName == "filmnummer":
-            QSqlRelationalDelegate.setModelData(self, editor, model, index) # filmnummer
+            QSqlRelationalDelegate.setModelData(self, editor, model, index)  # filmnummer
             # QMessageBox.warning(None, "Test", unicode(index.column()) + editor.text())
             filmnummer = str(editor.text())
 
@@ -998,9 +988,9 @@ class FilmDelegate(QSqlRelationalDelegate):
                 mil = "01"
             elif filmnummer[2:4] == "20":
                 mil = "02"
-            model.setData(model.createIndex(index.row(), 2), mil + filmnummer[4:]) # filmnummer_legacy
+            model.setData(model.createIndex(index.row(), 2), mil + filmnummer[4:])  # filmnummer_legacy
             model.setData(model.createIndex(index.row(), 3), filmnummer[:8])  # filmnummer_hh_jjjj_mm
-            model.setData(model.createIndex(index.row(), 4), int(filmnummer[-2:])) # filmnummer_nn
+            model.setData(model.createIndex(index.row(), 4), int(filmnummer[-2:]))  # filmnummer_nn
         elif fieldName == "weise":
             if editor.currentIndex() == APISFilm.OBLIQUE:
                 model.setData(index, "schräg")
@@ -1053,24 +1043,25 @@ class FilmDelegate(QSqlRelationalDelegate):
 #         QMessageBox.warning(None, "Test", editor.text())
 #         pass
 
+
 class InListValidator(QValidator):
-        def __init__(self, itemList, editor, depend, parent):
-            QValidator.__init__(self, parent)
+    def __init__(self, itemList, editor, depend, parent):
+        QValidator.__init__(self, parent)
 
-            self.itemList = itemList
-            self.editor = editor
-            self.depend = depend
+        self.itemList = itemList
+        self.editor = editor
+        self.depend = depend
 
-        def validate(self, s, pos):
-            if str(s) in self.itemList or str(s).strip()=='':
-                if self.depend and str(s).strip()=='':
-                    for dep in self.depend:
-                        for key, value in dep.items():
-                            value.setText("")
-                return (QValidator.Acceptable, s, pos)
+    def validate(self, s, pos):
+        if str(s) in self.itemList or str(s).strip() == '':
+            if self.depend and str(s).strip() == '':
+                for dep in self.depend:
+                    for key, value in dep.items():
+                        value.setText("")
+            return (QValidator.Acceptable, s, pos)
 
-            return (QValidator.Invalid, "", pos)
+        return (QValidator.Invalid, "", pos)
 
-        def fixup(self, s):
-            #QMessageBox.warning(None, "Test", unicode(s))
-            self.editor.setText("")
+    def fixup(self, s):
+        #QMessageBox.warning(None, "Test", unicode(s))
+        self.editor.setText("")

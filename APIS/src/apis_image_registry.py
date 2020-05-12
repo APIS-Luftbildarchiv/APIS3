@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*
 
+# Standard Libs
+import re
+import json
+import os
+import datetime
+import traceback
+
+# PyQt
 from PyQt5.QtCore import QSettings, QDir, Qt, QThread, QObject, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox, QPushButton, QProgressBar
-from qgis.core import QgsMessageLog, Qgis
-from qgis.gui import QgsMessageBar
 
-import re, json, os, datetime, sys
-import traceback
+# PyQGIS
+from qgis.core import QgsMessageLog, Qgis
 
 
 class ApisImageRegistry(QObject):
@@ -18,7 +24,7 @@ class ApisImageRegistry(QObject):
         QObject.__init__(self)
 
         self.iface = iface
-        self.registryFile = pluginDir + "\\" + "apis_image_registry.json" #self.settings.value("APIS/image_registry_file", None)
+        self.registryFile = pluginDir + "\\" + "apis_image_registry.json"  # self.settings.value("APIS/image_registry_file", None)
 
         # NE ... NoExtension
         self.__imageRegistryNE = None
@@ -95,7 +101,7 @@ class ApisImageRegistry(QObject):
     def loadRegistryFromFile(self):
         #load self.__imageRegistry, self.__hiResRegistry, self.__orthoRegistry from JSON File
         if os.path.isfile(self.registryFile):
-            with open(self.registryFile,'rU') as registry:
+            with open(self.registryFile, 'rU') as registry:
                 registryDict = json.load(registry)
                 self.__imageRegistryNE = registryDict["imageRegistryNE"]
                 self.__hiResRegistryNE = registryDict["hiResRegistryNE"]
@@ -122,14 +128,14 @@ class ApisImageRegistry(QObject):
         with open(self.registryFile, 'w') as f:
             registryDict = {
                 "imageRegistryNE": self.__imageRegistryNE,
-                "hiResRegistryNE" : self.__hiResRegistryNE,
+                "hiResRegistryNE": self.__hiResRegistryNE,
                 "i2cRegistryNE": self.__i2cRegistryNE,
-                "orthoRegistryNE" : self.__orthoRegistryNE,
+                "orthoRegistryNE": self.__orthoRegistryNE,
                 "mosaicRegistryNE": self.__mosaicRegistryNE,
-                "imageRegistry" : self.__imageRegistry,
-                "hiResRegistry" : self.__hiResRegistry,
+                "imageRegistry": self.__imageRegistry,
+                "hiResRegistry": self.__hiResRegistry,
                 "i2cRegistry": self.__i2cRegistry,
-                "orthoRegistry" : self.__orthoRegistry,
+                "orthoRegistry": self.__orthoRegistry,
                 "mosaicRegistry": self.__mosaicRegistry
             }
             json.dump(registryDict, f)
@@ -176,7 +182,7 @@ class ApisImageRegistry(QObject):
             if image in fromTo:
                 mosaicsValid.append(mC)
         return mosaicsValid
-            # QMessageBox.information(None, "MosaicInfo", "{0}: {1}".format(imageNumber, ", ".join(mosaicsValid)))
+        # QMessageBox.information(None, "MosaicInfo", "{0}: {1}".format(imageNumber, ", ".join(mosaicsValid)))
 
     def hasOrthoOrMosaic(self, imageNumber):
         return self.hasOrtho(imageNumber) or bool(self.hasMosaic(imageNumber))
@@ -222,7 +228,7 @@ class ApisImageRegistry(QObject):
             progressBar = QProgressBar()
             progressBar.setMinimum(0)
             progressBar.setMaximum(0)
-            progressBar.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+            progressBar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             cancelButton = QPushButton()
             cancelButton.setText('Cancel')
             cancelButton.clicked.connect(self.killWorker)
@@ -292,7 +298,8 @@ class ApisImageRegistry(QObject):
         self.worker = None
 
     def workerError(self, e, exception_string):
-        QgsMessageLog.logMessage('APIS UpdateRegistryWorker thread raised an exception:\n'.format(exception_string), level=Qgis.Critical)
+        QgsMessageLog.logMessage('APIS UpdateRegistryWorker thread raised an exception:\n'.format(exception_string), tag='APIS', level=Qgis.Critical)
+
 
 class UpdateRegistryWorker(QObject):
     '''Background worker for updating Image Registry'''
@@ -384,14 +391,12 @@ class UpdateRegistryWorker(QObject):
                 i2cEntryList = i2cDir.entryList(i2cFilters, QDir.Files)
                 self.i2cRegistry = self.i2cRegistry + i2cEntryList
 
-
         if self.killed is False:
             self.imageRegistryNE = [img[:14].replace('_', '.') for img in self.imageRegistry]
             self.hiResRegistryNE = [img[:14].replace('_', '.') for img in self.hiResRegistry]
             self.i2cRegistryNE = [img[:14].replace('_', '.') for img in self.i2cRegistry]
 
     def updateOrthoRegistries(self):
-        import glob, os
         self.orthoRegistryNE = []
         self.orthoRegistry = []
         self.mosaicRegistryNE = []
@@ -406,6 +411,10 @@ class UpdateRegistryWorker(QObject):
             oDir = QDir(self.orthoDir.path() + '\\' + o)
             oEntryList = oDir.entryList(orthoFilters, QDir.Files)
             mEntryList = oDir.entryList(mosaicFilters, QDir.Files)
+            #chekc oEntryList if _INT_op
+            oEntryList = [img for img in oEntryList if img[11:14].isdigit()]
+            #check mEntryList if _INT_INT_op
+            mEntryList = [img for img in mEntryList if img[11:14].isdigit() and img[15:18].isdigit()]
             self.orthoRegistry = self.orthoRegistry + oEntryList
             self.mosaicRegistry = self.mosaicRegistry + mEntryList
         if self.killed is False:

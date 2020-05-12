@@ -92,9 +92,6 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.uiFindingTypeDetailBtn.clicked.connect(self.openFindingTypeDetailDialog)
         self.uiDatingBtn.clicked.connect(self.openChronologyDialog)
 
-        # TODO remove
-        #self.uiLoadFindspotInQGisBtn.clicked.connect(self.loadFindspotInQGis)
-
         self.uiViewSiteBtn.clicked.connect(self.openSiteDialog)
 
         self.uiDatingTimeCombo.editTextChanged.connect(self.onLineEditChanged)
@@ -254,7 +251,7 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         self.mapper.setModel(self.model)
 
-        self.mandatoryEditors = [self.uiCaseWorkerEdit, self.uiFindspotCreationCombo, self.uiSiteReliabilityCombo, self.uiDatingTimeCombo, self.uiDatingPeriodCombo, self.uiFindingTypeCombo]
+        self.mandatoryEditors = [self.uiCaseWorkerEdit, self.uiFindspotCreationCombo, self.uiSiteReliabilityCombo, self.uiDatingTimeCombo, self.uiDatingPeriodCombo, self.uiDatingSourceCombo, self.uiFindingTypeCombo]
 
         # LineEdits & PlainTextEdits
         self.intValidator = QIntValidator()
@@ -817,33 +814,14 @@ class APISFindspot(QDialog, FORM_CLASS):
         # save or not save
 
         if result == QMessageBox.Yes:
-            # TODO: remove
-            # self.apisLogger(u"delete", u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
             ApisLogger(self.dbm.db, "delete", "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(self.siteNumber, self.findspotNumber))
 
-            # löschen
+            # remove findspot from table
             self.model.deleteRowFromTable(self.mapper.currentIndex())
 
             self.findspotDeleted.emit(True)
             self.iface.mapCanvas().refreshAllLayers()
             self.done(1)
-
-    # TODO remove
-    # def apisLogger(self, action, fromTable, primaryKeysWhere):
-    #     toTable = fromTable + u"_log"
-    #     query = QSqlQuery(self.dbm.db)
-    #     query.prepare(u"INSERT INTO {0} SELECT * FROM {1} WHERE {2}".format(toTable, fromTable, primaryKeysWhere))
-    #
-    #     res = query.exec_()
-    #     #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-    #     if not res:
-    #         QMessageBox.information(self, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
-    #     import getpass
-    #     query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
-    #     res = query.exec_()
-    #     #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-    #     if not res:
-    #         QMessageBox.information(self, "SqlError", query.lastError().text())
 
     def getNextFindspotNumber(self, siteNumber):
         query = QSqlQuery(self.dbm.db)

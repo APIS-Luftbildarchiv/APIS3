@@ -621,8 +621,6 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                 # log
                 if commitRes:
                     for log in logs:
-                        # TODO remove
-                        # self.apisLogger(log[0], u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
                         ApisLogger(self.dbm.db, log[0], "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
 
     def onBeforeCommitChangesFindspotEditing(self):
@@ -1180,8 +1178,6 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                 #log
                 if commitRes:
                     for log in logs:
-                        # TODO remove
-                        # self.apisLogger(log[0], u"fundstelle", u"fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
                         ApisLogger(self.dbm.db, log[0], "fundstelle", "fundortnummer = '{0}' AND fundstellenummer = {1}".format(log[1], log[2]))
 
             self.siteLayer.updateFeature(feature)
@@ -1201,8 +1197,6 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
             dialog.reloadMapCanvas()
 
             # log
-            # TODO remove
-            # self.apisLogger(u"editAG", u"fundort", u"fundortnummer = '{0}' ".format(siteNumber))
             ApisLogger(self.dbm.db, "editAG", "fundort", "fundortnummer = '{0}' ".format(siteNumber))
 
         self.onCancelAnyEdits()
@@ -1222,22 +1216,6 @@ class APISSiteMapping(QDockWidget, FORM_CLASS):
                 return False
         return True
 
-    # TODO remove
-    def apisLogger(self, action, fromTable, primaryKeysWhere):
-        toTable = fromTable + u"_log"
-        query = QSqlQuery(self.dbm.db)
-        query.prepare(u"INSERT INTO {0} SELECT * FROM {1} WHERE {2}".format(toTable, fromTable, primaryKeysWhere))
-
-        res = query.exec_()
-        #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-        if not res:
-            QMessageBox.information(None, "SqlError", query.lastError().text())
-        import getpass
-        query.prepare(u"UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser(), primaryKeysWhere))
-        res = query.exec_()
-        #QMessageBox.information(None, "SqlQuery", query.executedQuery())
-        if not res:
-            QMessageBox.information(None, "SqlError", query.lastError().text())
 
     def replaceProvidedSite(self):
         siteNumber, feature = self.prepareProvidedSiteEditing()

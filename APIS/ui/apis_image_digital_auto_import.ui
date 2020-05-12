@@ -77,10 +77,20 @@
    </item>
    <item row="2" column="0">
     <widget class="QGroupBox" name="uiVexcelSourceGrp">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="title">
       <string>Vexcel / Bundesheer / KML:</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_6">
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="uiVexcelSourceEdit">
+        <property name="placeholderText">
+         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
@@ -88,13 +98,24 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEdit"/>
-      </item>
       <item row="0" column="2">
        <widget class="QToolButton" name="uiVexcelDirTBtn">
         <property name="text">
          <string>...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QPushButton" name="uiAutodetectVexcelSourceBtn">
+        <property name="text">
+         <string>Auto Detect</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resource.qrc">
+          <normaloff>:/plugins/APIS/icons/search.png</normaloff>:/plugins/APIS/icons/search.png</iconset>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -110,24 +131,21 @@
       <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="uiCenterPointFootprintSourceEdit"/>
-      </item>
-      <item row="0" column="2">
-       <widget class="QToolButton" name="uiCenterPointFootprintDirTBtn">
+      <item row="1" column="2">
+       <widget class="QToolButton" name="uiCenterPointFileTBtn">
         <property name="text">
          <string>...</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Centerpoint und Footprint Layer:</string>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="uiCenterPointSourceEdit">
+        <property name="placeholderText">
+         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="0" colspan="2">
+      <item row="3" column="0" colspan="2">
        <widget class="QCheckBox" name="uiCopyToIns2camDirChk">
         <property name="text">
          <string>Daten (shp Dateien) in den entsprechenden ins2cam Ordner kopieren</string>
@@ -137,11 +155,56 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Centerpoint Layer:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="uiFootprintSourceEdit">
+        <property name="placeholderText">
+         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Footprint Layer:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QToolButton" name="uiFootprintFileTBtn">
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3" rowspan="2">
+       <widget class="QPushButton" name="uiAutodetectIns2CamSourcesBtn">
+        <property name="text">
+         <string>Auto Detect</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resource.qrc">
+          <normaloff>:/plugins/APIS/icons/search.png</normaloff>:/plugins/APIS/icons/search.png</iconset>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
    <item row="1" column="0">
     <widget class="QGroupBox" name="uiOrientalSourceGrp">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="title">
       <string>OrientAL:</string>
      </property>
@@ -160,12 +223,9 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="uiOrientalSourceEdit"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Footrpint Layer(s):</string>
+       <widget class="QLineEdit" name="uiOrientalSourceEdit">
+        <property name="placeholderText">
+         <string>Das Standardverzeichnis ist nicht vorhanden, bitte manuell auswählen.</string>
         </property>
        </widget>
       </item>
@@ -176,6 +236,27 @@
         </property>
         <property name="checked">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Footrpint Layer(s):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QPushButton" name="uiAutodetectOrientalSourceBtn">
+        <property name="text">
+         <string>Auto Detect</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resource.qrc">
+          <normaloff>:/plugins/APIS/icons/search.png</normaloff>:/plugins/APIS/icons/search.png</iconset>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
         </property>
        </widget>
       </item>

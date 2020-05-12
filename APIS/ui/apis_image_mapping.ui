@@ -24,7 +24,7 @@
    <bool>false</bool>
   </property>
   <property name="windowTitle">
-   <string>Bilder kartieren</string>
+   <string>APIS Bilder Kartierung</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -396,7 +396,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>375</width>
+           <width>310</width>
            <height>292</height>
           </rect>
          </property>

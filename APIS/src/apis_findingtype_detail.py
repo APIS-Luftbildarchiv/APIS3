@@ -54,7 +54,6 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
         self.setMode = False
 
     def loadList(self, findingType, findingTypeDetail):
-
         self.uiFindingTypeEdit.setText(findingType)
         self.uiFindingTypeDetailEdit.setText(findingTypeDetail)
         res = self.loadListForFindingType(findingType.strip())
@@ -128,7 +127,6 @@ class APISFindingTypeDetail(QDialog, FORM_CLASS):
                 QMessageBox.warning(self, u"Befundart Details", u"Die folgenden Einträge wurden nicht gefunden. Bitte wählen Sie von den verfügbaren Einträgen aus oder fügen Sie diese manuell zur Tabelle 'befundart' hinzu. [{0}]".format(u", ".join(notFound)))
 
         self.setMode = False
-
 
     def generateFindingTypeDetail(self):
         e = self.uiFindingTypeDetailTableV

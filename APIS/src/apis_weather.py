@@ -131,7 +131,7 @@ class APISWeather(QDialog, FORM_CLASS):
 
     def generateWeatherCode(self):
         if not self.setMode:
-            code = [None]*5
+            code = [None] * 5
             for key, item in self.comboBoxMaps.items():
                 if "index" in item:
                     mIdx = item["editor"].model().createIndex(item["editor"].currentIndex(), item["editor"].model().fieldIndex("code"))
@@ -185,7 +185,7 @@ class APISWeather(QDialog, FORM_CLASS):
                             #QMessageBox.warning(None, "WeatherCode", "{0}={1}".format(m.data(mIdx), weatherCode[i]))
                             if m.data(mIdx) == weatherCode[i]:
                                 lIdx = m.createIndex(r, 0)
-                                rIdx = m.createIndex(r, item["editor"].model().columnCount()-1)
+                                rIdx = m.createIndex(r, item["editor"].model().columnCount() - 1)
                                 rowSelection = QItemSelection(lIdx, rIdx)
                                 selection.merge(rowSelection, QItemSelectionModel.Select)
                                 break

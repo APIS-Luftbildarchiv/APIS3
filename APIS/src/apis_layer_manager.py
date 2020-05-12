@@ -2,14 +2,16 @@
 import os.path
 import json
 
-from PyQt5.QtCore import Qt, QSettings, QDir, QFile
+from PyQt5.QtCore import QSettings, QDir, QFile
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
-from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsLayerTree, QgsCoordinateReferenceSystem,
-                       QgsCoordinateTransform, QgsRectangle, QgsVectorFileWriter, QgsFeature, QgsWkbTypes)
+from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsRasterLayer, QgsLayerTree, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform, QgsRectangle, QgsVectorFileWriter, QgsFeature, QgsWkbTypes, Qgis, QgsMessageLog)
 
 from APIS.src.apis_utils import FileOrFolder, OpenFileOrFolder
 
-from osgeo import ogr, osr
+from osgeo import ogr, osr, gdal
+from gdalconst import GA_Update
+
 
 class ApisLayerManager:
     def __init__(self, pluginDir, iface, dbm):
@@ -43,9 +45,7 @@ class ApisLayerManager:
         self._siteLayerId = None
         self._findspotLayerId = None
 
-
         self._loadApisLayerTreeConfig()
-
 
     def _loadApisLayerTreeConfig(self):
         if os.path.isfile(self.layerTreeConfigFile):
@@ -100,7 +100,6 @@ class ApisLayerManager:
             #             dbPath = dSU[dSU.find(prfx) + len(prfx):dSU.find(ext) + len(ext)]
             #             #QMessageBox.information(None, "Sources", u"{0}, {1}".format(os.path.normpath(dbPath), os.path.normpath(self.dbm.db.databaseName())))
 
-
     # def _loadApisLayerGroups(self):
     #     #self.tocRoot = QgsProject.instance().layerTreeRoot()
     #     for groupId in self.__groups:
@@ -112,54 +111,50 @@ class ApisLayerManager:
 
     def requestImageVerticalCpLayer(self):
         groupName = self.__groups[self.__layers["images_vertical_cp"]["group"]]["display_name"]
-        group = self._addGroupIfMissing(groupName)
+        self._addGroupIfMissing(groupName)
         stylePath = self.stylesDir + self.__layers["images_vertical_cp"]["style"]
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["images_vertical_cp"]["name"],
-                                    self.__layers["images_vertical_cp"]["display_name"], groupName, None, True, True, stylePath)
+                                            self.__layers["images_vertical_cp"]["display_name"], groupName, None, True, True, stylePath)
         return layer
 
     def requestImageVerticalFpLayer(self):
         groupName = self.__groups[self.__layers["images_vertical_fp"]["group"]]["display_name"]
-        group = self._addGroupIfMissing(groupName)
+        self._addGroupIfMissing(groupName)
         stylePath = self.stylesDir + self.__layers["images_vertical_fp"]["style"]
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["images_vertical_fp"]["name"],
-                                    self.__layers["images_vertical_fp"]["display_name"], groupName, None, True, True, stylePath)
+                                            self.__layers["images_vertical_fp"]["display_name"], groupName, None, True, True, stylePath)
         return layer
 
     def requestImageObliqueCpLayer(self):
         groupName = self.__groups[self.__layers["images_oblique_cp"]["group"]]["display_name"]
-        group = self._addGroupIfMissing(groupName)
+        self._addGroupIfMissing(groupName)
         stylePath = self.stylesDir + self.__layers["images_oblique_cp"]["style"]
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["images_oblique_cp"]["name"],
-                                    self.__layers["images_oblique_cp"]["display_name"], groupName, None, True, True, stylePath)
+                                            self.__layers["images_oblique_cp"]["display_name"], groupName, None, True, True, stylePath)
         return layer
 
     def requestImageObliqueFpLayer(self):
         groupName = self.__groups[self.__layers["images_oblique_fp"]["group"]]["display_name"]
-        group = self._addGroupIfMissing(groupName)
+        self._addGroupIfMissing(groupName)
         stylePath = self.stylesDir + self.__layers["images_oblique_fp"]["style"]
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["images_oblique_fp"]["name"],
-                                    self.__layers["images_oblique_fp"]["display_name"], groupName, None, True, True, stylePath)
+                                            self.__layers["images_oblique_fp"]["display_name"], groupName, None, True, True, stylePath)
         return layer
 
     def requestSiteLayer(self):
         groupName = self.__groups[self.__layers["sites"]["group"]]["display_name"]
-        group = self._addGroupIfMissing(groupName)
-
+        self._addGroupIfMissing(groupName)
         stylePath = self.stylesDir + self.__layers["sites"]["style"]
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["sites"]["name"],
-                                    self.__layers["sites"]["display_name"], groupName, None, True, True, stylePath)
-
+                                            self.__layers["sites"]["display_name"], groupName, None, True, True, stylePath)
         return layer
 
     def requestFindspotLayer(self):
         groupName = self.__groups[self.__layers["find_spots"]["group"]]["display_name"]
-        group = self._addGroupIfMissing(groupName)
-
+        self._addGroupIfMissing(groupName)
         stylePath = self.stylesDir + self.__layers["find_spots"]["style"]
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["find_spots"]["name"],
-                                    self.__layers["find_spots"]["display_name"], groupName, None, True, True, stylePath)
-
+                                            self.__layers["find_spots"]["display_name"], groupName, None, True, True, stylePath)
         return layer
 
     def _getPosOfPrevGroup(self, groupName):
@@ -174,14 +169,9 @@ class ApisLayerManager:
             if "default" in self.__layers[layerId] and self.__layers[layerId]["default"] <= self.version:
                 # QMessageBox.information(None, "LayerTree", "LoadLayerTree {0}".format(len(self.__layers)))
                 groupName = self.__groups[self.__layers[layerId]["group"]]["display_name"]
-                group = self._addGroupIfMissing(groupName)
-
+                self._addGroupIfMissing(groupName)
                 stylePath = self.stylesDir + self.__layers[layerId]["style"]
-                l = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers[layerId]["name"], self.__layers[layerId]["display_name"], groupName, None, True, True, stylePath)
-                # l.beforeCommitChanges.connect(self.testInfluence)
-
-    # def testInfluence(self):
-    #     QMessageBox.information(None, "Test", "Test")
+                self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers[layerId]["name"], self.__layers[layerId]["display_name"], groupName, None, True, True, stylePath)
 
     def _isApisGroupName(self, groupName):
         apisGroupNames = [self.__groups[groupId]["display_name"] for groupId in self.__groups]
@@ -249,8 +239,8 @@ class ApisLayerManager:
             if posAfterId == 0 or posAfterId not in self.__layers or posAfterId == layerId:
                 return 0
             else:
-                foundPrevLayer = False
-                #while not foundPrevLayer:
+                # foundPrevLayer = False
+                # while not foundPrevLayer:
                 prevLayerName = self.__layers[posAfterId]["display_name"]
                 availableLayersInGroup = [l.name() for l in group.findLayers()]
                 if prevLayerName in availableLayersInGroup:
@@ -266,7 +256,7 @@ class ApisLayerManager:
         #posAfterId = self.__groups[layerName]["in_group_pos_after"]
         #if posAfterId == 0 or posAfterId not in self.__layerName or posAfterId == groupId:
 
-       # else:
+        # else:
         #    return 0
 
     def addLayerToCanvas(self, layer, groupName=None):
@@ -284,8 +274,26 @@ class ApisLayerManager:
                 return True
             else:
                 return False
-        except:
+        except Exception:
             return False
+
+    def loadOEK50Layers(self):
+
+        m28VRT = self.settings.value("APIS/oek50_gk_qgis_m28", None)
+        m31VRT = self.settings.value("APIS/oek50_gk_qgis_m31", None)
+        m34VRT = self.settings.value("APIS/oek50_gk_qgis_m34", None)
+
+        if m28VRT and os.path.isfile(m28VRT):
+            oekLayer28 = QgsRasterLayer(m28VRT, "ok50_m28")
+            self.addLayerToCanvas(oekLayer28, "oek50")
+
+        if m31VRT and os.path.isfile(m31VRT):
+            oekLayer31 = QgsRasterLayer(m31VRT, "ok50_m31")
+            self.addLayerToCanvas(oekLayer31, "oek50")
+
+        if m31VRT and os.path.isfile(m31VRT):
+            oekLayer34 = QgsRasterLayer(m34VRT, "ok50_m34")
+            self.addLayerToCanvas(oekLayer34, "oek50")
 
     def _loadSpaitaliteTable(self, databaseName, tableName, displayName=None, subsetString=None):
         try:
@@ -365,7 +373,7 @@ class ApisLayerManager:
                     spatialRef = osr.SpatialReference()
                     spatialRef.ImportFromEPSG(defaultEpsg)
                     spatialRef.MorphToESRI()
-                    shapePrjFilePath = os.path.splitext(shapeFilePath)[0]+'.prj'
+                    shapePrjFilePath = os.path.splitext(shapeFilePath)[0] + '.prj'
                     file = open(shapePrjFilePath, 'w')
                     file.write(spatialRef.ExportToWkt())
                     file.close()
@@ -388,13 +396,22 @@ class ApisLayerManager:
             spatialRef = dataSource.GetLayer().GetSpatialRef()
             if spatialRef:
                 return True
-            else: return False
+            else:
+                return False
+        else:
+            return False
+
+    def rasterFileHasCrs(self, rasterFilePath):
+        dataSource = gdal.Open(rasterFilePath, GA_Update)
+        if dataSource:
+            QgsMessageLog.logMessage(f"GetSpatialRef: {dataSource.GetSpatialRef()}, GetProjection: {dataSource.GetProjection()}", tag="APIS", level=Qgis.Info)
+            return True
         else:
             return False
 
     def findshapeFileLayerInTree(self, layerUri):
         for treeLayer in self.tocRoot.findLayers():
-            if treeLayer.layer().type() == 0: # 0 ... VectorLayer
+            if treeLayer.layer().type() == 0:  # 0 ... VectorLayer
                 dSU = treeLayer.layer().dataProvider().dataSourceUri()
                 if os.path.normpath(dSU[:dSU.find(u"|")]) == os.path.normpath(layerUri):
                     return treeLayer.layer()
@@ -531,7 +548,7 @@ class ApisLayerManager:
         finalFieldList = []
         for fields in fieldsList:
             for f in fields:
-                if not self._fieldInFields(f,finalFieldList):
+                if not self._fieldInFields(f, finalFieldList):
                     finalFieldList.append(f)
         # Add the features to the merged layer
         prov = vLayer.dataProvider()

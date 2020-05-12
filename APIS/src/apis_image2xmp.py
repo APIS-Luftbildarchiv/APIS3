@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*
 
-import os, sys, subprocess
-from PyQt5.QtWidgets import QMessageBox
+import os
+import subprocess
+
+# from PyQt5.QtWidgets import QMessageBox
+
 
 class Image2Xmp():
     '''
@@ -22,7 +25,6 @@ class Image2Xmp():
         self.update_metaData()
         #except:
         #    raise IOError('Was not able to set metadata for {0}'.format(self.imagePath))
-
 
     def update_metaData(self):
         #try:

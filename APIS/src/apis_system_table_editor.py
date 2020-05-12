@@ -22,8 +22,11 @@
  ***************************************************************************/
 """
 
-import os, sys
+# Standard Libs
+import os
+import sys
 
+# PyQt
 from PyQt5.uic import loadUiType
 from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtGui import QIntValidator
@@ -31,6 +34,7 @@ from PyQt5.QtWidgets import (QDialog, QAbstractItemView, QHeaderView, QFormLayou
                              QPushButton, QComboBox, QStyle, QApplication, QTableView)
 from PyQt5.QtSql import QSqlRelationalTableModel
 
+# APIS
 from APIS.src.apis_utils import DbHasTable
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui'))
@@ -56,7 +60,6 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
         self.uiRemoveBtn.setEnabled(False)
 
         self.setupTable()
-
 
     def setupTable(self):
         self.uiSystemTableV.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -119,6 +122,7 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
                     QMessageBox.warning(self, "DB Fehler", "Der folgende Feheler ist aufgetreten: {}".format(self.model.lastError().text()))
         else:
             pass
+
 
 class APISInputDialog(QDialog):
     def __init__(self, editors, record, parent=None):

@@ -214,7 +214,6 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
         self.updateRubberBand()
 
 
-
 class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
 
     mappingFinished = pyqtSignal(QgsGeometry, QgsGeometry, QgsCoordinateReferenceSystem)
@@ -240,10 +239,10 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
             point = self.getDerivedPoint()
             polygon = self.getCapturedPolygon()
             self.stopCapturing()
-            if point != None and polygon != None:
+            if point is not None and polygon is not None:
                 pointGeom = self.getPointGeometry(point)
                 polygonGeom = self.getPolygonGeometry(polygon)
-                if pointGeom != None and polygonGeom != None:
+                if pointGeom is not None and polygonGeom is not None:
                     self.mappingFinished.emit(pointGeom, polygonGeom, self.canvas.mapSettings().destinationCrs())
                 else:
                     self.clearScene()

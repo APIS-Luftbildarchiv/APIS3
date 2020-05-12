@@ -20,12 +20,22 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QCoreApplication, QDateTime, QDir, QSize, QPoint
-from PyQt5.QtSql import QSqlQuery
-from PyQt5.QtWidgets import QMessageBox, QPushButton
-from qgis.core import QgsProject, QgsCoordinateTransform, QgsVectorLayer, QgsFeature
 
-import os.path, sys, subprocess, exifread
+# Standard Libs
+import os.path
+import sys
+import subprocess
+import exifread
+import shutil
+
+# PyQt
+from PyQt5.QtCore import QSettings, QCoreApplication, QDateTime, QDir, Qt
+from PyQt5.QtSql import QSqlQuery
+from PyQt5.QtWidgets import QMessageBox, QPushButton, QProgressDialog
+
+# PyQGIS
+from qgis.core import Qgis, QgsProject, QgsCoordinateTransform, QgsMessageLog, QgsGeometry
+
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -51,6 +61,7 @@ def ApisPluginSettings():
     else:
         #Settings INI is not stored
         return False, tr(u"Keine APIS INI Datei ausgewählt!")
+
 
 def IsApisIni(ini):
 
@@ -81,6 +92,7 @@ def IsApisIni(ini):
 
     return isIni, s if isIni else tr("Folgende Schlüssel in der INI Datei sind nicht korrekt oder nicht vorhanden: ") + ", ".join(errorKeys)
 
+
 # ---------------------------------------------------------------------------
 # Open Files or Folder
 # ---------------------------------------------------------------------------
@@ -95,9 +107,11 @@ def OpenFileOrFolder(fileOrFolder):
     else:
         return False
 
+
 def OpenFolderAndSelect(file):
     if os.path.exists(file):
         subprocess.Popen(r'explorer /select,"{0}"'.format(os.path.abspath(file)))
+
 
 # ---------------------------------------------------------------------------
 # Recurring Tasks
@@ -111,6 +125,7 @@ def SelectionOrAll(parent=None):
     msgBox.addButton(QPushButton(u'Alle Einträge'), QMessageBox.NoRole)
     msgBox.addButton(QPushButton(u'Abbrechen'), QMessageBox.RejectRole)
     return msgBox.exec_()
+
 
 def PolygonOrPoint(parent=None):
     msgBox = QMessageBox(parent)
@@ -130,6 +145,7 @@ def PolygonOrPoint(parent=None):
     else:
         return None, None
 
+
 def FileOrFolder(parent=None, title="APIS", text="Bitte wählen Sie eine Option", rejectText="OK"):
     msgBox = QMessageBox(parent)
     msgBox.setWindowTitle(title)
@@ -141,6 +157,7 @@ def FileOrFolder(parent=None, title="APIS", text="Bitte wählen Sie eine Option"
     msgBox.addButton(QPushButton(rejectText), QMessageBox.AcceptRole)
     return msgBox.exec_()
 
+
 def GenerateWeatherDescription(db, weatherCode):
     categories = ["Low Cloud Amount", "Visibility Kilometres", "Low Cloud Height", "Weather", "Remarks Mission", "Remarks Weather"]
     query = QSqlQuery(db)
@@ -148,14 +165,14 @@ def GenerateWeatherDescription(db, weatherCode):
     help = 0
     weatherDescription = ""
     for c in weatherCode:
-        qryStr = "select description from wetter where category = '{0}' and code = '{1}' limit 1".format(categories[pos-help], c)
+        qryStr = "select description from wetter where category = '{0}' and code = '{1}' limit 1".format(categories[pos - help], c)
         query.exec_(qryStr)
         query.first()
         fn = query.value(0)
         if pos <= 5:
             weatherDescription += categories[pos] + ': ' + fn
             if pos < 5:
-               weatherDescription += '\n'
+                weatherDescription += '\n'
         else:
             weatherDescription += '; ' + fn
 
@@ -164,33 +181,42 @@ def GenerateWeatherDescription(db, weatherCode):
         pos += 1
     return weatherDescription
 
+
 def VersionToCome(version="3.2"):
     QMessageBox.information(None, "Version 3", "Diese Funktion steht ab Version {0} zur Verfügung.".format(version))
+
 
 def SetExportPath(path):
     QSettings().setValue("APIS/latest_export_dir", path)
 
+
 def GetExportPath():
     return QSettings().value("APIS/latest_export_dir",  QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat).value("APIS/working_dir", QDir.home().dirName()))
+
 
 def SetWindowSizeAndPos(window, size, pos):
     SetWindowSize(window, size)
     SetWindowPos(window, pos)
 
+
 def SetWindowSize(window, size):
     QSettings().setValue("APIS/{0}_size".format(window), size)
+
 
 def SetWindowPos(window, pos):
     QSettings().setValue("APIS/{0}_pos".format(window), pos)
 
+
 def GetWindowSize(window):
     return QSettings().value("APIS/{0}_size".format(window), None)
+
 
 def GetWindowPos(window):
     return QSettings().value("APIS/{0}_pos".format(window), None)
 
+
 # ---------------------------------------------------------------------------
-# Common Calculations
+# Common Geographic and Geometry Calculations
 # ---------------------------------------------------------------------------
 
 def GetMeridianAndEpsgGK(lon):
@@ -218,6 +244,33 @@ def TransformGeometry(geom, srcCrs, destCrs):
     geom.transform(QgsCoordinateTransform(srcCrs, destCrs, QgsProject.instance()))
     return geom
 
+
+def GetCountryCode(db, p):
+    '''
+    :param db: Spatiallite Database (APIS-DB)
+    :param p: QgsPoint Location to evaluate
+    :return countrycode: ISO 3 Letter Country Code
+    :rtype: string
+    '''
+    query = QSqlQuery(db)
+    qryStr = "SELECT code FROM osm_boundaries WHERE intersects(Transform(MakePoint({0}, {1}, 4312), 4326), geometry) AND ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'osm_boundaries' AND search_frame = Transform(MakePoint({0}, {1}, 4312), 4326))".format(p.x(), p.y())
+
+    query.exec_(qryStr)
+    query.first()
+    if query.value(0) is None:
+        return 'INT'
+    else:
+        return query.value(0)
+
+
+def CalculateImageRadius(centerPoint, polygon, minValue=175):
+    polyline = polygon.asPolygon()[0]
+    points = [QgsGeometry.fromPointXY(point) for point in polyline[:-1]]
+    dists = [point.distance(centerPoint) for point in points]
+    r = int((sorted(dists)[0] + sorted(dists)[1]) / 2.0)
+    return r if r > minValue else minValue
+
+
 # ---------------------------------------------------------------------------
 # Common Legacy convertions
 # ---------------------------------------------------------------------------
@@ -229,6 +282,7 @@ def IdToIdLegacy(id):
     elif id[2:4] == "20":
         millennium = "02"
     return millennium + id[4:]
+
 
 # ---------------------------------------------------------------------------
 # Common DB Checks / Geometry Checks
@@ -244,6 +298,7 @@ def DbHasTable(db, table):
         return True
     else:
         return False
+
 
 # FIXME : relocate to apis_site_dialog.py if only usage is apis_site_dialog:showEvent() # Don't!
 def SiteHasFindspot(db, siteNumber):
@@ -267,7 +322,7 @@ def GetFindspotNumbers(db, siteNumbers):
     query = QSqlQuery(db)
     sites = u", ".join(u"'{0}'".format(siteNumber) for siteNumber in siteNumbers)
     query.prepare(u"SELECT fundortnummer || '.' || fundstellenummer FROM fundstelle WHERE fundortnummer  IN ({0})".format(sites))
-    res = query.exec_()
+    query.exec_()
     query.seek(-1)
     findspots = []
     while query.next():
@@ -291,26 +346,27 @@ def IsFilm(db, filmNumber):
 
 
 def ApisLogger(db, action, fromTable, primaryKeysWhere):
-        toTable = fromTable + u"_log"
+    toTable = fromTable + u"_log"
 
-        q = QSqlQuery(db)
-        q.exec_("PRAGMA table_info({0});".format(fromTable))
-        q.seek(-1)
-        fieldNames = []
-        while (q.next()):
-            fieldNames.append(str(q.record().value(1)))
-        fieldNames.pop(0) # pop id
-        query = QSqlQuery(db)
-        query.prepare("INSERT INTO {0}({1}) SELECT {1} FROM {2} WHERE {3}".format(toTable, ", ".join(fieldNames), fromTable, primaryKeysWhere))
-        res = query.exec_()
-        if not res:
-            QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+    q = QSqlQuery(db)
+    q.exec_("PRAGMA table_info({0});".format(fromTable))
+    q.seek(-1)
+    fieldNames = []
+    while (q.next()):
+        fieldNames.append(str(q.record().value(1)))
+    fieldNames.pop(0)  # pop id
+    query = QSqlQuery(db)
+    query.prepare("INSERT INTO {0}({1}) SELECT {1} FROM {2} WHERE {3}".format(toTable, ", ".join(fieldNames), fromTable, primaryKeysWhere))
+    res = query.exec_()
+    if not res:
+        QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
 
-        import getpass
-        query.prepare("UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser()))
-        res = query.exec_()
-        if not res:
-            QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+    import getpass
+    query.prepare("UPDATE {0} SET aktion = '{1}', aktionsdatum = '{2}', aktionsuser = '{3}' WHERE rowid = (SELECT max(rowid) FROM {0})".format(toTable, action, QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss"), getpass.getuser()))
+    res = query.exec_()
+    if not res:
+        QMessageBox.information(None, "SqlError", "{0}, {1}".format(query.lastError().text(), query.executedQuery()))
+
 
 # ---------------------------------------------------------------------------
 # Translation
@@ -331,12 +387,14 @@ def tr(message):
     # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
     return QCoreApplication.translate('APIS', message)
 
+
 # ---------------------------------------------------------------------------
 # Reading EXIF
 # ---------------------------------------------------------------------------
 # https: // gist.github.com / snakeye / fdc372dbf11370fe29eb
 def GetExifDataIfExist(data, key):
     return data[key] if key in data else None
+
 
 def ConvertToDegress(value):
     """
@@ -346,6 +404,7 @@ def ConvertToDegress(value):
     :rtype: float
     """
     return float(value.values[0].num) / float(value.values[0].den) + (float(value.values[1].num) / float(value.values[1].den) / 60.0) + (float(value.values[2].num) / float(value.values[2].den) / 3600.0)
+
 
 def GetExifForImage(image, altitude=False, longitude=False, latitude=False, exposure_time=False, focal_length=False, fnumber=False):
     # altitude, longitude, latitude, exposure time, focal length, fnumber
@@ -423,3 +482,55 @@ def GetExifForImage(image, altitude=False, longitude=False, latitude=False, expo
             exif["fnumber"] = None
 
     return exif
+
+
+# ---------------------------------------------------------------------------
+# CopyFiles
+# ---------------------------------------------------------------------------
+def CopyFiles(filesToCopy, destinationDirName, checkDestination=False, parent=None):
+    if filesToCopy:
+        destinationDirExistsAtStart = os.path.isdir(destinationDirName)
+        mode = None
+        if checkDestination and True in [os.path.isfile(fileToCopy['destination']) for fileToCopy in filesToCopy]:
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle('Dateien Kopieren')
+            msgBox.setText("Im Zielverzeichnis sind (teilweise) Dateien bereits vorhanden. Bitte wählen Sie eine Option:")
+            msgBox.addButton(QPushButton('Überschreiben'), QMessageBox.ActionRole)
+            msgBox.addButton(QPushButton('Nicht überschreiben'), QMessageBox.ActionRole)
+            msgBox.addButton(QPushButton('Abbrechen'), QMessageBox.RejectRole)
+            mode = msgBox.exec_()  # 0 .. overwrite, 1 .. skip, 2 .. cancel
+            if mode not in [0, 1]:
+                return False
+
+        progressDlg = QProgressDialog("Dateien werden kopiert...", "Abbrechen", 0, len(filesToCopy), parent)
+        progressDlg.setWindowModality(Qt.WindowModal)
+        progressDlg.show()
+        counter = 0
+
+        for fileToCopy in filesToCopy:
+            if progressDlg.wasCanceled():
+                break
+
+            if mode == 1 and os.path.isfile(fileToCopy['destination']):  # skip if exists (isfile) in destination
+                counter += 1
+                progressDlg.setValue(counter)
+                continue
+
+            try:
+                os.makedirs(os.path.dirname(fileToCopy['destination']), exist_ok=True)
+                shutil.copyfile(fileToCopy['source'], fileToCopy['destination'])
+                counter += 1
+                progressDlg.setValue(counter)
+            except OSError as e:
+                QgsMessageLog.logMessage("APIS Copy Files: error on file {0}: {1}".format(fileToCopy['destination'], str(e)), tag='APIS', level=Qgis.Warning)
+                counter += 1
+                progressDlg.setValue(counter)
+                continue
+
+        if progressDlg.wasCanceled() and not destinationDirExistsAtStart:
+            shutil.rmtree(destinationDirName)
+            return False
+        else:
+            return True
+    else:
+        return False

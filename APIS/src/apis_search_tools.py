@@ -4,7 +4,7 @@ import traceback
 
 from PyQt5.QtCore import pyqtSignal, QObject, Qt, QThread
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QProgressBar, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QProgressBar, QPushButton  # , QMessageBox
 from PyQt5.QtSql import QSqlQuery
 
 from qgis.core import (QgsProject, QgsApplication, Qgis, QgsGeometry, QgsPointXY, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMessageLog, QgsWkbTypes)
@@ -157,8 +157,6 @@ class RectangleMapTool(QgsMapToolEmitPoint):
 
         return QgsRectangle(self.startPoint, self.endPoint)
 
-
-
     def startWorker(self, geometry):
         # create a new worker instance
 
@@ -171,14 +169,14 @@ class RectangleMapTool(QgsMapToolEmitPoint):
             progressBar = QProgressBar()
             progressBar.setMinimum(0)
             progressBar.setMaximum(0)
-            progressBar.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+            progressBar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             cancelButton = QPushButton()
             cancelButton.setText('Cancel')
             cancelButton.clicked.connect(self.killWorker)
             messageBar.layout().addWidget(progressBar)
             self.progressBar = progressBar
             messageBar.layout().addWidget(cancelButton)
-            self.iface.messageBar().pushWidget(messageBar, Qgis.MessageLevel.Info)
+            self.iface.messageBar().pushWidget(messageBar, Qgis.Info)
             self.messageBar = messageBar
 
             # start the worker in a new thread
@@ -220,12 +218,12 @@ class RectangleMapTool(QgsMapToolEmitPoint):
             #self.iface.messageBar().pushMessage('Result')
         else:
             # notify the user that something went wrong
-            self.iface.messageBar().pushMessage('Something went wrong! See the message log for more information.', level=Qgis.MessageLevel.Critical, duration=3)
+            self.iface.messageBar().pushMessage('Something went wrong! See the message log for more information.', level=Qgis.Critical, duration=3)
 
         self.worker = None
 
     def workerError(self, e, exception_string):
-        QgsMessageLog.logMessage('Worker thread raised an exception:\n'.format(exception_string), level=Qgis.MessageLevel.Critical)
+        QgsMessageLog.logMessage('APIS Search Worker thread raised an exception:\n'.format(exception_string), tag='APIS', level=Qgis.Critical)
 
 
 class Worker(QObject):
@@ -262,5 +260,3 @@ class Worker(QObject):
 
     def kill(self):
         self.killed = True
-
-

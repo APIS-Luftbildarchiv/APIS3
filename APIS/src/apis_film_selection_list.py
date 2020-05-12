@@ -96,6 +96,7 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
             self.model.setHeaderData(col, Qt.Horizontal, rec.fieldName(col))
 
         self.setupTable()
+        self.uiFilmListTableV.resizeRowsToContents()
         return True
 
     def setupTable(self):
@@ -136,7 +137,6 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
         self.filmNumberToLoad = self.model.item(self.uiFilmListTableV.currentIndex().row(), 0).text()
         SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())
         self.accept()
-
 
     def askForFilmList(self):
         if self.uiFilmListTableV.selectionModel().hasSelection():
@@ -225,4 +225,5 @@ class APISFilmSelectionList(QDialog, FORM_CLASS):
     def onRejected(self):
         SetWindowSizeAndPos("film_selection_list", self.size(), self.pos())
 
-
+    def resizeEvent(self, event):
+        self.uiFilmListTableV.resizeRowsToContents()

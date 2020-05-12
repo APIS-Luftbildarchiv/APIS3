@@ -22,29 +22,33 @@
  ***************************************************************************/
 """
 
+# Standard Labs
 import os
 import math
 
+# PyQt
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDockWidget, QMessageBox
 from PyQt5.QtCore import Qt, QSettings, QDate
 from PyQt5.QtGui import QColor
 from PyQt5.QtSql import QSqlQuery
 
-from qgis.core import (QgsProject, Qgis, QgsDataSourceUri, QgsVectorDataProvider, QgsGeometry,
-                       QgsFeature, QgsVectorLayer, QgsRectangle, QgsPointXY, QgsCoordinateTransform,
-                       QgsCoordinateReferenceSystem, QgsVectorLayerUtils, QgsDistanceArea)
+# PyQGIS
+from qgis.core import (QgsProject, Qgis, QgsVectorDataProvider, QgsGeometry,
+                       QgsFeature, QgsRectangle, QgsPointXY, QgsCoordinateTransform,
+                       QgsCoordinateReferenceSystem, QgsVectorLayerUtils, QgsDistanceArea,
+                       QgsMessageLog)
 from qgis.gui import (QgsMapToolEmitPoint, QgsVertexMarker)
 
+# APIS
 from APIS.src.apis_film_number_selection import APISFilmNumberSelection
-from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry, VersionToCome, GetExifForImage
+from APIS.src.apis_utils import IsFilm, GetMeridianAndEpsgGK, TransformGeometry, GetExifForImage
 from APIS.src.apis_image_digital_auto_import import APISDigitalImageAutoImport
 from APIS.src.apis_system_table_editor import APISAdvancedInputDialog
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_mapping.ui'), resource_suffix='')
 
-import exifread
 
 class APISImageMapping(QDockWidget, FORM_CLASS):
     def __init__(self, iface, dbm, apisLayer, parent=None):
@@ -67,14 +71,12 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.currentFilmNumber = None
         self.isOblique = True
 
-        # self.uiEditProjectTableObliqueBtn.clicked.connect(lambda: VersionToCome())
-        # self.uiEditProjectTableVerticalBtn.clicked.connect(lambda: VersionToCome())
         self.uiEditProjectTableObliqueBtn.clicked.connect(lambda: self.openSystemTableEditorDialog("projekt", self.uiProjectObliqueCombo))
         self.uiEditProjectTableVerticalBtn.clicked.connect(lambda: self.openSystemTableEditorDialog("projekt", self.uiProjectVerticalCombo))
 
         self.visibilityChanged.connect(self.onVisibilityChanged)
 
-        self.setPointMapTool = QgsMapToolEmitPoint(self.canvas) #SetPointMapTool(self.canvas)
+        self.setPointMapTool = QgsMapToolEmitPoint(self.canvas)  # etPointMapTool(self.canvas)
         self.setPointMapTool.canvasClicked.connect(self.updatePoint)
         #self.setPointMapTool.canvasDoubleClicked.connect(self.handleDoubleClick)
         self.setPointMapTool.setButton(self.uiSetCenterPointBtn)
@@ -86,8 +88,8 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.vertexMarker2 = QgsVertexMarker(self.canvas)
         self.vertexMarker.setIconType(3)
         self.vertexMarker2.setIconType(1)
-        self.vertexMarker.setColor(QColor(255,153,0))
-        self.vertexMarker2.setColor(QColor(255,153,0))
+        self.vertexMarker.setColor(QColor(255, 153, 0))
+        self.vertexMarker2.setColor(QColor(255, 153, 0))
         self.vertexMarker.setIconSize(12)
         self.vertexMarker2.setIconSize(20)
         self.vertexMarker.hide()
@@ -171,43 +173,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             self.cpLayer.updateExtents()
             self.fpLayer.updateExtents()
 
-    # TODO remove when AutoImporter finished
-    # def openMonoplotImportDialog(self):
-    #     """Run method that performs all the real work"""
-    #     self.reloadFpLayer()
-    #     self.reloadCpLayer()
-    #
-    #     # sourceLayer
-    #     imageBasePath = self.settings.value("APIS/image_dir")
-    #     monoplotPath = self.settings.value("APIS/monoplot_dir")
-    #     epsg = self.settings.value("APIS/monoplot_epsg", type=int)
-    #     sourceCpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_cp_shp"), u"shp")
-    #     sourceFpLayerShp = u"{0}.{1}".format(self.settings.value("APIS/monoplot_fp_shp"), u"shp")
-    #     sourceCpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.currentFilmNumber, monoplotPath, sourceCpLayerShp))
-    #     sourceFpLayerPath = os.path.normpath(os.path.join(imageBasePath, self.currentFilmNumber, monoplotPath, sourceFpLayerShp))
-    #     cpIsFile = os.path.isfile(sourceCpLayerPath)
-    #     fpIsFile = os.path.isfile(sourceFpLayerPath)
-    #     sourceCpLayer = self.apisLayer.requestShapeFile(sourceCpLayerPath, epsg, None, "Bildkartierung", True, True)
-    #     sourceFpLayer = self.apisLayer.requestShapeFile(sourceFpLayerPath, epsg, None, "Bildkartierung", True, True)
-    #     # if cpIsFile and fpIsFile:
-    #
-    #     #monoplotImportDlg = ApisMonoplotImportDialog(self, self.iface, self.dbm, sourceCpLayer, sourceFpLayer, self.cpLayer, self.fpLayer, self.currentFilmNumber)
-    #     #monoplotImportDlg.show()
-    #     #if monoplotImportDlg.exec_():
-    #     autoImportDlg = APISDigitalImageAutoImport(self.iface, self.dbm, sourceCpLayer, sourceFpLayer, self.cpLayer, self.fpLayer, self.currentFilmNumber, parent=self)
-    #     autoImportDlg.show()
-    #     if autoImportDlg.exec_():
-    #         self.cpLayer.updateExtents()
-    #         self.fpLayer.updateExtents()
-    #     # else:
-    #     #     errorText = u""
-    #     #     if not cpIsFile:
-    #     #         errorText += u"\n{0}".format(sourceCpLayerPath)
-    #     #     if not fpIsFile:
-    #     #         errorText += u"\n{0}".format(sourceFpLayerPath)
-    #     #
-    #     #     QMessageBox.warning(None, u"Monoplot Import", u"Für den Film {0} sind folgende Monoplot Dateien nicht vorhanden: {1}".format(self.currentFilmNumber, errorText))
-
     def setCurrentFilmNumber(self, filmNumber):
         self.currentFilmNumber = filmNumber
         self.uiCurrentFilmNumberEdit.setText(self.currentFilmNumber)
@@ -218,7 +183,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.updateMappingDetails()
 
         # Enable Controls
-        self.setCurrentLayout(True, True, self.isOblique, False)
+        self.setCurrentLayout(True, True, True, False)
         if not self.imageCenterPoint:
             self.uiAddCenterPointBtn.setEnabled(False)
         self.mappingMode = False
@@ -244,7 +209,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.vertexMarker.hide()
         self.vertexMarker2.hide()
 
-        #TODO reset & remove layer!!!
+        # Reset & Remove Layer!!!
         self.removeCenterPointLayer()
         self.removeFootPrintLayer()
 
@@ -274,7 +239,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         qryStr = "SELECT {0} FROM film WHERE filmnummer = '{1}'".format(", ".join(filmFields), self.currentFilmNumber)
         query.exec_(qryStr)
         query.first()
-        if query.value(0) != None:
+        if query.value(0) is not None:
             for key in filmFields:
                 value = query.value(query.record().indexOf(key))
                 self.currentFilmInfoDict[key] = value
@@ -290,15 +255,14 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         else:
             QMessageBox.warning(None, u"Film Nummer", u"Der Film mit der Nummer {0} existiert nicht!".format(self.currentFilmNumber))
 
-
     def getMappingStats(self):
         self.imageStatsDict = {}
         query = QSqlQuery(self.dbm.db)
         qryStr = "SELECT COUNT(*) AS anzahl_kartiert, MAX(bildnummer_nn) AS letzte_bildnummer, MIN(bildnummer_nn) AS erste_bildnummer FROM luftbild_{0}_cp WHERE filmnummer = '{1}'".format(self.orientation, self.currentFilmNumber)
         query.exec_(qryStr)
         query.first()
-        statFields =["anzahl_kartiert", "letzte_bildnummer", "erste_bildnummer"]
-        if query.value(0) != None:
+        statFields = ["anzahl_kartiert", "letzte_bildnummer", "erste_bildnummer"]
+        if query.value(0) is not None:
             for key in statFields:
                 idx = query.record().indexOf(key)
                 if query.isNull(idx):
@@ -312,7 +276,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             self.imageStatsDict["letzte_bildnummer"] = 0
             self.imageStatsDict["erste_bildnummer"] = 0
             QMessageBox.warning(None, u"Film Nummer", u"Für den Film mit der Nummer {0} sind noch keine Bilder kartiert!".format(self.currentFilmNumber))
-
 
     def updateMappingDetails(self):
         if self.isOblique:
@@ -360,7 +323,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             editor.clear()
             if self.currentFilmInfoDict["projekt"]:
                 editor.addItems(str.split(self.currentFilmInfoDict["projekt"], ";"))
-                editor.setCurrentIndex(editor.count()-1)
+                editor.setCurrentIndex(editor.count() - 1)
 
             self.dbm.dbRequiresUpdate = True
         else:
@@ -369,7 +332,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
     def toggleSetCenterPoint(self, isChecked):
         if isChecked:
             self.canvas.setMapTool(self.setPointMapTool)
-            self.iface.messageBar().pushMessage(u"APIS Bild Kartierung", u"Positionieren Sie den Bildmittelpunkt mit der linken Maustaste und klicken Sie auf das Plus Symbol (oder verwenden Sie die reche Maustaste)", level=Qgis.MessageLevel.Info)
+            self.iface.messageBar().pushMessage(u"APIS Bild Kartierung", u"Positionieren Sie den Bildmittelpunkt mit der linken Maustaste und klicken Sie auf das Plus Symbol (oder verwenden Sie die reche Maustaste)", level=Qgis.Info)
             self.vertexMarker.show()
             self.vertexMarker2.show()
         else:
@@ -399,7 +362,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         # Disable Layouts
         self.mappingMode = True
         if self.uiSetCenterPointBtn.isChecked():
-                self.uiSetCenterPointBtn.toggle()
+            self.uiSetCenterPointBtn.toggle()
         self.setCurrentLayout(False, False, False, True)
 
         self.uiMappingDetailsTBox.setItemEnabled(int(self.isOblique), False)
@@ -413,12 +376,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                                                              useLayerFromTree=False,
                                                              addToCanvas=True,
                                                              stylePath=self.apisLayer.getStylePath("image_mapping_cp"))
-        #uri = QgsDataSourceUri()
-        #uri.setDatabase(self.dbm.db.databaseName())
-        #uri.setDataSource('', 'luftbild_{0}_cp'.format(self.orientation), 'geometry')
-        #self.cpLayer = QgsVectorLayer(uri.uri(), u'Kartierung {0} Mittelpunkt'.format(self.currentFilmNumber), 'spatialite')
-        #self.cpLayer.setSubsetString(u'"filmnummer" = "{0}"'.format(self.currentFilmNumber))
-        #QgsProject.instance().addMapLayer(self.cpLayer)
         self.cpLayerId = self.cpLayer.id()
 
     def loadFootPrintLayerForFilm(self):
@@ -430,12 +387,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                                                              useLayerFromTree=False,
                                                              addToCanvas=True,
                                                              stylePath=self.apisLayer.getStylePath("image_mapping_fp"))
-        # uri = QgsDataSourceUri()
-        # uri.setDatabase(self.dbm.db.databaseName())
-        # uri.setDataSource('', 'luftbild_{0}_fp'.format(self.orientation), 'geometry')
-        # self.fpLayer = QgsVectorLayer(uri.uri(), u'Kartierung {0} Footprint'.format(self.currentFilmNumber), 'spatialite')
-        # self.fpLayer.setSubsetString(u'"filmnummer" = "{0}"'.format(self.currentFilmNumber))
-        # QgsProject.instance().addMapLayer(self.fpLayer)
         self.fpLayerId = self.fpLayer.id()
 
     def removeCenterPointLayer(self):
@@ -447,7 +398,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             QgsProject.instance().removeMapLayer(self.fpLayer.id())
 
     def onCancelAddCenterPoint(self):
-        self.setCurrentLayout(True, True, self.isOblique, False)
+        self.setCurrentLayout(True, True, True, False)
         self.getMappingStats()
         self.updateMappingDetails()
         #self.canvas.setMapTool(self.setPointMapTool)
@@ -457,7 +408,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
     def onSaveAddCenterPoint(self):
         #QMessageBox.warning(None, u"Film Nummer", u"{0},{1},{2}".format(self.imageCenterPoint.x(), self.imageCenterPoint.y(), type(self.imageCenterPoint)))
-        #return
         self.reloadCpLayer()
 
         #Prepare Image Numbers
@@ -470,18 +420,18 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             else:
                 imageNumbers = range(fromImageNumber, toImageNumber + 1)
         else:
-           imageNumbers = [self.uiImageNumberSpn.value()]
-        #filmImageNumbers = []
-        #for imageNumber in imageNumbers:
-            #filmImageNumbers.append('{0}.{1:03d}'.format(self.currentFilmNumber, imageNumber))
+            imageNumbers = [self.uiImageNumberSpn.value()]
 
-        #QMessageBox.warning(None, u"Bild Nummern", ",".join(imageNumbers))
+        # filmImageNumbers = []
+        # for imageNumber in imageNumbers:
+        #     filmImageNumbers.append('{0}.{1:03d}'.format(self.currentFilmNumber, imageNumber))
 
-        #for filmImageNumber in self.cpLayer.getValues("BILD"):
+        # QMessageBox.warning(None, u"Bild Nummern", ",".join(imageNumbers))
+
+        # for filmImageNumber in self.cpLayer.getValues("BILD"):
         #    QMessageBox.warning(None, u"Bild Nummern", "{0}".format(filmImageNumber))
 
-
-        #Check if Image Number in Table
+        # Check if Image Number in Table
         for imageNumber in imageNumbers:
             # QMessageBox.warning(None, u"Bild Nummern", u"{0}".format(QgsVectorLayerUtils.getValues(self.cpLayer, "bildnummer_nn")))
             if imageNumber in QgsVectorLayerUtils.getValues(self.cpLayer, "bildnummer_nn")[0]:
@@ -496,7 +446,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             feat.setGeometry(QgsGeometry.fromPointXY(self.imageCenterPoint))
 
             # From Film Table
-            #filmFields = ["form1", "form2", "weise", "kammerkonstante"]
+            # filmFields = ["form1", "form2", "weise", "kammerkonstante"]
             feat.setAttribute('filmnummer_hh_jjjj_mm', self.currentFilmInfoDict["filmnummer_hh_jjjj_mm"])
             feat.setAttribute('filmnummer_nn', self.currentFilmInfoDict["filmnummer_nn"])
             feat.setAttribute('filmnummer', self.currentFilmNumber)
@@ -505,7 +455,6 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             now = QDate.currentDate()
             feat.setAttribute('datum_ersteintrag', now.toString("yyyy-MM-dd"))
             feat.setAttribute('datum_aenderung', now.toString("yyyy-MM-dd"))
-
 
             # Iterate over Project Selection List und String mit ; trennung generieren
             feat.setAttribute('copyright', self.currentFilmInfoDict["copyright"])
@@ -517,7 +466,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             items = []
             # From Input (Radius, Höhe, Schlüsslewort, Beschreibung)
             if self.isOblique:
-                feat.setAttribute('radius', float(self.uiImageDiameterSpn.value()/2))
+                feat.setAttribute('radius', float(self.uiImageDiameterSpn.value() / 2))
                 feat.setAttribute('beschreibung', self.uiImageDescriptionEdit.text())
                 h = self.uiFlightHeightObliqueSpn.value()
                 for j in range(self.uiProjectObliqueList.count()):
@@ -528,7 +477,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                 if not self.currentFilmInfoDict["kammerkonstante"] or not self.currentFilmInfoDict["kammerkonstante"] > 0:
                     feat.setAttribute('massstab', 0)
                 else:
-                    feat.setAttribute('massstab', h/self.currentFilmInfoDict["kammerkonstante"]*1000)
+                    feat.setAttribute('massstab', h / self.currentFilmInfoDict["kammerkonstante"] * 1000)
                 for j in range(self.uiProjectVerticalList.count()):
                     items.append(self.uiProjectVerticalList.item(j))
 
@@ -547,7 +496,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                 meridian, epsgGK = GetMeridianAndEpsgGK(self.imageCenterPoint.x())
 
                 # get KG Coordinates
-                gk = TransformGeometry(QgsGeometry().fromPointXY(self.imageCenterPoint), self.cpLayer.crs(), QgsCoordinateReferenceSystem(epsgGK, QgsCoordinateReferenceSystem.EpsgCrsId))
+                gk = TransformGeometry(QgsGeometry().fromPointXY(self.imageCenterPoint), self.cpLayer.crs(), QgsCoordinateReferenceSystem(f"EPSG:{epsgGK}"))
                 gkx = gk.asPoint().y()  # Hochwert
                 gky = gk.asPoint().x()  # Rechtswert
             else:
@@ -582,9 +531,9 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     f.setAttribute('kappa', kappa)
 
                     f.setAttribute('belichtungszeit', exif["exposure_time"] if "exposure_time" in exif else None)
-                    f.setAttribute('fokus', exif["focal_length"] if "focal_length" in exif else None) # FocalLength
+                    f.setAttribute('fokus', exif["focal_length"] if "focal_length" in exif else None)  # FocalLength
                     if "focal_length" in exif and "fnumber" in exif and exif["focal_length"] and exif["fnumber"]:
-                        blende = exif["focal_length"]/exif["fnumber"] #effecitve aperture (diameter of entrance pupil) = focalLength / fNumber
+                        blende = exif["focal_length"] / exif["fnumber"]  # effecitve aperture (diameter of entrance pupil) = focalLength / fNumber
                     else:
                         blende = None
                     f.setAttribute('blende', blende)
@@ -620,11 +569,11 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             return query.value(0)
 
     def reloadCpLayer(self):
-         if self.cpLayerId not in QgsProject.instance().mapLayers():
+        if self.cpLayerId not in QgsProject.instance().mapLayers():
             self.loadCenterPointLayerForFilm()
 
     def reloadFpLayer(self):
-         if self.fpLayerId not in QgsProject.instance().mapLayers():
+        if self.fpLayerId not in QgsProject.instance().mapLayers():
             self.loadFootPrintLayerForFilm()
 
     def generateFootprints(self):
@@ -642,19 +591,20 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             caps = self.fpLayer.dataProvider().capabilities()
             if caps & QgsVectorDataProvider.AddFeatures:
                 #Get FORM1 from FilmInfoDict
-                f1 = self.currentFilmInfoDict["form1"]
+                f1 = self.currentFilmInfoDict["form1"]  # Image height
+                f2 = self.currentFilmInfoDict["form2"]  # Image width
 
-                iter = self.cpLayer.getFeatures()
+                iterFeatures = self.cpLayer.getFeatures()
                 iterNext = self.cpLayer.getFeatures()
                 existingFootpints = QgsVectorLayerUtils.getValues(self.fpLayer, "bildnummer")[0]
                 ft = QgsFeature()
                 ftNext = QgsFeature()
                 iterNext.nextFeature(ftNext)
                 fpFeats = []
+                kappasToUpdate = {}
                 # iterate over points from CP Layer > LON, LAT
                 i = 0
-
-                while iter.nextFeature(ft):
+                while iterFeatures.nextFeature(ft):
                     i += 1
                     iterNext.nextFeature(ftNext)
                     p = QgsPointXY(ft.geometry().asPoint())
@@ -674,9 +624,9 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
                     #kappa = p.azimuth(pNext)
 
-
-                    #d = math.sqrt(2*((f1/2 * ft['MASS']/1000)**2))
-                    d = f1/2 * ft['massstab']/1000
+                    # d = math.sqrt(2*((f1/2 * ft['MASS']/1000)**2))
+                    d1 = f1 / 2 * ft['massstab'] / 1000
+                    d2 = f2 / 2 * ft['massstab'] / 1000
                     #QMessageBox.warning(None, u"Bild Nummern", "{0}".format(d))
 
                     calcCrs = QgsCoordinateReferenceSystem()
@@ -690,10 +640,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     pPrevMetric = QgsPointXY(pPrevGeom.asPoint())
                     kappaMetric = pMetric.azimuth(pPrevMetric)
                     pPrevGeom = QgsGeometry(ft.geometry())
-                    l = pMetric.x() - d
-                    b = pMetric.y() - d
-                    r = pMetric.x() + d
-                    t = pMetric.y() + d
+                    left = pMetric.x() - d2
+                    bottom = pMetric.y() - d1
+                    right = pMetric.x() + d2
+                    top = pMetric.y() + d1
 
                     #R = 6371
                     #D = (d/1000)
@@ -716,10 +666,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     #b = math.degrees(bottom)
                     #r = math.degrees(right)
                     #t = math.degrees(top)
-                    p1 = QgsGeometry.fromPointXY(QgsPointXY(l, b))
-                    p2 = QgsGeometry.fromPointXY(QgsPointXY(r, b))
-                    p3 = QgsGeometry.fromPointXY(QgsPointXY(r, t))
-                    p4 = QgsGeometry.fromPointXY(QgsPointXY(l, t))
+                    p1 = QgsGeometry.fromPointXY(QgsPointXY(left, bottom))
+                    p2 = QgsGeometry.fromPointXY(QgsPointXY(right, bottom))
+                    p3 = QgsGeometry.fromPointXY(QgsPointXY(right, top))
+                    p4 = QgsGeometry.fromPointXY(QgsPointXY(left, top))
                     #p1.rotate(kappa+90, p)
                     #p2.rotate(kappa+90, p)
                     #p3.rotate(kappa+90, p)
@@ -741,15 +691,16 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     feat.setAttribute('shape_area', da.measureArea(geom))
                     fpFeats.append(feat)
 
-                    #TODO update Kappa in cpLayer
-                    #if not self.cpLayer.isEditable():
-                    #    self.cpLayer.startEditing()
-                    #r = self.cpLayer.changeAttributeValue(ft.id(), self.cpLayer.fieldNameIndex("kappa"), kappaMetric)
-                    #QMessageBox.warning(None, "Titel", u"{0}, {1}, {2}, {3}".format(r, ft.id(), self.cpLayer.fieldNameIndex("kappa"), kappaMetric))
+                    # update Kappa in cpLayer
+                    kappasToUpdate[ft.id()] = {ft.fieldNameIndex('kappa'): kappaMetric}
 
-                #self.cpLayer.commitChanges()
+                iterFeatures.close()
+                iterNext.close()
+
+                resCAVs = self.cpLayer.dataProvider().changeAttributeValues(kappasToUpdate)
+                QgsMessageLog.logMessage(f"Kappa Update for {kappasToUpdate}, Success: {resCAVs}", tag="APIS", level=Qgis.Success if resCAVs else Qgis.Critical)
+
                 (res, outFeats) = self.fpLayer.dataProvider().addFeatures(fpFeats)
-
 
                 self.fpLayer.updateExtents()
                 if self.canvas .isCachingEnabled():
@@ -758,11 +709,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
                     self.canvas.refresh()
             else:
                 #Caps
-                QMessageBox.warning(None, "Layer Capabilities!", "Layer Capabilities!" )
+                QMessageBox.warning(None, "Layer Capabilities!", "Layer Capabilities!")
         else:
             #small feature count
             QMessageBox.warning(None, "Footprints", "Zum Berechnen der senkrecht Footprint müssen mindestens zwei Bilder kartiert werden!")
-
 
     def generateFootprintsForFilmOblique(self):
         self.reloadFpLayer()
@@ -816,18 +766,17 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         else:
             QMessageBox.warning(None, "Layer Capabilities", "AddFeature is not enabled ({0})".format(self.fpLayer.dataProvider().capabilitiesString()))
 
-
-    def Proj4Utm(self,  p):
+    def Proj4Utm(self, p):
         x = p.x()
         y = p.y()
-        z = math.floor((x + 180)/6) + 1
+        z = math.floor((x + 180) / 6) + 1
 
         if y >= 56.0 and y < 64.0 and x >= 3.0 and x < 12.0:
-            ZoneNumber = 32
+            z = 32
 
         #Special zones for Svalbard
-        if y >= 72.0 and y < 84.0 :
-            if y >= 0.0 and y <  9.0:
+        if y >= 72.0 and y < 84.0:
+            if y >= 0.0 and y < 9.0:
                 z = 31
             elif y >= 9.0 and y < 21.0:
                 z = 33

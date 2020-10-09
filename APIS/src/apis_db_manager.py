@@ -22,10 +22,10 @@
  ***************************************************************************/
 """
 import sys
-import sqlite3
+# import sqlite3
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 
 from qgis.utils import spatialite_connect
@@ -45,6 +45,7 @@ class ApisDbManager:
         #QMessageBox.warning(None, "DB", "QSPATIALITE: {0}".format(QSqlDatabase.isDriverAvailable('QSPATIALITE')))
         self.connectToDb("QSPATIALITE", path)  # ("QSQLITE", path)
         self.__dbWasUpdated = False
+        self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
     def connectToDb(self, type, path):
         self.__db = QSqlDatabase.addDatabase(type)
@@ -57,9 +58,9 @@ class ApisDbManager:
             #self.__db.tables()
             #query = self.__db.exec_("""select * from film""")
             # iterate over the rows
-          #  while query.next():
-               # record = query.record()
-                # print the value of the first column
+            # while query.next():
+            #   record = query.record()
+            #   print the value of the first column
 
     @property
     def db(self):
@@ -92,7 +93,7 @@ class ApisDbManager:
         count = 0
         while query.next():
             rec = query.record()
-            model.appendRow([QStandardItem('' if rec.value(col) == None else str(rec.value(col))) for col in range(rec.count())])
+            model.appendRow([QStandardItem('' if rec.value(col) is None else str(rec.value(col))) for col in range(rec.count())])
             count += 1
 
         if count > 0:
@@ -101,3 +102,71 @@ class ApisDbManager:
             return model
         else:
             return None
+
+    def createTriggerForSystemTable(self, table):
+        '''
+        add trigger to system tables if not exists
+        used to make sure dependencies in other tables are not existing anymore
+        '''
+        keysRaw = self.settings.value(f"APIS/keys_{table}", None)
+        depsRaw = self.settings.value(f"APIS/deps_{table}", None)
+
+        if keysRaw is not None and depsRaw is not None:
+
+            keys = [keysRaw] if isinstance(keysRaw, str) else list(filter(None, keysRaw))
+            deps = [depsRaw] if isinstance(depsRaw, str) else list(filter(None, depsRaw))
+
+            query = QSqlQuery(self.__db)
+            for i in range(0, len(deps), len(keys) + 1):
+                # QMessageBox.information(None, "trigger", f"{table}.{keys} -> {deps[i]}.{[deps[i+j] for j in range(1, len(keys) + 1)]}")
+
+                # Delete Trigger
+                whereClauseList = [] 
+                for j in range(0, len(keys)):
+                    whereClauseList.append(f'({deps[i+j+1]} = OLD.{keys[j]} OR {deps[i+j+1]} LIKE "%;"||OLD.{keys[j]}||";%" OR {deps[i+j+1]} LIKE "%;"||OLD.{keys[j]} OR {deps[i+j+1]} LIKE OLD.{keys[j]}||";%")')
+                    # whereClauseList.append(f'{deps[i+j+1]} LIKE "%"||OLD.{keys[j]}||"%"')
+                whereClause = (" AND ").join(whereClauseList)
+
+                qryStr = f"""
+                    CREATE TRIGGER IF NOT EXISTS before_delete_entry_in_{table}_check_deps_in_{deps[i]}
+                        BEFORE DELETE
+                        ON {table}
+                    BEGIN
+                        SELECT
+                            CASE
+                                WHEN (SELECT count(*) FROM {deps[i]} WHERE {whereClause}) > 0
+                                THEN RAISE (ABORT, 'Foreign Key Violation: Because one or more rows in {deps[0]}.{deps[1]} reference the record in {table}.{keys[0]}, the record can not be deleted.')
+                            END;
+                    END;
+                """
+                # QMessageBox.information(None, "queryString", qryStr)
+                res = query.exec_(qryStr)
+                if not res:
+                    QMessageBox.warning(self, "DB Fehler", f"Der folgende Feheler ist aufgetreten: {query.lastError().text()}")
+                    return False
+
+                # Update Trigger
+
+                qryStr = f"""
+                    CREATE TRIGGER IF NOT EXISTS before_update_entry_in_{table}_check_deps_in_{deps[i]}
+                        BEFORE UPDATE
+                        ON {table}
+                    BEGIN
+                        SELECT
+                            CASE
+                                WHEN (SELECT count(*) FROM {deps[i]} WHERE {whereClause}) > 0
+                                THEN RAISE (ABORT, 'Foreign Key Violation: Because one or more rows in {deps[0]}.{deps[1]} reference the record in {table}.{keys[0]}, the record can not be deleted.')
+                            END;
+                    END;
+                """
+                # QMessageBox.information(None, "queryString", qryStr)
+                res = query.exec_(qryStr)
+                if not res:
+                    QMessageBox.warning(self, "DB Fehler", f"Der folgende Feheler ist aufgetreten: {query.lastError().text()}")
+                    return False
+
+            return True
+        else:
+            QMessageBox.warning(None, "INI Datei", f"Einträge in der INI Datei für die Tabelle {table} ist nicht korrekt.")
+            # Deactivate Editing Capabilities
+            return False

@@ -18,10 +18,10 @@ All notable changes to APIS4QGIS3 project will be documented in this file.
 ### [3.2.0]
 - Bundesheer Add-On.
 - ImageEditVertical
-## [3.1.3] - 2020-04-15
+## [3.1.3] - 2020-10-28
 ### Added
 - SystemTableEditor
-- OrientALUpdate 
+- OrientALUpdate / Digital Image Autoimporter
 ### Fixed
 - Vertical image mapping (footprint generation): kappa (azimuth) for each image is written to center point layer on footprint creation.
 ## [3.1.2] - 2020-03-05

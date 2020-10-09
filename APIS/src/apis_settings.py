@@ -22,7 +22,8 @@
  ***************************************************************************/
 """
 
-import os.path, sys
+import os
+import sys
 from functools import partial
 
 from PyQt5.uic import loadUiType
@@ -64,19 +65,12 @@ class APISSettings(QDialog, FORM_CLASS):
         # Selectors for getFileOpenDialogs
         # paths chosen by user
         self.fileSelectors = {
-            # "uiDatabaseFile" : {
-            #     "button" : self.uiDatabaseFileTBtn,
-            #     "infotext" : self.tr(u"Wählen Sie eine APIS Spatialite Datenbank aus ..."),
-            #     "input" : self.uiDatabaseFileEdit,
-            #     "path" : s.value("APIS/database_file", ""),
-            #     "filter" : None
-            # },
-            "uiConfigIniFile" : {
-                "button" : self.uiConfigIniFileTBtn,
-                "infotext" : self.tr(u"Wählen Sie eine APIS INI Datei aus ..."),
-                "input" : self.uiConfigIniFileEdit,
-                "path" : s.value("APIS/config_ini", ""),
-                "filter" : self.tr("Config INI (*.ini)")
+            "uiConfigIniFile": {
+                "button": self.uiConfigIniFileTBtn,
+                "infotext": self.tr(u"Wählen Sie eine APIS INI Datei aus ..."),
+                "input": self.uiConfigIniFileEdit,
+                "path": s.value("APIS/config_ini", ""),
+                "filter": self.tr("Config INI (*.ini)")
             }
         }
         for key, item in self.fileSelectors.items():
@@ -106,7 +100,7 @@ class APISSettings(QDialog, FORM_CLASS):
     def updateSysTablesCombo(self):
         if self.settings:
             self.sysTables = self.settings.value("APIS/sys_tables", ['copyright', 'datierung_quelle', 'film_fabrikat', 'fundgewinnung',
-                                                         'fundgewinnung_quelle', 'kamera', 'projekt'])
+                                                                     'fundgewinnung_quelle', 'hersteller', 'kamera', 'projekt'])
             self.uiSystemTableCombo.clear()
             self.uiSystemTableCombo.addItems(self.sysTables)
 
@@ -118,12 +112,12 @@ class APISSettings(QDialog, FORM_CLASS):
         inPath = QFileDialog.getOpenFileName(
             None,
             caption=self.fileSelectors[key]['infotext'],
-            directory=str(self.fileSelectors[key]['input'].text()),#.encode('utf-8')).strip(' \t'),
+            directory=str(self.fileSelectors[key]['input'].text()),  # .encode('utf-8')).strip(' \t'),
             filter=self.fileSelectors[key]['filter']
         )
 
         if os.path.exists(str(inPath[0])):
-            self.fileSelectors[key]['input'].setText(str(inPath[0])) #str(inPath))
+            self.fileSelectors[key]['input'].setText(str(inPath[0]))  # str(inPath))
 
     def openSystemTableEditorDialog(self, table):
         if self.dbm:

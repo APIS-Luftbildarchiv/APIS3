@@ -53,11 +53,14 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
         self.insertQuery = None
         self.updateQuery = None
         self.deleteQuery = None
+        self.inputDialog = None
 
         self.setupUi(self)
 
         self.uiEditBtn.setEnabled(False)
         self.uiRemoveBtn.setEnabled(False)
+
+        self.rejected.connect(self.onClose)
 
         self.setupTable()
 
@@ -82,6 +85,9 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
             return False
 
         self.table = table
+        self.dbm.createTriggerForSystemTable(table)
+        # TODO: if returns FALSE then deactivate editing Capabilites + Wanring
+
         self.uiSysTableLbl.setText(self.table)
 
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
@@ -96,21 +102,22 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
         self.uiSystemTableV.selectionModel().selectionChanged.connect(self.onSelectionChanged)
         self.onSelectionChanged()
 
+        # dummyRecord holds field structure!
         dummyRecord = self.model.record()
         editors = []
         for fIdx in range(dummyRecord.count()):
             field = dummyRecord.field(fIdx)
             if field.name() != "ogc_fid":
-                editors.append({'name': field.name(), 'type': field.type(), 'lineEdit': QLineEdit()})
-
-        self.inputDialog = APISInputDialog(editors, dummyRecord, parent=self)
-        self.uiAddBtn.clicked.connect(self.openInputDialog)
+                editors.append({'name': field.name(), 'type': field.type(), 'lineEdit': QLineEdit(), 'default': None})
 
         # init input dialog
-
+        self.inputDialog = APISInputDialog(editors, dummyRecord, parent=self)
+        self.uiAddBtn.clicked.connect(self.addRecord)
+        self.uiEditBtn.clicked.connect(self.editRecord)  # in EditMode: load current Value; try to update (but with trigger: only possible to update if not in use!!!)
+        self.uiRemoveBtn.clicked.connect(self.removeRecord)
         return True
 
-    def openInputDialog(self):
+    def addRecord(self):
         if self.inputDialog.exec_():
             rec = self.inputDialog.getRecord()
             if not rec.isEmpty():
@@ -119,9 +126,60 @@ class APISSystemTableEditor(QDialog, FORM_CLASS):
                     self.model.select()
                     self.dbm.dbRequiresUpdate = True
                 else:
-                    QMessageBox.warning(self, "DB Fehler", "Der folgende Feheler ist aufgetreten: {}".format(self.model.lastError().text()))
+                    QMessageBox.warning(self, "DB Fehler", "Der folgende Fehler ist aufgetreten: {}".format(self.model.lastError().text()))
         else:
             pass
+        self.inputDialog.resetEditors()
+
+    def editRecord(self):
+        recIdx = self.uiSystemTableV.selectionModel().currentIndex().row()
+        # Get current Record for index
+        currRec = self.model.record(recIdx)
+        # Set current Record in Dialog
+        self.inputDialog.setEditors(currRec)
+        if self.inputDialog.exec_():
+            data = self.inputDialog.getData()
+            # QMessageBox.information(None, "edited record", f"{data}")
+            for key in data:
+                currRec.setValue(key, data[key])
+            if not currRec.isEmpty():
+                res = self.model.updateRowInTable(recIdx, currRec)
+                if res:
+                    self.model.select()
+                    self.dbm.dbRequiresUpdate = True
+                else:
+                    QMessageBox.warning(self, "DB Fehler", "Der folgende Fehler ist aufgetreten: {}".format(self.model.lastError().text()))
+        self.inputDialog.resetEditors()
+
+    def removeRecord(self):
+        #Check if one really wants to remove the entry!
+        # Abfrage wirklich löschen
+        header = u"Eintrag löschen"
+        question = u"Möchten Sie den Eintrag wirklich aus der Datenbank löschen?"
+        result = QMessageBox.question(self,
+                                      header,
+                                      question,
+                                      QMessageBox.Yes | QMessageBox.No,
+                                      QMessageBox.Yes)
+        if result == QMessageBox.Yes:
+            recIdx = self.uiSystemTableV.selectionModel().currentIndex().row()
+            # QMessageBox.information(self, "Information", f"Current Idx {recIdx}")
+            res = self.model.removeRow(recIdx)
+            if res:
+                self.model.select()
+                self.dbm.dbRequiresUpdate = True
+            else:
+                QMessageBox.warning(self, "DB Fehler", "Der folgende Fehler ist aufgetreten: {}".format(self.model.lastError().text()))
+
+    def onClose(self):
+        '''
+        Run some actions when
+        the user closes the dialog
+        '''
+        self.uiAddBtn.clicked.disconnect(self.addRecord)
+        self.uiEditBtn.clicked.disconnect(self.editRecord)
+        self.uiRemoveBtn.clicked.disconnect(self.removeRecord)
+        self.inputDialog.deleteLater()
 
 
 class APISInputDialog(QDialog):
@@ -150,11 +208,21 @@ class APISInputDialog(QDialog):
         self.setWindowTitle("APIS Input Dialog")
         self.adjustSize()
 
+        # self.accepted.connect(self.onClose)
+        # self.rejected.connect(self.onClose)
+
     def onTextEdited(self, text):
+        areAllDefault = True
         for editor in self.editors:
             if len(editor['lineEdit'].text().replace(" ", "")) == 0:
                 self.uiSubmitBtn.setEnabled(False)
                 return
+            if editor['lineEdit'].text() != editor['default']:
+                areAllDefault = False
+        if areAllDefault:
+            self.uiSubmitBtn.setEnabled(False)
+            return
+
         self.uiSubmitBtn.setEnabled(True)
 
     def saveInputAsQSqlRecord(self):
@@ -162,8 +230,28 @@ class APISInputDialog(QDialog):
             self.record.setValue(editor["name"], editor['lineEdit'].text())
         self.accept()
 
+    def resetEditors(self):
+        for editor in self.editors:
+            editor['lineEdit'].clear()
+            editor['default'] = None
+        self.uiSubmitBtn.setEnabled(False)
+
+    def setEditors(self, record):
+        for editor in self.editors:
+            editor['lineEdit'].setText(record.value(editor["name"]))
+            editor['default'] = record.value(editor["name"])
+
     def getRecord(self):
         return self.record
+
+    def getData(self):
+        data = {}
+        for editor in self.editors:
+            data[editor["name"]] = editor['lineEdit'].text()
+        return data
+
+    def onClose(self):
+        self.resetEditors()
 
 
 class APISAdvancedInputDialog(QDialog):

@@ -453,24 +453,23 @@ class APIS:
     def toggleImageMappingDialog(self):
         if not self.imageMappingDlg:
             self.imageMappingDlg = APISImageMapping(self.iface, self.dbm, self.apisLayer)
-
             self.imageMappingDlg.visibilityChanged.connect(self.imageMappingActionBtn.setChecked)
+            self.imageMappingDlg.visibilityChanged.connect(self.checkEnableForSettingsDialog)
 
         #if self.imageMappingDlg.isVisible():
         if self.imageMappingActionBtn and self.imageMappingActionBtn.isChecked():
             self.imageMappingDlg.show()
             self.imageMappingMode = True
-            #self.imageMappingActionBtn.setChecked(False)
         else:
             #TODO Check Mapping State !!!
             self.imageMappingDlg.hide()
             self.imageMappingMode = False
-            #self.imageMappingActionBtn.setChecked(True)
 
     def toggleSiteMappingDialog(self):
         if not self.siteMappingDlg:
             self.siteMappingDlg = APISSiteMapping(self.iface, self.dbm, self.imageRegistry, self.apisLayer)
             self.siteMappingDlg.visibilityChanged.connect(self.siteMappingActionBtn.setChecked)
+            self.siteMappingDlg.visibilityChanged.connect(self.checkEnableForSettingsDialog)
 
         if self.siteMappingActionBtn and self.siteMappingActionBtn.isChecked():
             self.siteMappingDlg.show()
@@ -482,11 +481,18 @@ class APIS:
             self.searchDlg = APISSearch(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
             #self.searchDlg = APISSearch(self.iface)
             self.searchDlg.visibilityChanged.connect(self.searchActionBtn.setChecked)
+            self.searchDlg.visibilityChanged.connect(self.checkEnableForSettingsDialog)
 
         if self.searchActionBtn and self.searchActionBtn.isChecked():
             self.searchDlg.show()
         else:
             self.searchDlg.hide()
+
+    def checkEnableForSettingsDialog(self):
+        if (self.searchDlg and self.searchDlg.isVisible()) or (self.siteMappingDlg and self.siteMappingDlg.isVisible()) or (self.imageMappingDlg and self.imageMappingDlg.isVisible()):
+            self.openSettingsButton.setEnabled(False)
+        else:
+            self.openSettingsButton.setEnabled(True)
 
     def activateDialogs(self, value):
         """

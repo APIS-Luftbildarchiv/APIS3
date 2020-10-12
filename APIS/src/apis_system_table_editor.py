@@ -238,8 +238,8 @@ class APISInputDialog(QDialog):
 
     def setEditors(self, record):
         for editor in self.editors:
-            editor['lineEdit'].setText(record.value(editor["name"]))
-            editor['default'] = record.value(editor["name"])
+            editor['lineEdit'].setText(f'{record.value(editor["name"])}')
+            editor['default'] = record.value(f'{editor["name"]}')
 
     def getRecord(self):
         return self.record

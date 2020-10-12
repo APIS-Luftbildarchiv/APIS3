@@ -300,7 +300,6 @@ def DbHasTable(db, table):
         return False
 
 
-# FIXME : relocate to apis_site_dialog.py if only usage is apis_site_dialog:showEvent() # Don't!
 def SiteHasFindspot(db, siteNumber):
     query = QSqlQuery(db)
     query.prepare(u"SELECT COUNT(*) FROM fundstelle WHERE fundortnummer = '{0}'".format(siteNumber))

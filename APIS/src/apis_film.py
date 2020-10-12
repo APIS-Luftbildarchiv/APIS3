@@ -900,7 +900,8 @@ class APISFilm(QDialog, FORM_CLASS):
 
         if self.dbm.dbRequiresUpdate:
             self.initalLoad = True
-            self.updateComboBox(self.uiProjectSelectionCombo)
+            for editor in [self.uiArchiveCombo, self.uiCameraCombo, self.uiFilmMakeCombo, self.uiCopyrightCombo, self.uiProjectSelectionCombo, self.newFilmDlg.uiProducerCombo]:
+                self.updateComboBox(editor)
             currIdx = self.mapper.currentIndex()
             self.model.select()
             while (self.model.canFetchMore()):

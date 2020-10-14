@@ -178,7 +178,10 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
         self.uiCurrentFilmNumberEdit.setText(self.currentFilmNumber)
 
         # Get Information & Stats: schräg/senk, bildanzahl, ...
-        self.getFilmInfo()
+        filmStatus = self.getFilmInfo()  # filmStatus true/false depending if problems wiht film infos
+        if not filmStatus:
+            self.resetCurrentFilmNumber()
+            return
         self.getMappingStats()
         self.updateMappingDetails()
 
@@ -250,10 +253,18 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             else:
                 self.orientation = "senk"
                 self.isOblique = False
-                if not self.currentFilmInfoDict["kammerkonstante"] > 0:
-                    QMessageBox.warning(None, u"Film Nummer", u"Der senkrecht Film mit der Nummer {0} hat eine Kammerkonstante (={1}), die für die Berechnung des Bildmaßstabs und in Folge des Footprints ungeeignet ist! Geben Sie im Film Dialog die Kammerkonstante an, um korrekte Footprints zu erhalten. Falls Bildmittelpunkte bereits gesetzt sind (mit einem Maßstab = 0) müssen auch diese neu kartiert werden!".format(self.currentFilmNumber, self.currentFilmInfoDict["kammerkonstante"]))
+                # QMessageBox.information(None, "kkInfo0", f'type: {type(self.currentFilmInfoDict["kammerkonstante"])}')
+                if isinstance(self.currentFilmInfoDict["kammerkonstante"], str) and not self.currentFilmInfoDict["kammerkonstante"]:
+                    QMessageBox.warning(None, u"Film Nummer", u"Der senkrecht Film mit der Nummer {0} hat keine Kammerkonstante (Wird für die Berechnung des Bildmaßstabs und in Folge des Footprints benötigt.) Geben Sie im Film Dialog die Kammerkonstante an, um korrekte Footprints zu erhalten.".format(self.currentFilmNumber))
+                    return False
+                else:
+                    if not self.currentFilmInfoDict["kammerkonstante"] > 0:
+                        QMessageBox.warning(None, u"Film Nummer", u"Der senkrecht Film mit der Nummer {0} hat eine Kammerkonstante (={1}), die für die Berechnung des Bildmaßstabs und in Folge des Footprints ungeeignet ist! Geben Sie im Film Dialog die Kammerkonstante an, um korrekte Footprints zu erhalten. Falls Bildmittelpunkte bereits gesetzt sind (mit einem Maßstab = 0) müssen auch diese neu kartiert werden!".format(self.currentFilmNumber, self.currentFilmInfoDict["kammerkonstante"]))
+                        return False
+            return True
         else:
             QMessageBox.warning(None, u"Film Nummer", u"Der Film mit der Nummer {0} existiert nicht!".format(self.currentFilmNumber))
+            return False
 
     def getMappingStats(self):
         self.imageStatsDict = {}

@@ -131,41 +131,10 @@
       <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="1" column="2">
-       <widget class="QToolButton" name="uiCenterPointFileTBtn">
+      <item row="2" column="3">
+       <widget class="QToolButton" name="uiFootprintFileTBtn">
         <property name="text">
          <string>...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="uiCenterPointSourceEdit">
-        <property name="placeholderText">
-         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0" colspan="2">
-       <widget class="QCheckBox" name="uiCopyToIns2camDirChk">
-        <property name="text">
-         <string>Daten (shp Dateien) in den entsprechenden ins2cam Ordner kopieren</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Centerpoint Layer:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="uiFootprintSourceEdit">
-        <property name="placeholderText">
-         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
         </property>
        </widget>
       </item>
@@ -176,14 +145,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="2">
-       <widget class="QToolButton" name="uiFootprintFileTBtn">
-        <property name="text">
-         <string>...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3" rowspan="2">
+      <item row="1" column="4" rowspan="2">
        <widget class="QPushButton" name="uiAutodetectIns2CamSourcesBtn">
         <property name="text">
          <string>Auto Detect</string>
@@ -194,6 +156,71 @@
         </property>
         <property name="autoDefault">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLineEdit" name="uiCenterPointSourceEdit">
+        <property name="placeholderText">
+         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Centerpoint Layer:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLineEdit" name="uiFootprintSourceEdit">
+        <property name="placeholderText">
+         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QToolButton" name="uiCenterPointFileTBtn">
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="3">
+       <widget class="QCheckBox" name="uiCopyToIns2camDirChk">
+        <property name="text">
+         <string>Daten (shp Dateien) in den entsprechenden ins2cam Ordner kopieren</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="3">
+       <widget class="QToolButton" name="uiImageDirTBtn">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Bilder (EXIF):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QLineEdit" name="uiImageSourceEdit">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="placeholderText">
+         <string>Bei Bedarf wählen sie ein Bildverzeichnis aus. Ansonsten wird das Standardbildverzeichnis für den EXIF-Import verwendet.</string>
         </property>
        </widget>
       </item>

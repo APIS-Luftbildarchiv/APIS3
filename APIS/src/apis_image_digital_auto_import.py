@@ -89,8 +89,9 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.uiAutodetectIns2CamSourcesBtn.clicked.connect(self.autodetectSourcesIns2Cam)
         self.uiCenterPointSourceEdit.textChanged.connect(self.checkIfEmpty)
         self.uiFootprintSourceEdit.textChanged.connect(self.checkIfEmpty)
+        self.uiImageDirTBtn.clicked.connect(lambda: self.getSourceDir(editor=self.uiImageSourceEdit, caption="Quellverzeichnis für Bilder (EXIF-Import) auswählen"))
 
-        self.uiOrientalDirTBtn.clicked.connect(lambda: self.getSourceDir(editor=self.uiOrientalSourceEdit, caption="Quellverzeichnis fúr OrientAL Aktualisierung auswählen"))
+        self.uiOrientalDirTBtn.clicked.connect(lambda: self.getSourceDir(editor=self.uiOrientalSourceEdit, caption="Quellverzeichnis für OrientAL Aktualisierung auswählen"))
         self.uiAutodetectOrientalSourceBtn.clicked.connect(self.autodetectSourcesOriental)
         self.uiOrientalSourceEdit.textChanged.connect(self.checkIfEmpty)
 
@@ -163,9 +164,13 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         if os.path.isfile(sourceCpLayerPath):
             self.uiCenterPointSourceEdit.setText(sourceCpLayerPath)
+        else:
+            self.uiCenterPointSourceEdit.clear()
 
         if os.path.isfile(sourceFpLayerPath):
             self.uiFootprintSourceEdit.setText(sourceFpLayerPath)
+        else:
+            self.uiFootprintSourceEdit.clear()
 
     def autodetectSourcesOriental(self):
         imageBasePath = self.settings.value("APIS/image_dir")
@@ -174,6 +179,8 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         if os.path.isdir(orientalSourceDir):
             self.uiOrientalSourceEdit.setText(orientalSourceDir)
+        else:
+            self.uiOrientalSourceEdit.clear()
 
     def autodetectSourcesVexcel(self):
         imageBasePath = self.settings.value("APIS/image_dir")
@@ -182,12 +189,17 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         if os.path.isdir(vexcelSourceDir):
             self.uiVexcelSourceEdit.setText(vexcelSourceDir)
+        else:
+            self.uiVexcelSourceEdit.clear()
 
     def getSourceFile(self, editor, caption="Quelldatei auswählen"):
         sourceFileName = QFileDialog.getOpenFileName(self, caption, GetExportPath())
-        if sourceFileName:
+        #QMessageBox.information(None, "SourceInfo", f"type: {type(sourceFileName[0])}, leng: {len(sourceFileName)}, data: {sourceFileName[0]}")
+        if sourceFileName and sourceFileName[0]:
             editor.setText(os.path.normpath(sourceFileName[0]))
             SetExportPath(os.path.dirname(os.path.normpath(sourceFileName[0])))
+        else:
+            editor.clear()
 
     def getSourceDir(self, editor, caption="Quellverzeichnis auswählen"):
         sourceDirName = QFileDialog.getExistingDirectory(self, caption, GetExportPath(), QFileDialog.DontUseNativeDialog)
@@ -308,18 +320,6 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         else:
             return True, "Die APIS Bild-Tabellen sind bereit für den Auto Import von Ins2Cam Bildern."
 
-    def getCountryCode(self, p):
-        query = QSqlQuery(self.dbm.db)
-        #qryStr = "SELECT code FROM osm_boundaries WHERE within(MakePoint({0}, {1}, 4312), Geometry)".format(p.x(),p.y())
-        qryStr = "SELECT code FROM osm_boundaries WHERE intersects(Transform(MakePoint({0}, {1}, 4312), 4326), geometry) AND ROWID IN (SELECT ROWID FROM SpatialIndex WHERE f_table_name = 'osm_boundaries' AND search_frame = Transform(MakePoint({0}, {1}, 4312), 4326))".format(p.x(), p.y())
-
-        query.exec_(qryStr)
-        query.first()
-        if query.value(0) is None:
-            return 'INT'
-        else:
-            return query.value(0)
-
     def calculateImageRadius(self, centerPoint, polygon, minValue=175):
         polyline = polygon.asPolygon()[0]
         points = [QgsGeometry.fromPointXY(point) for point in polyline[:-1]]
@@ -409,10 +409,10 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                             imageNumber = int(sINCP.group(0).split('_')[1].split('.')[0])
                             imageNumberFP = int(sINFP.group(0).split('_')[1].split('.')[0])
                         else:
-                            self.writeMsg(u"SKIP: Die fortlaufende Bildnummer in Reihe {0} stimmen im Centerpoint ({1}) und Footprint ({2}) Layer nicht überein.".format(i, imageNumber, imageNumberFP))
+                            self.writeMsg("SKIP: Die fortlaufende Bildnummer in Reihe {0} stimmen im Centerpoint ({1}) und Footprint ({2}) Layer nicht überein.".format(i, imageNumber, imageNumberFP))
                             continue
                     else:
-                        self.writeMsg(u"SKIP: Die Eintrag in Reihe {0} hat keine entsprechende Bildnummer (Filmnummer + fortlaufende Bildnummer)".format(i))
+                        self.writeMsg("SKIP: Die Eintrag in Reihe {0} hat keine entsprechende Bildnummer (Filmnummer + fortlaufende Bildnummer)".format(i))
                         continue
 
                     filmImageNumber = '{0}.{1:03d}'.format(self.filmId, imageNumber)
@@ -458,7 +458,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     targetFeatCP.setAttribute('longitude', cp.x())
                     targetFeatCP.setAttribute('latitude', cp.y())
 
-                    countryCode = self.getCountryCode(cp)
+                    countryCode = GetCountryCode(self.dbm.db, cp)
                     targetFeatCP.setAttribute('land', countryCode)
 
                     if countryCode == 'AUT':
@@ -479,7 +479,20 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     targetFeatCP.setAttribute('gky', gky)  # Rechtswert
 
                     # TODO extend so the Images can be local!
-                    image = os.path.normpath(self.settings.value("APIS/image_dir") + '\\' + self.filmId + '\\' + filmImageNumber.replace('.', '_') + '.jpg')
+                    # 1) if uiImageSourceEdit is empty, is no dir then use Deafault Dir
+                    # 2) if isDir and dir has filmImageNumber.replace('.', '_') + '.jpg' use this File! else fall back to default
+                    # self.writeMsg() which dir was used!
+                    if os.path.isdir(self.uiImageSourceEdit.text()) and os.path.isfile(os.path.join(self.uiImageSourceEdit.text(), filmImageNumber.replace('.', '_') + '.jpg')):
+                        image = os.path.normpath(os.path.join(self.uiImageSourceEdit.text(), filmImageNumber.replace('.', '_') + '.jpg'))
+                        self.writeMsg(f"EXIF from: {image}")
+                    else:
+                        image = os.path.normpath(os.path.join(self.settings.value("APIS/image_dir"), self.filmId, filmImageNumber.replace('.', '_') + '.jpg'))
+                        if os.path.isfile(image):
+                            self.writeMsg(f"EXIF from default directory: {image}")
+                        else:
+                            self.writeMsg(f"EXIF from default directory: Image not found!")
+                    # image = os.path.normpath(self.settings.value("APIS/image_dir") + '\\' + self.filmId + '\\' + filmImageNumber.replace('.', '_') + '.jpg')
+
                     exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True, exposure_time=True, focal_length=True, fnumber=True)
 
                     targetFeatCP.setAttribute('hoehe', exif["altitude"] if exif["altitude"] else 450)  # TODO: Is this the best way to set hight to 0 if no image is there? 436 is the average hight of all oblique images

@@ -35,7 +35,7 @@ from PyQt5.QtCore import QSettings, QDate, QDir, QThread, QObject, pyqtSignal
 from PyQt5.QtSql import QSqlQuery
 
 # PyQGIS
-from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsCoordinateReferenceSystem, QgsPointXY,
+from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsCoordinateReferenceSystem, QgsPointXY, QgsVectorLayer,
                        QgsFeatureRequest, QgsExpression, QgsVectorLayerUtils, QgsDistanceArea, QgsProject, QgsWkbTypes, Qgis, QgsMessageLog)
 
 # APIS
@@ -84,8 +84,8 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.uiMonoplotSourceGrp.clicked.connect(self.activateIns2CamMode)
         self.uiOrientalSourceGrp.clicked.connect(self.activateOrientalMode)
 
-        self.uiCenterPointFileTBtn.clicked.connect(lambda: self.getSourceFile(editor=self.uiCenterPointSourceEdit, caption="Quelldatei für Centerpoint Layer auswählen"))
-        self.uiFootprintFileTBtn.clicked.connect(lambda: self.getSourceFile(editor=self.uiFootprintSourceEdit, caption="Quelldatei für Footprint Layer auswählen"))
+        self.uiCenterPointFileTBtn.clicked.connect(lambda: self.getSourceFile(editor=self.uiCenterPointSourceEdit, caption="Quelldatei für Centerpoint Layer auswählen", options="SHP files (*.shp)"))
+        self.uiFootprintFileTBtn.clicked.connect(lambda: self.getSourceFile(editor=self.uiFootprintSourceEdit, caption="Quelldatei für Footprint Layer auswählen", options="SHP files (*.shp)"))
         self.uiAutodetectIns2CamSourcesBtn.clicked.connect(self.autodetectSourcesIns2Cam)
         self.uiCenterPointSourceEdit.textChanged.connect(self.checkIfEmpty)
         self.uiFootprintSourceEdit.textChanged.connect(self.checkIfEmpty)
@@ -95,7 +95,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         self.uiAutodetectOrientalSourceBtn.clicked.connect(self.autodetectSourcesOriental)
         self.uiOrientalSourceEdit.textChanged.connect(self.checkIfEmpty)
 
-        self.uiVexcelDirTBtn.clicked.connect(lambda: self.getSourceFile(editor=self.uiVexcelSourceEdit, caption="Quelldatei für Vexcel Import (KML) auswählen"))
+        self.uiVexcelDirTBtn.clicked.connect(lambda: self.getSourceFile(editor=self.uiVexcelSourceEdit, caption="Quelldatei für Vexcel Import (KML) auswählen", options="KML files (*.kml)"))
         self.uiAutodetectVexcelSourceBtn.clicked.connect(self.autodetectSourcesVexcel)
         self.uiVexcelSourceEdit.textChanged.connect(self.checkIfEmpty)
 
@@ -192,8 +192,11 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         else:
             self.uiVexcelSourceEdit.clear()
 
-    def getSourceFile(self, editor, caption="Quelldatei auswählen"):
-        sourceFileName = QFileDialog.getOpenFileName(self, caption, GetExportPath())
+    def getSourceFile(self, editor, caption="Quelldatei auswählen", options=None):
+        if options:
+            sourceFileName = QFileDialog.getOpenFileName(self, caption, GetExportPath(), options)
+        else:
+            sourceFileName = QFileDialog.getOpenFileName(self, caption, GetExportPath())
         #QMessageBox.information(None, "SourceInfo", f"type: {type(sourceFileName[0])}, leng: {len(sourceFileName)}, data: {sourceFileName[0]}")
         if sourceFileName and sourceFileName[0]:
             editor.setText(os.path.normpath(sourceFileName[0]))
@@ -318,7 +321,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         if len(errorMsg) > 0:
             return False, errorMsg
         else:
-            return True, "Die APIS Bild-Tabellen sind bereit für den Auto Import von Ins2Cam Bildern."
+            return True, "Die APIS Bild-Tabellen sind bereit für den Auto Import von Bildern."
 
     def calculateImageRadius(self, centerPoint, polygon, minValue=175):
         polyline = polygon.asPolygon()[0]
@@ -376,15 +379,20 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 msgBox.setWindowTitle('Ins2Cam Import')
                 msgBox.setText("Für den Film {0} sind kartierte Bilder vorhanden:".format(self.filmId))
                 msgBox.addButton(QPushButton('Überschreiben'), QMessageBox.ActionRole)
-                msgBox.addButton(QPushButton('Nicht überschreiben'), QMessageBox.ActionRole)
+                msgBox.addButton(QPushButton('Nicht überschreiben (überspringen)'), QMessageBox.ActionRole)
                 msgBox.addButton(QPushButton('Abbrechen'), QMessageBox.RejectRole)
                 ret = msgBox.exec_()
                 if ret == 0:
+                    securityQuestion = QMessageBox.question(self, "Sicherheitsabfrage", "Achtung, bereits kartierte Bilder (Mittelpunkt und Footprint) gehen dadurch verlorgen. \nWollen Sie bereits kartierte Bilder tatsächlich überschreiben?")
+                    if securityQuestion == QMessageBox.No:
+                        self.writeMsg("Vorgang wurde abgebrochen.")
+                        self.uiImportBtn.setEnabled(True)
+                        return
                     mode = 2  # overwrite
                     self.writeMsg("Bereits kartierte Bilder: überschreiben")
                 elif ret == 1:
                     mode = 3  # not overwrite/skip
-                    self.writeMsg("Bereits kartierte Bilder: nicht überschreiben")
+                    self.writeMsg("Bereits kartierte Bilder: nicht überschreiben (überspringen)")
                 else:
                     self.writeMsg("Vorgang wurde abgebrochen.")
                     self.uiImportBtn.setEnabled(True)
@@ -398,6 +406,10 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 imagesToDelete = []
                 sourceFeatCP = QgsFeature()
                 sourceFeatFP = QgsFeature()
+
+                da = QgsDistanceArea()
+                da.setEllipsoid(self.targetLayerFP.crs().ellipsoidAcronym())
+
                 i = 0
                 while iterCP.nextFeature(sourceFeatCP):
                     i += 1
@@ -478,7 +490,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     targetFeatCP.setAttribute('gkx', gkx)  # Hochwert
                     targetFeatCP.setAttribute('gky', gky)  # Rechtswert
 
-                    # TODO extend so the Images can be local!
+                    # extend so the Images can be local!
                     # 1) if uiImageSourceEdit is empty, is no dir then use Deafault Dir
                     # 2) if isDir and dir has filmImageNumber.replace('.', '_') + '.jpg' use this File! else fall back to default
                     # self.writeMsg() which dir was used!
@@ -495,7 +507,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
                     exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True, exposure_time=True, focal_length=True, fnumber=True)
 
-                    targetFeatCP.setAttribute('hoehe', exif["altitude"] if exif["altitude"] else 450)  # TODO: Is this the best way to set hight to 0 if no image is there? 436 is the average hight of all oblique images
+                    targetFeatCP.setAttribute('hoehe', exif["altitude"] if exif["altitude"] else 450)  # 436 is the average hight of all oblique images; a default value of 450 is used to allow the calculation of footprints (the original value of 0 would create a FP geometry with just the extent of the CP)
                     targetFeatCP.setAttribute('gps_longitude', exif["longitude"] if exif["longitude"] is not None else None)
                     targetFeatCP.setAttribute('gps_latitude', exif["latitude"] if exif["latitude"] is not None else None)
                     targetFeatCP.setAttribute('kappa', QgsPointXY(exif["longitude"], exif["latitude"]).azimuth(cp) if exif["longitude"] and exif["latitude"] else None)
@@ -518,8 +530,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
                     targetFeatFP.setAttribute('filmnummer', self.parent.currentFilmNumber)
                     targetFeatFP.setAttribute('bildnummer', filmImageNumber)
-                    da = QgsDistanceArea()
-                    da.setEllipsoid(self.targetLayerFP.crs().ellipsoidAcronym())
+
                     targetFeatFP.setAttribute('shape_length', round(da.measurePerimeter(targetGeometryFP), 3))
                     targetFeatFP.setAttribute('shape_area', round(da.measureArea(targetGeometryFP), 3))
                     targetFeatFP.setAttribute('source', 'imu')
@@ -682,111 +693,226 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
         # from pykml import parser
         from lxml import etree
 
+        # check if target (in APIS DB) is clean (same number of images mapped in CP and FP)
+        resCheckTarget, msgCheckTarget = self.checkIfTargetIsClean()
+        if not resCheckTarget:
+            self.cancelImportVexcel(f"Es sind Probleme bei bereits kartierten Bildern vorhanden:\n{msgCheckTarget}")
+            return
+
         fileName = self.uiVexcelSourceEdit.text()
-        tree = etree.parse(fileName)
-        placemarks = tree.xpath('//kml:Folder/kml:Placemark[kml:MultiGeometry]', namespaces={"kml": "http://earth.google.com/kml/2.2"})
+
+        # check if file, can one load with qgis > isValid, isSpatial?
+        # NOTE: Loading KML in QGIS (not required here), but as doc: https://gis.stackexchange.com/questions/201160/adding-all-the-layers-in-a-kml-file-in-pyqgis
+        if not os.path.isfile(fileName):
+            self.cancelImportVexcel("Die ausgewählte Datei existiert nicht.")
+            return
+        try:
+            tree = etree.parse(fileName)
+        except etree.XMLSyntaxError as e:
+            self.cancelImportVexcel(f"Die ausgewählte Datei ist ungeeignet für den Vexcel Import: \n{e}")
+            return
+        except etree.DocumentInvalid as e:
+            self.cancelImportVexcel(f"Die ausgewählte Datei ist ungeeignet für den Vexcel Import: \n{e}")
+            return
+        except Exception as e:
+            self.cancelImportVexcel(f"Die ausgewählte Datei ist ungeeignet für den Vexcel Import: \n{e}")
+            return
+        ns = {"kml": "http://earth.google.com/kml/2.2"}
+        placemarksXpathStr = '//kml:Folder/kml:Placemark[kml:MultiGeometry]'
+        placemarks = tree.xpath(placemarksXpathStr, namespaces=ns)
         # self.writeMsg(f"{placemarks}")
-        imageNumber = 0
-        cpFeatures = []
-        fpFeatures = []
+        if not placemarks:
+            self.cancelImportVexcel("Die ausgewählte Datei ist ungeeignet für den Vexcel Import. Die KML Datei folgt nicht den definierten Strukturen für den Vexcel Import (//kml:Folder/kml:Placemark[kml:MultiGeometry]).")
+            return
 
-        da = QgsDistanceArea()
-        da.setEllipsoid(self.targetLayerFP.crs().ellipsoidAcronym())
-
-        for placemark in placemarks:
-            targetFeatCP = QgsFeature(self.targetLayerCP.fields())
-            targetFeatFP = QgsFeature(self.targetLayerFP.fields())
-            imageNumber += 1
-            filmImageNumber = '{0}.{1:03d}'.format(self.filmId, imageNumber)
-            name = placemark.xpath('.//kml:name/text()', namespaces={"kml": "http://earth.google.com/kml/2.2"})[0].replace('\n', '').replace('\t', '')
-            pointCoordinates = placemark.xpath('.//kml:MultiGeometry/kml:Point/kml:coordinates/text()', namespaces={"kml": "http://earth.google.com/kml/2.2"})[0].replace('\n', '').replace('\t', '').split(',')
-            sourceGeometryCP = QgsGeometry.fromPointXY(QgsPointXY(float(pointCoordinates[0]), float(pointCoordinates[1])))
-            altitude = int(float(pointCoordinates[2]))
-            targetGeometryCP = TransformGeometry(sourceGeometryCP, QgsCoordinateReferenceSystem("EPSG:4326"), self.targetLayerCP.crs())
-            targetFeatCP.setGeometry(targetGeometryCP)
-            # From Film Table
-            # filmFields = ["form1", "form2", "weise", "kammerkonstante"]
-            targetFeatCP.setAttribute('filmnummer_hh_jjjj_mm', self.parent.currentFilmInfoDict["filmnummer_hh_jjjj_mm"])
-            targetFeatCP.setAttribute('filmnummer_nn', self.parent.currentFilmInfoDict["filmnummer_nn"])
-            targetFeatCP.setAttribute('filmnummer', self.filmId)
-
-            targetFeatCP.setAttribute('bildnummer_nn', imageNumber)
-            targetFeatCP.setAttribute('bildnummer', filmImageNumber)
-
-            # Date TODAY
-            now = QDate.currentDate()
-            targetFeatCP.setAttribute('datum_ersteintrag', now.toString("yyyy-MM-dd"))
-            targetFeatCP.setAttribute('datum_aenderung', now.toString("yyyy-MM-dd"))
-
-            targetFeatCP.setAttribute('copyright', self.parent.currentFilmInfoDict["copyright"])
-            targetFeatCP.setAttribute('etikett', 0)  # By default fixed value of 0
-
-            # Calculated/Derived
-            cp = targetFeatCP.geometry().asPoint()
-            targetFeatCP.setAttribute('longitude', cp.x())
-            targetFeatCP.setAttribute('latitude', cp.y())
-
-            countryCode = GetCountryCode(self.dbm.db, cp)
-            targetFeatCP.setAttribute('land', countryCode)
-
-            if countryCode == 'AUT':
-                # get meridian and epsg Code
-                meridian, epsgGK = GetMeridianAndEpsgGK(cp.x())
-
-                # get KG Coordinates
-                gk = TransformGeometry(QgsGeometry(targetFeatCP.geometry()), self.targetLayerCP.crs(), QgsCoordinateReferenceSystem(f"EPSG:{epsgGK}"))
-                gkx = gk.asPoint().y()  # Hochwert
-                gky = gk.asPoint().x()  # Rechtswert
+        mode = 1  # add
+        if self.targetLayerCP.featureCount() > 0 or self.targetLayerFP.featureCount() > 0:
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle('Vexcel Import')
+            msgBox.setText("Für den Film {0} sind kartierte Bilder vorhanden:".format(self.filmId))
+            msgBox.addButton(QPushButton('Überschreiben'), QMessageBox.ActionRole)
+            msgBox.addButton(QPushButton('Nicht überschreiben (überspringen)'), QMessageBox.ActionRole)
+            msgBox.addButton(QPushButton('Abbrechen'), QMessageBox.RejectRole)
+            ret = msgBox.exec_()
+            if ret == 0:
+                securityQuestion = QMessageBox.question(self, "Sicherheitsabfrage", "Achtung, bereits kartierte Bilder (Centerpoint und Footprint) gehen dadurch verlorgen. \nWollen Sie bereits kartierte Bilder tatsächlich überschreiben?")
+                if securityQuestion == QMessageBox.No:
+                    self.cancelImportVexcel()
+                    return
+                mode = 2  # overwrite
+                self.writeMsg("Bereits kartierte Bilder: überschreiben")
+            elif ret == 1:
+                mode = 3  # not overwrite/skip
+                self.writeMsg("Bereits kartierte Bilder: nicht überschreiben (überspringen)")
             else:
-                meridian = None
-                gkx = None
-                gky = None
+                self.cancelImportVexcel()
+                return
 
-            targetFeatCP.setAttribute('meridian', meridian)
-            targetFeatCP.setAttribute('gkx', gkx)  # Hochwert
-            targetFeatCP.setAttribute('gky', gky)  # Rechtswert
+        # check editing/AddingFeatures capabilities of target layers
+        capsCP = self.targetLayerCP.dataProvider().capabilities()
+        capsFP = self.targetLayerFP.dataProvider().capabilities()
+        if capsCP & QgsVectorDataProvider.AddFeatures and capsFP & QgsVectorDataProvider.AddFeatures:
+            imageNumber = 0
+            cpFeatures = []
+            fpFeatures = []
+            imagesToDelete = []
 
-            targetFeatCP.setAttribute('hoehe', altitude)
-            targetFeatCP.setAttribute('fokus', self.parent.currentFilmInfoDict["kammerkonstante"])
-            targetFeatCP.setAttribute('massstab', altitude / self.parent.currentFilmInfoDict["kammerkonstante"] * 1000)
+            existingFeaturesCP = QgsVectorLayerUtils.getValues(self.targetLayerCP, "bildnummer")[0]
+            existingFeaturesFP = QgsVectorLayerUtils.getValues(self.targetLayerFP, "bildnummer")[0]
 
-            golygonCoordinates = placemark.xpath('.//kml:MultiGeometry/kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates/text()', namespaces={"kml": "http://earth.google.com/kml/2.2"})[0].replace('\n', '').replace('\t', '')
-            sourceGeometryFP = self.kmlToWktPolygon(golygonCoordinates)
-            targetGeometryFP = TransformGeometry(sourceGeometryFP, QgsCoordinateReferenceSystem("EPSG:4326"), self.targetLayerFP.crs())
-            targetFeatFP.setGeometry(targetGeometryFP)
-            targetFeatFP.setAttribute('filmnummer', self.filmId)
-            targetFeatFP.setAttribute('bildnummer', filmImageNumber)
-            targetFeatFP.setAttribute('shape_length', round(da.measurePerimeter(targetGeometryFP), 3))
-            targetFeatFP.setAttribute('shape_area', round(da.measureArea(targetGeometryFP), 3))
-            targetFeatFP.setAttribute('source', 'vexcel')
+            da = QgsDistanceArea()
+            da.setEllipsoid(self.targetLayerFP.crs().ellipsoidAcronym())
 
-            self.writeMsg(f"-----\n{imageNumber}, {name}")
-            # self.writeMsg(f"-----\n{filmImageNumber}, {name}, {cpGeom.asWkt()}, {altitude}")
-            # self.writeMsg(f"{fpGeom.asWkt()}")
-            description = placemark.xpath('.//kml:description/text()', namespaces={"kml": "http://earth.google.com/kml/2.2"})
-            if description:
-                description = description[0].replace('\n', '').replace('\t', '')
-                table = etree.XML(description)
-                runId = int(float(table.xpath("//table/tr/td[.='Run ID']/following-sibling::node()/text()")[0]))
-                countOnLine = int(float(table.xpath("//table/tr/td[.='Count on line']/following-sibling::node()/text()")[0]))
-                heading = int(float(table.xpath("//table/tr/td[.='Heading']/following-sibling::node()/text()")[0]))
-                self.writeMsg(f"{runId}, {countOnLine}, {heading}")
-                targetFeatCP.setAttribute('kappa', heading)
+            for placemark in placemarks:
+                targetFeatCP = QgsFeature(self.targetLayerCP.fields())
+                targetFeatFP = QgsFeature(self.targetLayerFP.fields())
+                imageNumber += 1
+                filmImageNumber = '{0}.{1:03d}'.format(self.filmId, imageNumber)
+                # does image exist?
+                if filmImageNumber in existingFeaturesCP or filmImageNumber in existingFeaturesFP:
+                    if mode == 2:
+                        # überschreiben
+                        #QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
+                        self.writeMsg(f"UPDATE: {filmImageNumber}: wird überschrieben.")
+                        imagesToDelete.append(filmImageNumber)
+                    elif mode == 3:
+                        # nicht überschreiben
+                        self.writeMsg(f"SKIP: {filmImageNumber}: wurde bereits kartiert.")
+                        continue
+                else:
+                    self.writeMsg(f"NEW: {filmImageNumber}: wird erstellt.")
 
-            cpFeatures.append(targetFeatCP)
-            fpFeatures.append(targetFeatFP)
+                # name = placemark.xpath('.//kml:name/text()', namespaces={"kml": "http://earth.google.com/kml/2.2"})[0].replace('\n', '').replace('\t', '')
 
-        if cpFeatures:
-            (resAFs, feats) = self.targetLayerCP.dataProvider().addFeatures(cpFeatures)
+                pointCoordinates = placemark.xpath('.//kml:MultiGeometry/kml:Point/kml:coordinates/text()', namespaces=ns)
+                if not pointCoordinates:
+                    self.cancelImportVexcel(f"ERROR: {filmImageNumber}: Die Mittelpunktkoordinaten (Lat, Lon, Alt) können nicht gelesen werden.")
+                    return
+                pointCoordinates = pointCoordinates[0].replace('\n', '').replace('\t', '').split(',')
+                if len(pointCoordinates) != 3:
+                    self.cancelImportVexcel(f"ERROR: {filmImageNumber}: Die Mittelpunktkoordinaten enthalten nicht alle Daten (Lat, Lon, Alt).")
+                    return
+                try:
+                    sourceGeometryCP = QgsGeometry.fromPointXY(QgsPointXY(float(pointCoordinates[0]), float(pointCoordinates[1])))
+                    altitude = int(float(pointCoordinates[2]))
+                except ValueError as e:
+                    self.cancelImportVexcel(f"ERROR: {filmImageNumber}: Die Mittelpunktkoordinaten sind ungeeignet (Lat, Lon, Alt): {e}")
+                    return
+                targetGeometryCP = TransformGeometry(sourceGeometryCP, QgsCoordinateReferenceSystem("EPSG:4326"), self.targetLayerCP.crs())
+                targetFeatCP.setGeometry(targetGeometryCP)
+                # From Film Table
+                # filmFields = ["form1", "form2", "weise", "kammerkonstante"]
+                targetFeatCP.setAttribute('filmnummer_hh_jjjj_mm', self.parent.currentFilmInfoDict["filmnummer_hh_jjjj_mm"])
+                targetFeatCP.setAttribute('filmnummer_nn', self.parent.currentFilmInfoDict["filmnummer_nn"])
+                targetFeatCP.setAttribute('filmnummer', self.filmId)
 
-        if fpFeatures:
-            (resAFs, feats) = self.targetLayerFP.dataProvider().addFeatures(fpFeatures)
+                targetFeatCP.setAttribute('bildnummer_nn', imageNumber)
+                targetFeatCP.setAttribute('bildnummer', filmImageNumber)
 
-        self.targetLayerCP.updateExtents()
-        self.targetLayerCP.triggerRepaint()
+                # Date TODAY
+                now = QDate.currentDate()
+                targetFeatCP.setAttribute('datum_ersteintrag', now.toString("yyyy-MM-dd"))
+                targetFeatCP.setAttribute('datum_aenderung', now.toString("yyyy-MM-dd"))
 
-        self.targetLayerFP.updateExtents()
-        self.targetLayerFP.triggerRepaint()
+                targetFeatCP.setAttribute('copyright', self.parent.currentFilmInfoDict["copyright"])
+                targetFeatCP.setAttribute('etikett', 0)  # By default fixed value of 0
+
+                # Calculated/Derived
+                cp = targetFeatCP.geometry().asPoint()
+                targetFeatCP.setAttribute('longitude', cp.x())
+                targetFeatCP.setAttribute('latitude', cp.y())
+
+                countryCode = GetCountryCode(self.dbm.db, cp)
+                targetFeatCP.setAttribute('land', countryCode)
+
+                if countryCode == 'AUT':
+                    # get meridian and epsg Code
+                    meridian, epsgGK = GetMeridianAndEpsgGK(cp.x())
+
+                    # get KG Coordinates
+                    gk = TransformGeometry(QgsGeometry(targetFeatCP.geometry()), self.targetLayerCP.crs(), QgsCoordinateReferenceSystem(f"EPSG:{epsgGK}"))
+                    gkx = gk.asPoint().y()  # Hochwert
+                    gky = gk.asPoint().x()  # Rechtswert
+                else:
+                    meridian = None
+                    gkx = None
+                    gky = None
+
+                targetFeatCP.setAttribute('meridian', meridian)
+                targetFeatCP.setAttribute('gkx', gkx)  # Hochwert
+                targetFeatCP.setAttribute('gky', gky)  # Rechtswert
+
+                targetFeatCP.setAttribute('hoehe', altitude)
+                targetFeatCP.setAttribute('fokus', self.parent.currentFilmInfoDict["kammerkonstante"])
+                targetFeatCP.setAttribute('massstab', altitude / self.parent.currentFilmInfoDict["kammerkonstante"] * 1000)
+
+                golygonCoordinates = placemark.xpath('.//kml:MultiGeometry/kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates/text()', namespaces=ns)
+                if not golygonCoordinates:
+                    self.cancelImportVexcel(f"ERROR: {filmImageNumber}: Die Footprintkoordinaten können nicht gelesen werden.")
+                    return
+                golygonCoordinates = golygonCoordinates[0].replace('\n', '').replace('\t', '')
+                try:
+                    sourceGeometryFP = self.kmlToWktPolygon(golygonCoordinates)
+                except Exception as e:
+                    self.cancelImportVexcel(f"ERROR: {filmImageNumber}: Die Footprintkoordinaten sind ungeeignet : {e}")
+                    return
+                targetGeometryFP = TransformGeometry(sourceGeometryFP, QgsCoordinateReferenceSystem("EPSG:4326"), self.targetLayerFP.crs())
+                targetFeatFP.setGeometry(targetGeometryFP)
+                targetFeatFP.setAttribute('filmnummer', self.filmId)
+                targetFeatFP.setAttribute('bildnummer', filmImageNumber)
+                targetFeatFP.setAttribute('shape_length', round(da.measurePerimeter(targetGeometryFP), 3))
+                targetFeatFP.setAttribute('shape_area', round(da.measureArea(targetGeometryFP), 3))
+                targetFeatFP.setAttribute('source', 'vexcel')
+
+                # self.writeMsg(f"{imageNumber}, {name}")
+                # self.writeMsg(f"-----\n{filmImageNumber}, {name}, {cpGeom.asWkt()}, {altitude}")
+                # self.writeMsg(f"{fpGeom.asWkt()}")
+                description = placemark.xpath('.//kml:description/text()', namespaces=ns)
+                if description:
+                    description = description[0].replace('\n', '').replace('\t', '')
+                    table = etree.XML(description)
+                    # runId = int(float(table.xpath("//table/tr/td[.='Run ID']/following-sibling::node()/text()")[0]))
+                    # countOnLine = int(float(table.xpath("//table/tr/td[.='Count on line']/following-sibling::node()/text()")[0]))
+                    heading = int(float(table.xpath("//table/tr/td[.='Heading']/following-sibling::node()/text()")[0]))
+                    # self.writeMsg(f"runid: {runId}, countOnLine: {countOnLine}, heading: {heading}\n-----")
+                    targetFeatCP.setAttribute('kappa', heading)
+
+                cpFeatures.append(targetFeatCP)
+                fpFeatures.append(targetFeatFP)
+
+            if imagesToDelete:
+                request = QgsFeatureRequest().setFilterExpression(u'"bildnummer" IN ({0})'.format(u', '.join(u'\'{0}\''.format(img) for img in imagesToDelete)))
+                featureIdsCPToDelete = []
+                featureIdsFPToDelete = []
+
+                for f in self.targetLayerCP.getFeatures(request):
+                    featureIdsCPToDelete.append(f.id())
+
+                for f in self.targetLayerFP.getFeatures(request):
+                    featureIdsFPToDelete.append(f.id())
+
+                res = self.targetLayerCP.dataProvider().deleteFeatures(featureIdsCPToDelete)
+                res = self.targetLayerFP.dataProvider().deleteFeatures(featureIdsFPToDelete)
+
+            if cpFeatures:
+                (resAFs, feats) = self.targetLayerCP.dataProvider().addFeatures(cpFeatures)
+
+            if fpFeatures:
+                (resAFs, feats) = self.targetLayerFP.dataProvider().addFeatures(fpFeatures)
+
+            self.targetLayerCP.updateExtents()
+            self.targetLayerCP.triggerRepaint()
+
+            self.targetLayerFP.updateExtents()
+            self.targetLayerFP.triggerRepaint()
+        else:
+            self.cancelImportVexcel("Probleme mit Layer Capabilities!")
+
+    def cancelImportVexcel(self, warning=None):
+        if warning:
+            QMessageBox.warning(self, "Vexcel Import", warning)
+        self.writeMsg("Vorgang wurde abgebrochen.")
+        self.uiImportBtn.setEnabled(True)
 
     def onClose(self):
         SetWindowSize("image_digital_auto_import", self.size())

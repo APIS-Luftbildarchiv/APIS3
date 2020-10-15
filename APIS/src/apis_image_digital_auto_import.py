@@ -32,11 +32,12 @@ import traceback
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog, QMessageBox, QPushButton, QFileDialog
 from PyQt5.QtCore import QSettings, QDate, QDir, QThread, QObject, pyqtSignal
-from PyQt5.QtSql import QSqlQuery
 
 # PyQGIS
-from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsCoordinateReferenceSystem, QgsPointXY, QgsVectorLayer,
-                       QgsFeatureRequest, QgsExpression, QgsVectorLayerUtils, QgsDistanceArea, QgsProject, QgsWkbTypes, Qgis, QgsMessageLog)
+from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsExpression,
+                       QgsCoordinateReferenceSystem, QgsPointXY, QgsFeatureRequest,
+                       QgsVectorLayerUtils, QgsDistanceArea, QgsProject, QgsWkbTypes,
+                       Qgis, QgsMessageLog)
 
 # APIS
 from APIS.src.apis_utils import (TransformGeometry, GetMeridianAndEpsgGK, SetWindowSize, GetWindowSize, GetExifForImage,
@@ -185,10 +186,10 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
     def autodetectSourcesVexcel(self):
         imageBasePath = self.settings.value("APIS/image_dir")
         vexcelPath = self.settings.value("APIS/vexcel_dir")
-        vexcelSourceDir = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, vexcelPath))
+        vexcelSourceFile = os.path.normpath(os.path.join(imageBasePath, self.filmId, vexcelPath, f"{self.filmId}.kml"))
 
-        if os.path.isdir(vexcelSourceDir):
-            self.uiVexcelSourceEdit.setText(vexcelSourceDir)
+        if os.path.isfile(vexcelSourceFile):
+            self.uiVexcelSourceEdit.setText(vexcelSourceFile)
         else:
             self.uiVexcelSourceEdit.clear()
 
@@ -573,6 +574,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     self.iface.mapCanvas().refresh()
 
                 if self.uiCopyToIns2camDirChk.isChecked():
+                    self.writeMsg("-----\nSource Datein werden in das Standardverzeichnis kopiert.")
                     imageBasePath = self.settings.value("APIS/image_dir")
                     monoplotPath = self.settings.value("APIS/monoplot_dir")
                     defaultCpFileName = self.settings.value("APIS/monoplot_cp_shp")
@@ -652,7 +654,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
             # Initiate Copy Files
             if self.uiCopyToOrientalDirChk.isChecked() and self.orientalSourceFiles:
-                self.writeMsg("-----\nSource Datien werden in das Standardverzeichnis kopiert.")
+                self.writeMsg("-----\nSource Datein werden in das Standardverzeichnis kopiert.")
                 imageBasePath = self.settings.value("APIS/image_dir")
                 orientalPath = self.settings.value("APIS/oriental_dir")
                 destinationDirName = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, orientalPath))
@@ -891,8 +893,8 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 for f in self.targetLayerFP.getFeatures(request):
                     featureIdsFPToDelete.append(f.id())
 
-                res = self.targetLayerCP.dataProvider().deleteFeatures(featureIdsCPToDelete)
-                res = self.targetLayerFP.dataProvider().deleteFeatures(featureIdsFPToDelete)
+                self.targetLayerCP.dataProvider().deleteFeatures(featureIdsCPToDelete)
+                self.targetLayerFP.dataProvider().deleteFeatures(featureIdsFPToDelete)
 
             if cpFeatures:
                 (resAFs, feats) = self.targetLayerCP.dataProvider().addFeatures(cpFeatures)
@@ -905,6 +907,23 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
             self.targetLayerFP.updateExtents()
             self.targetLayerFP.triggerRepaint()
+
+            if self.uiCopyToVexcelDirChk.isChecked():
+                self.writeMsg("-----\nSource Datein werden in das Standardverzeichnis kopiert.")
+                imageBasePath = self.settings.value("APIS/image_dir")
+                vexcelPath = self.settings.value("APIS/vexcel_dir")
+                destinationDirName = os.path.normpath(os.path.join(imageBasePath, self.parent.currentFilmNumber, vexcelPath))
+                defaultVexcelFileName = f"{self.filmId}.kml"
+                vexcelFilesToCopy = [{'source': fileName, 'destination': os.path.normpath(os.path.join(destinationDirName, defaultVexcelFileName))}]
+
+                for vexcelFileToCopy in vexcelFilesToCopy:
+                    self.writeMsg("{0} > {1}".format(vexcelFileToCopy['source'], vexcelFileToCopy['destination']))
+
+                if vexcelFilesToCopy:
+                    if CopyFiles(vexcelFilesToCopy, destinationDirName, checkDestination=True, parent=self):
+                        OpenFileOrFolder(destinationDirName)
+                self.writeMsg("Kopiervorgang abgeschloßen!")
+
         else:
             self.cancelImportVexcel("Probleme mit Layer Capabilities!")
 

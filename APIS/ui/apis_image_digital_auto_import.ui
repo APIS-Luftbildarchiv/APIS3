@@ -84,13 +84,6 @@
       <string>Vexcel / Bundesheer / KML:</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_6">
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="uiVexcelSourceEdit">
-        <property name="placeholderText">
-         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
@@ -116,6 +109,23 @@
         </property>
         <property name="autoDefault">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="uiVexcelSourceEdit">
+        <property name="placeholderText">
+         <string>Im Standardverzeichnis ist der Layer nicht vorhanden, bitte manuell auswählen.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QCheckBox" name="uiCopyToVexcelDirChk">
+        <property name="text">
+         <string>Daten (kml Datei) in den entsrechenden Vexcel Ordner kopieren</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

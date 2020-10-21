@@ -40,13 +40,7 @@ from qgis.core import (
     QgsGeometry,
     QgsFeature,
     QgsCoordinateReferenceSystem,
-    QgsProcessingContext,
-    QgsTaskManager,
-    QgsTask,
-    QgsProcessingAlgRunnerTask,
     Qgis,
-    QgsProcessingFeedback,
-    QgsApplication,
     QgsMessageLog,
 )
 

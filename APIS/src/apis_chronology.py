@@ -67,7 +67,7 @@ class APISChronology(QDialog, FORM_CLASS):
             chronologiesJsonFiles = self.chronologiesDir.entryList(['*.json'], QDir.Files)
             if len(chronologiesJsonFiles) > 0:
                 for chronology in chronologiesJsonFiles:
-                    if QFile(os.path.join(self.chronologiesDir.absolutePath(), chronology)).exists(): # and is chronology json file (find some token to verify)
+                    if QFile(os.path.join(self.chronologiesDir.absolutePath(), chronology)).exists():  # and is chronology json file (find some token to verify)
                         self.uiChronologyCombo.addItem(QFileInfo(chronology).completeBaseName())
 
                 indexCandidate = self.uiChronologyCombo.findText(self.candidateCountry)
@@ -85,7 +85,6 @@ class APISChronology(QDialog, FORM_CLASS):
         else:
             QMessageBox.warning(self, "Ordner existiert nicht", "Das angegebenen Verzeichnis ({0}) existiert nicht!".format(self.chronologiesDir.absolutePath()))
 
-
     def nested_dict_iter(self, nested):
         for key, value in nested.items():
             if isinstance(value, Mapping):
@@ -99,12 +98,12 @@ class APISChronology(QDialog, FORM_CLASS):
         fileName = os.path.join(self.chronologiesDir.absolutePath(), "{}.json".format(chronology))
         with open(fileName) as jsonFile:
             data = json.load(jsonFile)
+            del data
             # blub = JsonJ(data)
             # QMessageBox.information(self, "Info", json.dumps(blub))
-            #if "name" in data and data["name"] == chronology and "children" in data:
-                # for item in data["children"]:
-
-
+            # if "name" in data and data["name"] == chronology and "children" in data:
+            #     for item in data["children"]:
+            #         continue
             # else:
             #     QMessageBox.warning(self, "Chronologie JSON Datei fehlerhaft", "Die Chronologie JSON Datei ({0}) ist fehlerhaft!".format(fileName))
 
@@ -113,4 +112,3 @@ class APISChronology(QDialog, FORM_CLASS):
 
     def onRejected(self):
         SetWindowSizeAndPos("chronology", self.size(), self.pos())
-

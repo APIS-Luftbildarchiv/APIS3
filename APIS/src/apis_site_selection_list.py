@@ -25,17 +25,19 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView, QHeaderView, QPushButton, QFileDialog, QMenu, QAction
-from PyQt5.QtCore import QSettings, Qt, QDateTime, QFile, QDir
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QIcon
-
-from qgis.core import QgsDataSourceUri, QgsProject, QgsVectorLayer, QgsVectorFileWriter, QgsFeature
+from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView, QHeaderView, QMenu  # QPushButton, QFileDialog, QAction
+from PyQt5.QtCore import QSettings, QDateTime  # Qt, QFile, QDir
+from PyQt5.QtGui import QIcon  # QStandardItemModel, QStandardItem
 
 from APIS.src.apis_site import APISSite
-from APIS.src.apis_utils import (SiteHasFindspot, SitesHaveFindspots, GetFindspotNumbers, OpenFileOrFolder,
-                                 GetFindspotNumbers, GetWindowSize, GetWindowPos,
-                                 SetWindowSizeAndPos, PolygonOrPoint, SelectionOrAll, FileOrFolder)
-from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter, OutputMode
+from APIS.src.apis_utils import (SiteHasFindspot,
+                                 GetFindspotNumbers,
+                                 GetWindowSize,
+                                 GetWindowPos,
+                                 SetWindowSizeAndPos,
+                                 PolygonOrPoint,
+                                 SelectionOrAll, )  # SitesHaveFindspots, OpenFileOrFolder, FileOrFolder
+from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter  # OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -105,7 +107,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
         self.siteDlg = None
         self.printingOptionsDlg = None
 
-    def hideEvent(self,event):
+    def hideEvent(self, event):
         self.query = None
 
     def loadSiteListBySpatialQuery(self, query=None, info=None, update=False):
@@ -124,7 +126,7 @@ class APISSiteSelectionList(QDialog, FORM_CLASS):
         self.setupTable()
 
         self.uiItemCountLbl.setText(str(self.model.rowCount()))
-        if info != None:
+        if info is not None:
             self.uiInfoLbl.setText(info)
 
         return True

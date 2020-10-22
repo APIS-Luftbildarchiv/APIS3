@@ -77,7 +77,7 @@ class APISSiteEditFindspotConflictHandling(QDialog, FORM_CLASS):
                 sN = fSFeature.attribute("fundortnummer")
                 fSN = fSFeature.attribute("fundstellenummer")
 
-                fSNumber = u"{0}.{1}".format(sN,fSN)
+                fSNumber = u"{0}.{1}".format(sN, fSN)
                 #QMessageBox.information(None, 'Error', u"{0}, {1}, {2}".format(self.polygonDict[sN][0], self.polygonDict[sN][1], self.polygonDict[sN][2]))
                 #dj0 = self.polygonDict[sN][0].disjoint(fSGeom)
                 #tc0 = self.polygonDict[sN][0].touches(fSGeom)
@@ -128,7 +128,6 @@ class APISSiteEditFindspotConflictHandling(QDialog, FORM_CLASS):
                 else:
                     self.uiFindspotAssessmentTable.setItem(rowPos, 2, QTableWidgetItem(", ".join(action)))
 
-
     def getActions(self):
         '''
         :return: dict
@@ -137,7 +136,7 @@ class APISSiteEditFindspotConflictHandling(QDialog, FORM_CLASS):
         for row in range(self.uiFindspotAssessmentTable.rowCount()):
             fS = self.uiFindspotAssessmentTable.item(row, 0).text()
             cellType = self.uiFindspotAssessmentTable.cellWidget(row, 2)
-            if cellType == None:
+            if cellType is None:
                 action = self.uiFindspotAssessmentTable.item(row, 2).text()
             else:
                 action = cellType.currentText()

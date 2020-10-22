@@ -25,19 +25,19 @@
 import os
 from functools import partial
 
-from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QDate, QTime, QDateTime, QDir
-from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QColor, QIcon
+from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QDate, QTime, QDir  # QDateTime
+from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QIcon  # QColor
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate, QSqlQueryModel, QSqlRecord
 from PyQt5.QtWidgets import (QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView,
-                             QMessageBox, QPushButton, QFileDialog, QMenu, QApplication, QStyle)
+                             QMessageBox, QMenu, QApplication, QStyle)  # QPushButton, QFileDialog
 from PyQt5.uic import loadUiType
-from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature)
+# from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature)
 
 from APIS.src.apis_findingtype_detail import APISFindingTypeDetail
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
 from APIS.src.apis_text_editor import APISTextEditor
-from APIS.src.apis_utils import (OpenFileOrFolder, ApisLogger, VersionToCome, SetWindowSizeAndPos, GetWindowSize,
-                                 GetWindowPos, PolygonOrPoint)
+from APIS.src.apis_utils import (OpenFileOrFolder, ApisLogger, SetWindowSizeAndPos, GetWindowSize,
+                                 GetWindowPos, PolygonOrPoint)  # VersionToCome
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter
 from APIS.src.apis_thumb_viewer import APISThumbViewer
@@ -224,7 +224,6 @@ class APISFindspot(QDialog, FORM_CLASS):
     #     if self.uiAreaEdit.text() != siteArea:
     #         self.uiAreaEdit.setText(unicode(siteArea))
 
-
     # def openInAddMode(self, siteNumber):
     #     self.initalLoad = True
     #     self.siteNumber = siteNumber
@@ -241,8 +240,6 @@ class APISFindspot(QDialog, FORM_CLASS):
     #     self.startEditMode()
     #
     #     self.initalLoad = False
-
-
 
     def setupMapper(self):
         self.mapper = QDataWidgetMapper(self)
@@ -267,7 +264,6 @@ class APISFindspot(QDialog, FORM_CLASS):
         self.uiCadastralCommunityNumberEdit.setText(str(query.value(0)))
         self.uiCadastralCommunityEdit.setText(str(query.value(1)))
         # self.uiFieldNameEdit.setText(str('' if query.isNull(2) else query.value(2)))
-
 
         self.lineEditMaps = {
             "common_name": {
@@ -300,18 +296,18 @@ class APISFindspot(QDialog, FORM_CLASS):
                 "validator": self.doubleValidator
             },
             "datum_abs_1": {
-               "editor": self.uiAbsoluteDatingFromEdit
+                "editor": self.uiAbsoluteDatingFromEdit
             },
             "datum_abs_2": {
                 "editor": self.uiAbsoluteDatingToEdit
             },
-            "befundart_detail":{
+            "befundart_detail": {
                 "editor": self.uiFindingTypeDetailEdit
             },
-            "literatur":{
+            "literatur": {
                 "editor": self.uiLiteraturePTxt
             },
-            "fundbeschreibung":{
+            "fundbeschreibung": {
                 "editor": self.uiFindingsPTxt
             },
             "fundverbleib": {
@@ -383,11 +379,11 @@ class APISFindspot(QDialog, FORM_CLASS):
                 "depend": None
             },
             "phase_bis": {
-                 "editor": self.uiFineDatingToCombo,
-                 "table": "phase",
-                 "modelcolumn": 1,
-                 "justshowcolumn": True,
-                 "depend": None
+                "editor": self.uiFineDatingToCombo,
+                "table": "phase",
+                "modelcolumn": 1,
+                "justshowcolumn": True,
+                "depend": None
             },
             "datierungsbasis": {
                 "editor": self.uiDatingSourceCombo,
@@ -402,7 +398,7 @@ class APISFindspot(QDialog, FORM_CLASS):
                 "modelcolumn": 0,
                 "justshowcolumn": False,
                 "depend": None
-            }#,
+            }  # ,
             # "befundart": {
             #     "editor": self.uiFindingTypeCombo,
             #     "table": "befundart",
@@ -423,50 +419,46 @@ class APISFindspot(QDialog, FORM_CLASS):
             self.setupComboBox(item["editor"], item["table"], item["modelcolumn"], item["justshowcolumn"], item["depend"])
             item["editor"].editTextChanged.connect(self.onLineEditChanged)
 
-
-        #befundart
+        # befundart
         self.mapper.addMapping(self.uiFindingTypeCombo, self.model.fieldIndex("befundart"))
         query = u"SELECT DISTINCT {0} FROM {0}".format("befundart")
         self.setupComboBoxByQuery(self.uiFindingTypeCombo, query)
         self.uiFindingTypeCombo.editTextChanged.connect(self.onLineEditChanged)
         self.uiFindingTypeCombo.currentIndexChanged.connect(self.resetFindingTypeDetail)
 
-
-        #datierung
+        # datierung
         self.mapper.addMapping(self.uiDatingTimeCombo, self.model.fieldIndex("datierung_zeitstufe"))
         self.mapper.addMapping(self.uiDatingPeriodCombo, self.model.fieldIndex("datierung_periode"))
         self.mapper.addMapping(self.uiDatingPeriodDetailCombo, self.model.fieldIndex("datierung_periode_detail"))
 
+        # query = u"SELECT DISTINCT {0} FROM {0}".format("zeit")
+        # self.setupComboBoxByQuery(self.uiDatingTimeCombo, query)
+        # self.uiDatingTimeCombo.setCurrentIndex(-1)
 
+        # txt = self.uiDatingTimeCombo.lineEdit().text()
+        # idx = self.uiDatingTimeCombo.findText(txt)
+        # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}, {1}".format(txt, idx))
+        # self.loadPeriodContent(0)
+        # self.loadPeriodDetailsContent(0)
 
-        #query = u"SELECT DISTINCT {0} FROM {0}".format("zeit")
-        #self.setupComboBoxByQuery(self.uiDatingTimeCombo, query)
-        #self.uiDatingTimeCombo.setCurrentIndex(-1)
-
-        #txt = self.uiDatingTimeCombo.lineEdit().text()
-        #idx = self.uiDatingTimeCombo.findText(txt)
-        #QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}, {1}".format(txt, idx))
-        #self.loadPeriodContent(0)
-        #self.loadPeriodDetailsContent(0)
-
-        #self.uiDatingTimeCombo.editTextChanged.connect(self.onLineEditChanged)
-        #self.uiDatingPeriodCombo.editTextChanged.connect(self.onLineEditChanged)
-        #self.uiDatingPeriodDetailCombo.editTextChanged.connect(self.onLineEditChanged)
-        #self.uiDatingTimeCombo.currentIndexChanged.connect(self.loadPeriodContent)
-        #self.uiDatingPeriodCombo.currentIndexChanged.connect(self.loadPeriodDetailsContent)
+        # self.uiDatingTimeCombo.editTextChanged.connect(self.onLineEditChanged)
+        # self.uiDatingPeriodCombo.editTextChanged.connect(self.onLineEditChanged)
+        # self.uiDatingPeriodDetailCombo.editTextChanged.connect(self.onLineEditChanged)
+        # self.uiDatingTimeCombo.currentIndexChanged.connect(self.loadPeriodContent)
+        # self.uiDatingPeriodCombo.currentIndexChanged.connect(self.loadPeriodDetailsContent)
         # self.uiDatingCombo.currentIndexChanged.connect(self.joinRowValues)
 
     def loadPeriodContent(self, row):
-        #QMessageBox.warning(None, self.tr(u"Datierung Sender"), u"TimeCombo Chagned: {0}".format(row))
-        #pass
-        #QMessageBox.warning(None, self.tr(u"Datierung Sender"), u"P: {0}".format(self.sender()))
+        # QMessageBox.warning(None, self.tr(u"Datierung Sender"), u"TimeCombo Chagned: {0}".format(row))
+        # pass
+        # QMessageBox.warning(None, self.tr(u"Datierung Sender"), u"P: {0}".format(self.sender()))
 
         time = self.uiDatingTimeCombo.lineEdit().text()
         period = self.uiDatingPeriodCombo.lineEdit().text()
-        #QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}, {1}".format(time, period))
-        #if time != "":
-        #time = self.uiDatingTimeCombo.lineEdit().text()
-        #period = self.uiDatingPeriodCombo.lineEdit().text()
+        # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}, {1}".format(time, period))
+        # if time != "":
+        # time = self.uiDatingTimeCombo.lineEdit().text()
+        # period = self.uiDatingPeriodCombo.lineEdit().text()
         # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(time))
         self.setupComboBoxByQuery(self.uiDatingPeriodCombo, u"SELECT DISTINCT periode FROM zeit WHERE zeit ='{0}'".format(time))
 
@@ -477,12 +469,10 @@ class APISFindspot(QDialog, FORM_CLASS):
 
         # QMessageBox.warning(None, self.tr(u"Datierung"), u"{0}".format(index))
 
-
         if index < 0 and self.uiDatingPeriodCombo.count() == 1:
             self.uiDatingPeriodCombo.setCurrentIndex(0)
         else:
             self.uiDatingPeriodCombo.setCurrentIndex(index)
-
 
     def loadPeriodDetailsContent(self, row):
         #QMessageBox.warning(None, self.tr(u"Datierung Sender"), u"PD: {0}".format(self.sender()))
@@ -497,7 +487,6 @@ class APISFindspot(QDialog, FORM_CLASS):
             index = self.uiDatingPeriodDetailCombo.findText(periodDetail)
         else:
             index = self.uiDatingPeriodDetailCombo.findText(period)
-
 
         if index < 0 and self.uiDatingPeriodDetailCombo.count() == 1:
             self.uiDatingPeriodDetailCombo.setCurrentIndex(0)
@@ -585,9 +574,8 @@ class APISFindspot(QDialog, FORM_CLASS):
         if depend:
             editor.currentIndexChanged.connect(partial(self.updateDepends, editor, depend))
 
-
     def updateDepends(self, editor, depend):
-         for dep in depend:
+        for dep in depend:
             for key, value in dep.iteritems():
                 idx = editor.model().createIndex(editor.currentIndex(), editor.model().fieldIndex(key))
                 value.setText(str(editor.model().data(idx)))
@@ -602,12 +590,10 @@ class APISFindspot(QDialog, FORM_CLASS):
     #         values.append(record.value(i))
     #     editor.lineEdit().setText(", ".join(values))
 
-
     def enableItemsInLayout(self, layout, enable):
         for i in range(layout.count()):
             if layout.itemAt(i).widget():
                 layout.itemAt(i).widget().setEnabled(enable)
-
 
     def onLineEditChanged(self):
         sender = self.sender()
@@ -755,7 +741,6 @@ class APISFindspot(QDialog, FORM_CLASS):
                 QMessageBox.information(self, u"Begehung", u"Es wurden keine Dateien [*.jpg] für diesen Fundort gefunden.")
         else:
             QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
-
 
     def cloneFindspot(self):
         self.initalLoad = True
@@ -967,7 +952,7 @@ class APISFindspot(QDialog, FORM_CLASS):
             result = QMessageBox.question(self,
                                           header,
                                           question,
-                                          QMessageBox.Yes | QMessageBox.No ,
+                                          QMessageBox.Yes | QMessageBox.No,
                                           QMessageBox.Yes)
 
             #save or not save
@@ -1018,45 +1003,46 @@ class APISFindspot(QDialog, FORM_CLASS):
                 editor.setStyleSheet("")
         self.editorsEdited = []
 
-        #self.uiDatingTimeCombo.editTextChanged.disconnect(self.onLineEditChanged)
-        #self.uiDatingPeriodCombo.editTextChanged.disconnect(self.onLineEditChanged)
-        #self.uiDatingPeriodDetailCombo.editTextChanged.disconnect(self.onLineEditChanged)
+        # self.uiDatingTimeCombo.editTextChanged.disconnect(self.onLineEditChanged)
+        # self.uiDatingPeriodCombo.editTextChanged.disconnect(self.onLineEditChanged)
+        # self.uiDatingPeriodDetailCombo.editTextChanged.disconnect(self.onLineEditChanged)
         self.initalLoad = True
         self.uiDatingTimeCombo.currentIndexChanged.disconnect(self.loadPeriodContent)
         self.uiDatingPeriodCombo.currentIndexChanged.disconnect(self.loadPeriodDetailsContent)
-        #self.loadPeriodContent(0)
-        #self.loadPeriodDetailsContent(0)
+        # self.loadPeriodContent(0)
+        # self.loadPeriodDetailsContent(0)
         time = self.uiDatingTimeCombo.lineEdit().text()
         period = self.uiDatingPeriodCombo.lineEdit().text()
         periodDetail = self.uiDatingPeriodDetailCombo.lineEdit().text()
-        #QMessageBox.warning(None, "Test", u"{0}, {1}, {2}".format(time, period, periodDetail))
+        # QMessageBox.warning(None, "Test", u"{0}, {1}, {2}".format(time, period, periodDetail))
 
         self.uiDatingTimeCombo.setCurrentIndex(self.uiDatingTimeCombo.findText(time))
         self.loadPeriodContent(0)
         self.loadPeriodDetailsContent(0)
-        #self.setupComboBoxByQuery(self.uiDatingPeriodCombo, u"SELECT DISTINCT periode FROM zeit WHERE zeit ='{0}'".format(time))
-        #self.uiDatingPeriodCombo.setCurrentIndex(self.uiDatingPeriodCombo.findText(period))
-        #self.setupComboBoxByQuery(self.uiDatingPeriodDetailCombo, u"SELECT DISTINCT periode_detail FROM zeit WHERE zeit = '{0}' AND periode = '{1}'".format(time, period))
-        #self.uiDatingPeriodDetailCombo.setCurrentIndex(self.uiDatingPeriodDetailCombo.findText(periodDetail))
+        # self.setupComboBoxByQuery(self.uiDatingPeriodCombo, u"SELECT DISTINCT periode FROM zeit WHERE zeit ='{0}'".format(time))
+        # self.uiDatingPeriodCombo.setCurrentIndex(self.uiDatingPeriodCombo.findText(period))
+        # self.setupComboBoxByQuery(self.uiDatingPeriodDetailCombo, u"SELECT DISTINCT periode_detail FROM zeit WHERE zeit = '{0}' AND periode = '{1}'".format(time, period))
+        # self.uiDatingPeriodDetailCombo.setCurrentIndex(self.uiDatingPeriodDetailCombo.findText(periodDetail))
 
-        #self.uiDatingTimeCombo.editTextChanged.connect(self.onLineEditChanged)
-        #self.uiDatingPeriodCombo.editTextChanged.connect(self.onLineEditChanged)
-        #self.uiDatingPeriodDetailCombo.editTextChanged.connect(self.onLineEditChanged)
+        # self.uiDatingTimeCombo.editTextChanged.connect(self.onLineEditChanged)
+        # self.uiDatingPeriodCombo.editTextChanged.connect(self.onLineEditChanged)
+        # self.uiDatingPeriodDetailCombo.editTextChanged.connect(self.onLineEditChanged)
         self.uiDatingTimeCombo.currentIndexChanged.connect(self.loadPeriodContent)
         self.uiDatingPeriodCombo.currentIndexChanged.connect(self.loadPeriodDetailsContent)
         self.initalLoad = False
-        #self.setWindowModality(Qt.NonModal)
-        #self.setModal(False)
-        #if modalityFlag:
+        # self.setWindowModality(Qt.NonModal)
+        # self.setModal(False)
+        # if modalityFlag:
         #    self.hide()
         #    self.show()
 
     def isGeometrySaved(self):
         return self.isGeometryEditingSaved and self.geometryEditing
 
+
 class FindspotDelegate(QSqlRelationalDelegate):
     def __init__(self):
-       QSqlRelationalDelegate.__init__(self)
+        QSqlRelationalDelegate.__init__(self)
 
     def createEditor(self, parent, option, index):
         pass
@@ -1069,15 +1055,15 @@ class FindspotDelegate(QSqlRelationalDelegate):
             value = ''
 
         if editor.metaObject().className() == 'QTimeEdit' and value == '':
-            editor.setTime(QTime(0,0,0))
-            #if value == '':
-                #value ="00:00:00"
+            editor.setTime(QTime(0, 0, 0))
+            # if value == '':
+            #     value ="00:00:00"
 
         elif editor.metaObject().className() == 'QLineEdit':
             editor.setText(value)
 
         elif editor.metaObject().className() == 'QComboBox':
-            if index.column() == 3: #3 - sicherheit
+            if index.column() == 3:  # 3 - sicherheit
                 #if value == '':
                 #    editor.setCurrentIndex(-1)
                 #else:
@@ -1098,11 +1084,11 @@ class FindspotDelegate(QSqlRelationalDelegate):
             QSqlRelationalDelegate.setEditorData(self, editor, index)
 
     def setModelData(self, editor, model, index):
-        #if editor.metaObject().className() == 'QLineEdit':
-            #QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
-            #if unicode(index.data(Qt.DisplayRole)) != unicode(editor.text()):
-            #    QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
-            #    model.setData(index, editor.text())
+        # if editor.metaObject().className() == 'QLineEdit':
+        #     QMessageBox.warning(None, "Test", str(index.data(Qt.DisplayRole)) + ',' + str(editor.text()))
+        #     if str(index.data(Qt.DisplayRole)) != str(editor.text()):
+        #         QMessageBox.warning(None, "Test", str(index.data(Qt.DisplayRole)) + ',' + str(editor.text()))
+        #         model.setData(index, editor.text())
 
         # if index.column() == 0: #0 ... filmnummer, 1 ... filmnummer_legacy, 2 ... filmnummer_hh_jjjj_mm, 3 ... filmnummer_nn
         #     #QMessageBox.warning(None, "Test", unicode(index.column()) + editor.text())
@@ -1130,33 +1116,33 @@ class FindspotDelegate(QSqlRelationalDelegate):
         #elif (editor.metaObject().className() == 'QLineEdit' and editor.text()==''):
         #    model.setData(model.createIndex(index.row(), 0), None)
         elif editor.metaObject().className() == 'QComboBox':
-            if index.column() == 3: #3 - sicherheit
-                model.setData(index, editor.currentIndex()+1)
+            if index.column() == 3:  # 3 - sicherheit
+                model.setData(index, editor.currentIndex() + 1)
             else:
                 model.setData(index, editor.currentText())
         else:
             QSqlRelationalDelegate.setModelData(self, editor, model, index)
 
+
 class InListValidator(QValidator):
-        def __init__(self, itemList, editor, depend, parent):
-            QValidator.__init__(self, parent)
+    def __init__(self, itemList, editor, depend, parent):
+        QValidator.__init__(self, parent)
 
-            self.itemList = itemList
-            self.editor = editor
-            self.depend = depend
+        self.itemList = itemList
+        self.editor = editor
+        self.depend = depend
 
-        def validate(self, s, pos):
+    def validate(self, s, pos):
 
-            if str(s) in self.itemList or str(s).strip()=='':
-                if self.depend and str(s).strip()=='':
-                    for dep in self.depend:
-                        for key, value in dep.iteritems():
-                            value.setText("")
-                return (QValidator.Acceptable, s, pos)
+        if str(s) in self.itemList or str(s).strip() == '':
+            if self.depend and str(s).strip() == '':
+                for dep in self.depend:
+                    for key, value in dep.iteritems():
+                        value.setText("")
+            return (QValidator.Acceptable, s, pos)
 
-            return (QValidator.Invalid, "", pos)
+        return (QValidator.Invalid, "", pos)
 
-
-        def fixup(self, s):
-            #QMessageBox.warning(None, "Test", unicode(s))
-            self.editor.setText("")
+    def fixup(self, s):
+        #QMessageBox.warning(None, "Test", unicode(s))
+        self.editor.setText("")

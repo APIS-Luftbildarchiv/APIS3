@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*
 
 from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QFileDialog
-from PyQt5.QtCore import (Qt, pyqtSlot, pyqtSignal, QObject, QDateTime, QDir, QSettings, QFile,
-                          QDate, QRectF)
+from PyQt5.QtCore import (Qt, QObject, QDateTime, QDir, QSettings, QFile,
+                          QDate, QRectF)  # pyqtSlot, pyqtSignal
 from PyQt5.QtXml import QDomDocument
 from PyQt5.QtSql import QSqlQuery
 from PyQt5.QtGui import QFont, QColor
@@ -11,14 +11,14 @@ from qgis.core import (Qgis, QgsMessageLog, QgsLayout, QgsProject, QgsLayoutExpo
                        QgsReadWriteContext, QgsApplication, QgsVectorLayer, QgsRasterLayer, QgsCoordinateTransform,
                        QgsCoordinateReferenceSystem, QgsLineSymbol, QgsHueSaturationFilter, QgsLayoutItemMap,
                        QgsDataSourceUri, QgsFeature, QgsGeometry, QgsLayoutUtils, QgsLayoutItem, QgsLayoutSize,
-                       QgsLayoutPoint, QgsLayoutItemLabel, QgsRectangle, QgsLayoutItemTextTable, QgsLayoutFrame,
+                       QgsLayoutPoint, QgsLayoutItemLabel, QgsLayoutItemTextTable, QgsLayoutFrame,
                        QgsLayoutMultiFrame, QgsLayoutTableColumn, QgsLayoutTable, QgsLayoutAligner, QgsLayoutItemGroup,
-                       QgsLayoutItemPicture, QgsLayoutItemShape, QgsFillSymbol)
+                       QgsLayoutItemPicture, QgsLayoutItemShape, QgsFillSymbol)  # QgsRectangle
 
 from APIS.src.apis_utils import (GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect, TransformGeometry,
-                                SetExportPath, GetExportPath)
+                                 SetExportPath, GetExportPath)
 
-import traceback, sys, os, errno, shutil, random, math
+import os, errno, shutil, math  # traceback, sys, random
 
 from PyPDF2 import PdfFileMerger, PdfFileReader
 from osgeo import ogr
@@ -29,10 +29,12 @@ class SelectionMode:
     Selection = 0
     All = 1
 
+
 class OutputMode:
     MergeNone = 0
     MergeAll = 1
     MergeByGroup = 2
+
 
 class APISPrinterQueue(QObject):
 
@@ -161,7 +163,7 @@ class APISPrinterQueue(QObject):
                 if self.isCanceled:
                     raise Exception('APISPrinterQueue', 'PrintingCanceled')
                 self.progress.setLabelText("PDF Export: {0}".format(printable['fileName']))
-                if not 'options' in printable:
+                if 'options' not in printable:
                     printable['options'] = {}
 
                 if printable['type'] == APISListPrinter.FILM:
@@ -267,13 +269,13 @@ class APISTemplatePrinter:
             s = s.replace(a, b)
         return s
 
-    def escape(self, s):
-        s = s.replace("&", "&amp;")
-        s = s.replace("<", "&lt;")
-        s = s.replace(">", "&gt;")
-        s = s.replace("\"", "&quot;")
-        s = s.replace("'", "&apos;")
-        return s
+    # def escape(self, s):
+    #     s = s.replace("&", "&amp;")
+    #     s = s.replace("<", "&lt;")
+    #     s = s.replace(">", "&gt;")
+    #     s = s.replace("\"", "&quot;")
+    #     s = s.replace("'", "&apos;")
+    #     return s
 
     def applySubstituteDict(self, templateStr, d):
         for key, value in d.items():
@@ -303,20 +305,19 @@ class APISTemplatePrinter:
         apisMap = self.layout.itemById('apis_map')
         if isinstance(apisMap, QgsLayoutItemMap):
             apisMap.setKeepLayerSet(False)
-            vectorLayer = self.requestVectorLayer() #goes into Specialist printer #vectorCrs = QgsCoordinateReferenceSystem(4312, QgsCoordinateReferenceSystem.EpsgCrsId)
+            vectorLayer = self.requestVectorLayer()  # goes into Specialist printer #vectorCrs = QgsCoordinateReferenceSystem(4312, QgsCoordinateReferenceSystem.EpsgCrsId)
             if vectorLayer and vectorLayer.hasFeatures():
                 rasterCrs = QgsCoordinateReferenceSystem(3857, QgsCoordinateReferenceSystem.EpsgCrsId)
                 t = QgsCoordinateTransform(vectorLayer.crs(), rasterCrs, QgsProject.instance())
                 extent = t.transform(vectorLayer.extent())
                 extent = self.requestExtent(extent)
-                if extent.height() > 0 and extent.width() > 0: #if all points were on the same location
+                if extent.height() > 0 and extent.width() > 0:  # if all points were on the same location
                     layerSet.append(vectorLayer)
 
                     if self.requestBackgroundMap() == "oek50":
                         layerSet.extend(self.requestOekLayerSet())
                     else:
                         layerSet.append(self.requestWmsLayer(extent, apisMap.sizeWithUnits(), xyz=self.requestBackgroundMap()))
-                    #
 
                     apisMap.setCrs(rasterCrs)
                     apisMap.zoomToExtent(extent)
@@ -359,7 +360,6 @@ class APISTemplatePrinter:
             wasPrinted = False
 
         #QgsMessageLog().logMessage("Number of Items: {0}".format(len(layout.pageCollection().itemsOnPage(0))), 'APIS', Qgis.Warning, notifyUser=True)
-
 
         # Remove MapLayers
         if layerSet:
@@ -470,7 +470,6 @@ class APISTemplatePrinter:
                                 accWordWidth += spaceWidth
                                 newText += word + u" "
 
-
                     else:
                         lineCount += 1  # math.ceil(textWidth / boxWidth)
                         if lineCount > 1:
@@ -541,13 +540,13 @@ class APISTemplatePrinter:
                         footer += 1
 
                     # copy Logo
-                    l = self.layout.itemById("logo")
-                    if isinstance(l, QgsLayoutItemPicture):
+                    layoutItemLogo = self.layout.itemById("logo")
+                    if isinstance(layoutItemLogo, QgsLayoutItemPicture):
                         logo = QgsLayoutItemPicture(self.layout)
-                        logo.setPicturePath(l.picturePath())
+                        logo.setPicturePath(layoutItemLogo.picturePath())
                         logo.refreshPicture()
-                        logo.attemptSetSceneRect(QRectF(l.pos().x(), l.pos().y(), l.rectWithFrame().width(), l.rectWithFrame().height()))
-                        logo.attemptMove(QgsLayoutPoint(l.positionAtReferencePoint(QgsLayoutItem.UpperLeft)), useReferencePoint=False, page=currentPage)
+                        logo.attemptSetSceneRect(QRectF(layoutItemLogo.pos().x(), layoutItemLogo.pos().y(), layoutItemLogo.rectWithFrame().width(), layoutItemLogo.rectWithFrame().height()))
+                        logo.attemptMove(QgsLayoutPoint(layoutItemLogo.positionAtReferencePoint(QgsLayoutItem.UpperLeft)), useReferencePoint=False, page=currentPage)
                         self.layout.addItem(logo)
 
                 itemTxt.attemptMove(QgsLayoutPoint(itemTxt.pos().x(), y), useReferencePoint=False, page=currentPage)
@@ -573,7 +572,7 @@ class APISTemplatePrinter:
         shape = QgsLayoutItemShape(layout)
         shape.setShapeType(s.shapeType())
         shape.setSymbol(s.symbol())
-        shape.attemptSetSceneRect(QRectF(s.pos().x(), s.pos().y(), s.rectWithFrame().width() - s.estimatedFrameBleed()*2.0, s.rectWithFrame().height() - s.estimatedFrameBleed()*2.0), includesFrame=False)
+        shape.attemptSetSceneRect(QRectF(s.pos().x(), s.pos().y(), s.rectWithFrame().width() - s.estimatedFrameBleed() * 2.0, s.rectWithFrame().height() - s.estimatedFrameBleed()*2.0), includesFrame=False)
         shape.attemptMove(QgsLayoutPoint(shape.positionAtReferencePoint(QgsLayoutItem.UpperLeft)), useReferencePoint=False, page=currentPage)
         layout.addItem(shape)
 
@@ -729,7 +728,7 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
         while query.next():
             rec = query.record()
             for col in range(rec.count()):
-                val = "{0}".format(rec.value(col)) #str(rec.value(col))
+                val = "{0}".format(rec.value(col))  # str(rec.value(col))
                 if val.replace(" ", "") == '' or val == 'NULL':
                     val = "---"
 
@@ -807,9 +806,9 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
 
     def adjustItems(self):
         adjustItemHight = ["parzelle", "flur", "hoehe", "flaeche", "kommentar_lage", "kgs_lage", "befund",
-                              "literatur", "sonstiges"]
+                           "literatur", "sonstiges"]
         adjustItemsPos = ["parzelle", "flur", "hoehe", "flaeche", "kommentar_lage", "kgs_lage", "media", "befund",
-                       "literatur", "sonstiges"]
+                          "literatur", "sonstiges"]
         self.adjustItemsHightAndPos(adjustItemHight, adjustItemsPos)
 
     def loadRepresentativeImage(self):
@@ -820,6 +819,7 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
             return path if repImageFile.exists() else None
         else:
             return None
+
 
 class APISFindspotTemplatePrinter(APISTemplatePrinter):
     FILENAMETEMPLATE = "Fundstelle_{0}"
@@ -840,8 +840,8 @@ class APISFindspotTemplatePrinter(APISTemplatePrinter):
         while query.next():
             rec = query.record()
             for col in range(rec.count()):
-                val = "{0}".format(rec.value(col)) #str(rec.value(col))
-                if val.replace(" ", "") == '' or val == 'NULL': # TODO use .isNull()
+                val = "{0}".format(rec.value(col))  # str(rec.value(col))
+                if val.replace(" ", "") == '' or val == 'NULL':  # TODO use .isNull()
                     val = "---"
 
                 substituteDict[str(rec.fieldName(col))] = val
@@ -867,7 +867,7 @@ class APISFindspotTemplatePrinter(APISTemplatePrinter):
     def adjustItems(self):
         adjustItemHight = ["parzelle", "kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte", "literatur", "sonstiges"]
         adjustItemsPos = ["parzelle", "kommentar_lage", "fundbeschreibung", "fundverbleib", "befund", "befundgeschichte",
-                           "literatur", "sonstiges"]
+                          "literatur", "sonstiges"]
         self.adjustItemsHightAndPos(adjustItemHight, adjustItemsPos)
 
 
@@ -943,14 +943,13 @@ class APISListPrinter:
                 if updatedField:
                     rec.setValue(r, updatedField)
                 row.append("{}".format('' if rec.isNull(r) else rec.value(r)))
-            rows.append([str(len(rows)+1).zfill(len(str(totalCount)))] + row)
+            rows.append([str(len(rows) + 1).zfill(len(str(totalCount)))] + row)
 
         table.setContents(rows)
 
         frame = QgsLayoutFrame(layout, table)
-        frame.attemptResize(QgsLayoutSize(page.pageSize().width(), page.pageSize().height()-40), True)
+        frame.attemptResize(QgsLayoutSize(page.pageSize().width(), page.pageSize().height() - 40), True)
         table.addFrame(frame)
-
 
         for f in table.frames():
             pIdx = layoutPageCollection.pageNumberForPoint(f.pagePos())
@@ -959,13 +958,12 @@ class APISListPrinter:
             f.attemptMoveBy(0, 21)
 
         for p in layoutPageCollection.pages():
-            self._addLabel(layout, layoutPageCollection.pageNumber(p), self.header(), 5, 5, (p.pageSize().width()/2)-5, 12, marginX=2, font=QFont("Arial", 16, 75))
-            self._addLabel(layout, layoutPageCollection.pageNumber(p), "Anzahl:\t{0}".format(totalCount), p.pageSize().width()/2, 5, (p.pageSize().width()/2)-5, 12, marginX=2, halign=Qt.AlignRight)
+            self._addLabel(layout, layoutPageCollection.pageNumber(p), self.header(), 5, 5, (p.pageSize().width() / 2) - 5, 12, marginX=2, font=QFont("Arial", 16, 75))
+            self._addLabel(layout, layoutPageCollection.pageNumber(p), "Anzahl:\t{0}".format(totalCount), p.pageSize().width() / 2, 5, (p.pageSize().width() / 2) - 5, 12, marginX=2, halign=Qt.AlignRight)
 
             #self._addLabel(layout, layoutPageCollection.pageNumber(p), "Luftbildarchiv, Institut für Urgeschichte und Historische Archäologie, Universität Wien", 5, p.pageSize().height()-5, (p.pageSize().width()*0.75)-5, 8, marginX=2, refPoint=QgsLayoutItem.LowerLeft)
-            self._addShapeAndLogo(layout, layoutPageCollection.pageNumber(p), 5, p.pageSize().height()-5, (p.pageSize().width()*0.75)-5, 12, marginX=2, refPoint=QgsLayoutItem.LowerLeft)
-            self._addLabel(layout, layoutPageCollection.pageNumber(p), "Seite {0}\n{1}".format(layoutPageCollection.pageNumber(p)+1, QDateTime.currentDateTime().toString("dd.MM.yyyy")), p.pageSize().width()-5, p.pageSize().height()-5, (p.pageSize().width()*0.25)-5, 12, marginX=2, refPoint=QgsLayoutItem.LowerRight, halign=Qt.AlignRight)
-
+            self._addShapeAndLogo(layout, layoutPageCollection.pageNumber(p), 5, p.pageSize().height() - 5, (p.pageSize().width() * 0.75) - 5, 12, marginX=2, refPoint=QgsLayoutItem.LowerLeft)
+            self._addLabel(layout, layoutPageCollection.pageNumber(p), "Seite {0}\n{1}".format(layoutPageCollection.pageNumber(p) + 1, QDateTime.currentDateTime().toString("dd.MM.yyyy")), p.pageSize().width() - 5, p.pageSize().height() - 5, (p.pageSize().width() * 0.25) - 5, 12, marginX=2, refPoint=QgsLayoutItem.LowerRight, halign=Qt.AlignRight)
 
         # Export
         if layout.pageCollection().pageCount() > 0:
@@ -1008,10 +1006,9 @@ class APISListPrinter:
         logo.setReferencePoint(refPoint)
         logo.setPicturePath(os.path.join(*[QSettings().value("APIS/plugin_dir"), "templates", "layout", "Luftbildarchiv.png"]))
         logo.refreshPicture()
-        logo.attemptResize(QgsLayoutSize(w-2, h-2))
-        logo.attemptMove(QgsLayoutPoint(x+2, y-1), page=pIdx)
+        logo.attemptResize(QgsLayoutSize(w - 2, h - 2))
+        logo.attemptMove(QgsLayoutPoint(x + 2, y - 1), page=pIdx)
         layout.addItem(logo)
-
 
 
 class APISFilmListPrinter(APISListPrinter):
@@ -1173,7 +1170,7 @@ class APISLabelPrinter:
         for labelGroup in labelGroups:
             dx = self.currentCol * self.labelWidth()
             dy = self.currentRow * self.labelHeight()
-            labelGroup.attemptMove(QgsLayoutPoint(dx, dy), page=self.pageCount-1)
+            labelGroup.attemptMove(QgsLayoutPoint(dx, dy), page=self.pageCount - 1)
             self.layout.addItem(labelGroup)
             self.currentCol += 1
             if self.currentCol >= self.colCount:
@@ -1206,12 +1203,12 @@ class APISLabelPrinter:
                 h = self.labelHeight() * self.labelLayout[key]['height']
                 maxH = max(maxH, h)
 
-                if x+w > self.labelWidth():
+                if x + w > self.labelWidth():
                     x = 0
                     y += maxH
                     maxH = max(maxH, h)
 
-                if y+h > self.labelHeight():
+                if y + h > self.labelHeight():
                     y = 0
                     x = 0
 
@@ -1240,6 +1237,7 @@ class APISLabelPrinter:
         label.setFont(self.labelLayout[key]['font'])
         self.layout.addItem(label)
         return label
+
 
 class APISObliqueLabelPrinter(APISLabelPrinter):
     FILENAMETEMPLATE = "Etiketten_Schräg"
@@ -1284,6 +1282,7 @@ class APISObliqueLabelPrinter(APISLabelPrinter):
 
     def labelHeight(self):
         return 10.0
+
 
 class APISVerticalLabelPrinter(APISLabelPrinter):
     FILENAMETEMPLATE = "Etiketten_Senkrecht"
@@ -1371,7 +1370,7 @@ class APISVerticalLabelPrinter(APISLabelPrinter):
             self.labelsData.append(labelData)
 
         self.labelItemOrder = ['title', 'bildnummer', 'mil_nummer', 'flugdatum', 'kamera', 'fokus', 'massstab', 'hoehe',
-                          'fundort_kg']
+                               'fundort_kg']
         self.labelLayout = {
             'title': {'width': 1.0, 'height': 1.0 / 6.0, 'font': QFont("Arial", 5), 'halign': Qt.AlignCenter,
                       'valign': Qt.AlignVCenter},
@@ -1399,3 +1398,4 @@ class APISVerticalLabelPrinter(APISLabelPrinter):
 
     def labelHeight(self):
         return 35.0
+    

@@ -25,16 +25,19 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView, QHeaderView, QFileDialog, QPushButton, QMenu
-from PyQt5.QtCore import QSettings, Qt, QDateTime, QDir, QFile
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QIcon
+from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView, QHeaderView, QMenu  # QFileDialog, QPushButton
+from PyQt5.QtCore import QSettings, QDateTime  # Qt, QDir, QFile
+from PyQt5.QtGui import QIcon  # QStandardItemModel, QStandardItem
 
-from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature, QgsVectorFileWriter)
+# from qgis.core import (QgsProject, QgsVectorLayer, QgsDataSourceUri, QgsFeature, QgsVectorFileWriter)
 
 from APIS.src.apis_findspot import APISFindspot
-from APIS.src.apis_utils import (OpenFileOrFolder, GetWindowSize, GetWindowPos, SetWindowSizeAndPos,
-                                 SelectionOrAll, PolygonOrPoint, FileOrFolder)
-from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter, OutputMode
+from APIS.src.apis_utils import (GetWindowSize,
+                                 GetWindowPos,
+                                 SetWindowSizeAndPos,
+                                 SelectionOrAll,
+                                 PolygonOrPoint, )  # FileOrFolder, OpenFileOrFolder
+from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISTemplatePrinter  # OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 
 FORM_CLASS, _ = loadUiType(os.path.join(
@@ -97,18 +100,18 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         self.findspotDlg = None
         self.printingOptionsDlg = None
 
-    def hideEvent(self,event):
+    def hideEvent(self, event):
         self.query = None
 
     def loadFindspotListBySpatialQuery(self, query=None, info=None, update=False):
-        if self.query == None:
+        if self.query is None:
             self.query = query
 
         self.model = self.dbm.queryToQStandardItemModel(self.query)
 
         if self.model is None or self.model.rowCount() < 1:
             if not update:
-                QMessageBox.warning(self, "Fundstellen Auswahl", u"Es wurden keine Fundstellen gefunden!")
+                QMessageBox.warning(self, "Fundstellen Auswahl", "Es wurden keine Fundstellen gefunden!")
             self.query = None
             self.done(1)
             return False
@@ -116,7 +119,7 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         self.setupTable()
 
         self.uiItemCountLbl.setText(str(self.model.rowCount()))
-        if info != None:
+        if info is not None:
             self.uiInfoLbl.setText(info)
 
         return True
@@ -136,7 +139,7 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
     def openFindspotDialog(self, idx):
         findspotNumber = self.model.item(idx.row(), 1).text()
         siteNumber = self.model.item(idx.row(), 0).text()
-        if self.findspotDlg == None:
+        if self.findspotDlg is None:
             self.findspotDlg = APISFindspot(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self)
             self.findspotDlg.findspotEditsSaved.connect(self.reloadTable)
             self.findspotDlg.findspotDeleted.connect(self.reloadTable)

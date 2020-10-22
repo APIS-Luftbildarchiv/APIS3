@@ -31,7 +31,7 @@ from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDeleg
 from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QIcon
 
 from APIS.src.apis_thumb_viewer import APISThumbViewer
-from APIS.src.apis_utils import VersionToCome, OpenFileOrFolder, GetWindowSize, SetWindowSize
+from APIS.src.apis_utils import OpenFileOrFolder, GetWindowSize, SetWindowSize  # VersionToCome
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_sharding.ui'), resource_suffix='')
@@ -108,7 +108,6 @@ class APISSharding(QDialog, FORM_CLASS):
         query.first()
         self.uiCadastralCommunityEdit.setText(query.value(0))
 
-
     def setupMapper(self):
         self.mapper = QDataWidgetMapper(self)
         self.mapper.setSubmitPolicy(QDataWidgetMapper.ManualSubmit)
@@ -129,25 +128,25 @@ class APISSharding(QDialog, FORM_CLASS):
             "begehung": {
                 "editor": self.uiShardingNumberEdit
             },
-            "name":{
+            "name": {
                 "editor": self.uiNameEdit
             },
-            "parzelle":{
+            "parzelle": {
                 "editor": self.uiPlotPTxt
             },
-            "sichtbarkeit":{
+            "sichtbarkeit": {
                 "editor": self.uiVisibilityEdit
             },
-            "verbleib":{
+            "verbleib": {
                 "editor": self.uiWhereaboutsEdit
             },
-            "funde":{
+            "funde": {
                 "editor": self.uiFindsPTxt
             },
-            "morphologie":{
+            "morphologie": {
                 "editor": self.uiMorphologyPTxt
             },
-            "sonstiges":{
+            "sonstiges": {
                 "editor": self.uiMiscellaneousPTxt
             }
         }
@@ -268,13 +267,10 @@ class APISSharding(QDialog, FORM_CLASS):
         self.addMode = True
         self.startEditMode()
 
+        # self.mapper.submit()
 
-        #self.mapper.submit()
-
-
-        #self.model.insertRow(row)
-        #self.mapper.setCurrentIndex(row)
-
+        # self.model.insertRow(row)
+        # self.mapper.setCurrentIndex(row)
 
         self.uiSiteNumberEdit.setText(self.siteNumber)
         self.uiShardingNumberEdit.setText(str(self.shardingNumber))
@@ -290,7 +286,7 @@ class APISSharding(QDialog, FORM_CLASS):
     def removeNewSharding(self):
         self.initalLoad = True
         row = self.mapper.currentIndex()
-        self.model.removeRow(row+1)
+        self.model.removeRow(row + 1)
         self.model.submitAll()
         while (self.model.canFetchMore()):
             self.model.fetchMore()
@@ -349,7 +345,7 @@ class APISSharding(QDialog, FORM_CLASS):
             result = QMessageBox.question(self,
                                           self.tr(u"Änderungen wurden vorgenommen!"),
                                           self.tr(u"Möchten Sie die Änerungen speichern?"),
-                                          QMessageBox.Yes | QMessageBox.No ,
+                                          QMessageBox.Yes | QMessageBox.No,
                                           QMessageBox.Yes)
 
             #save or not save
@@ -383,7 +379,6 @@ class APISSharding(QDialog, FORM_CLASS):
             self.uiShardingDate.setStyleSheet("background-color: rgb(218, 218, 218);")
         else:
             self.uiShardingDate.setStyleSheet("")
-
 
     def endEditMode(self):
         self.editMode = False
@@ -465,34 +460,35 @@ class APISSharding(QDialog, FORM_CLASS):
         else:
             QMessageBox.information(self, u"Begehung", u"Das Verzeichnis '{0}' wurde nicht gefunden.".format(path))
 
+
 class ShardingDelegate(QSqlRelationalDelegate):
     def __init__(self):
-       QSqlRelationalDelegate.__init__(self)
+        QSqlRelationalDelegate.__init__(self)
 
     def createEditor(self, parent, option, index):
         pass
 
     def setEditorData(self, editor, index):
-        #QMessageBox.warning(None, "Test", str(editor.metaObject().className(index))()) + str
+        # QMessageBox.warning(None, "Test", str(editor.metaObject().className(index))()) + str
         value = str(index.model().data(index, Qt.EditRole))
 
         if value == 'NULL':
             value = ''
 
         if editor.metaObject().className() == 'QTimeEdit' and value == '':
-            editor.setTime(QTime(0,0,0))
-            #if value == '':
-                #value ="00:00:00"
-                #QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
+            editor.setTime(QTime(0, 0, 0))
+            # if value == '':
+            #     value ="00:00:00"
+            #     QMessageBox.warning(None, "Test", unicode(index.model().data(index, Qt.EditRole)))
         elif editor.metaObject().className() == 'QLineEdit':
             editor.setText(value)
 
         elif editor.metaObject().className() == 'QComboBox':
-            if index.column() == 23: #sicherheit
+            if index.column() == 23:  # sicherheit
                 if value == '':
                     editor.setCurrentIndex(-1)
                 else:
-                    editor.setCurrentIndex(int(value)-1)
+                    editor.setCurrentIndex(int(value) - 1)
             else:
                 editor.setEditText(value)
 
@@ -504,14 +500,14 @@ class ShardingDelegate(QSqlRelationalDelegate):
             QSqlRelationalDelegate.setEditorData(self, editor, index)
 
     def setModelData(self, editor, model, index):
-        #if editor.metaObject().className() == 'QLineEdit':
-            #QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
-            #if unicode(index.data(Qt.DisplayRole)) != unicode(editor.text()):
-            #    QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
-            #    model.setData(index, editor.text())
+        # if editor.metaObject().className() == 'QLineEdit':
+        #     QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
+        #     if unicode(index.data(Qt.DisplayRole)) != unicode(editor.text()):
+        #        QMessageBox.warning(None, "Test", unicode(index.data(Qt.DisplayRole)) + ',' + unicode(editor.text()))
+        #        model.setData(index, editor.text())
 
-       # if index.column() == 0: #0 ... filmnummer, 1 ... filmnummer_legacy, 2 ... filmnummer_hh_jjjj_mm, 3 ... filmnummer_nn
-        #     #QMessageBox.warning(None, "Test", unicode(index.column()) + editor.text())
+        # if index.column() == 0: #0 ... filmnummer, 1 ... filmnummer_legacy, 2 ... filmnummer_hh_jjjj_mm, 3 ... filmnummer_nn
+        #     # QMessageBox.warning(None, "Test", unicode(index.column()) + editor.text())
 
         #     model.setData(model.createIndex(index.row(), 2), filmnummer[:8]) # filmnummer_hh_jjjj_mm
         #     model.setData(model.createIndex(index.row(), 1), int(index.row())) # filmnummer_nn
@@ -524,7 +520,6 @@ class ShardingDelegate(QSqlRelationalDelegate):
         #     model.setData(model.createIndex(index.row(), 1), mil + filmnummer[4:]) # filmnummer_legacy
 
         if editor.metaObject().className() == 'QDateEdit':
-        #if editor.metaObject().className() == 'QDateEdit':
             model.setData(index, editor.date().toString("yyyy-MM-dd"))
         elif editor.metaObject().className() == 'QTimeEdit':
             model.setData(index, editor.time().toString("HH:mm:ss"))
@@ -543,23 +538,24 @@ class ShardingDelegate(QSqlRelationalDelegate):
         else:
             QSqlRelationalDelegate.setModelData(self, editor, model, index)
 
+
 class InListValidator(QValidator):
-        def __init__(self, itemList, editor, depend, parent):
-            QValidator.__init__(self, parent)
-            self.itemList = itemList
-            self.editor = editor
-            self.depend = depend
+    def __init__(self, itemList, editor, depend, parent):
+        QValidator.__init__(self, parent)
+        self.itemList = itemList
+        self.editor = editor
+        self.depend = depend
 
-        def validate(self, s, pos):
-            if str(s) in self.itemList or str(s).strip()=='':
-                if self.depend and str(s).strip()=='':
-                    for dep in self.depend:
-                        for key, value in dep.iteritems():
-                            value.setText("")
-                return (QValidator.Acceptable, s, pos)
+    def validate(self, s, pos):
+        if str(s) in self.itemList or str(s).strip() == '':
+            if self.depend and str(s).strip() == '':
+                for dep in self.depend:
+                    for key, value in dep.iteritems():
+                        value.setText("")
+            return (QValidator.Acceptable, s, pos)
 
-            return (QValidator.Invalid, "", pos)
+        return (QValidator.Invalid, "", pos)
 
-        def fixup(self, s):
-            #QMessageBox.warning(None, "Test", unicode(s))
-            self.editor.setText("")
+    def fixup(self, s):
+        #QMessageBox.warning(None, "Test", unicode(s))
+        self.editor.setText("")

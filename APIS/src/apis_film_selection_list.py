@@ -25,11 +25,11 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QMenu, QMessageBox
+from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QMenu  # QMessageBox
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QIcon, QStandardItemModel, QStandardItem
 
-from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, APISListPrinter, OutputMode
+from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, APISListPrinter  # OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_utils import SelectionOrAll, SetWindowSizeAndPos, GetWindowSize, GetWindowPos
 

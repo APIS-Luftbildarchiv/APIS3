@@ -8,6 +8,7 @@ from qgis.gui import QgsMapTool, QgsRubberBand, QgsVertexMarker
 
 import math
 
+
 class APISMapToolMixin():
 
     def setDiagonal(self, diagonal):
@@ -37,17 +38,17 @@ class APISMapToolMixin():
         pointUtm = QgsPointXY(pointGeom.asPoint())
 
         # calculate d
-        d = self.diagonal/(2*(2**0.5))
+        d = self.diagonal / (2 * (2**0.5))
 
-        l = pointUtm.x() - d
-        b = pointUtm.y() - d
-        r = pointUtm.x() + d
-        t = pointUtm.y() + d
+        left = pointUtm.x() - d
+        bottom = pointUtm.y() - d
+        right = pointUtm.x() + d
+        top = pointUtm.y() + d
 
-        p1 = QgsGeometry.fromPointXY(QgsPointXY(l, b))
-        p2 = QgsGeometry.fromPointXY(QgsPointXY(r, b))
-        p3 = QgsGeometry.fromPointXY(QgsPointXY(r, t))
-        p4 = QgsGeometry.fromPointXY(QgsPointXY(l, t))
+        p1 = QgsGeometry.fromPointXY(QgsPointXY(left, bottom))
+        p2 = QgsGeometry.fromPointXY(QgsPointXY(right, bottom))
+        p3 = QgsGeometry.fromPointXY(QgsPointXY(right, top))
+        p4 = QgsGeometry.fromPointXY(QgsPointXY(left, top))
 
         p1.transform(ctBwd)
         p2.transform(ctBwd)
@@ -72,7 +73,7 @@ class APISMapToolMixin():
         z = math.floor((x + 180) / 6) + 1
 
         if y >= 56.0 and y < 64.0 and x >= 3.0 and x < 12.0:
-            ZoneNumber = 32
+            z = 32
 
         # Special zones for Svalbard
         if y >= 72.0 and y < 84.0:
@@ -115,7 +116,7 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
             point = self.getCapturedPoint()
             polygon = self.getDerivedPolygon()
             self.stopCapturing()
-            if point != None and polygon != None:
+            if point is not None and polygon is not None:
                 self.mappingFinished.emit(self.getPointGeometry(point), self.getPolygonGeometry(polygon), self.canvas.mapSettings().destinationCrs())
 
     def keyPressEvent(self, event):
@@ -129,7 +130,7 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
             point = self.getCapturedPoint()
             polygon = self.getDerivedPolygon()
             self.stopCapturing()
-            if point != None and polygon != None:
+            if point is not None and polygon is not None:
                 self.mappingFinished.emit(self.getPointGeometry(point), self.getPolygonGeometry(polygon), self.canvas.mapSettings().destinationCrs())
 
     def startCapturing(self):
@@ -176,8 +177,7 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
         self.updateRubberBand()
 
     def updateRubberBand(self):
-
-        if  self.capturedPoint and self.rubberBand:
+        if self.capturedPoint and self.rubberBand:
 
             # calculate Points
             self.derivedPolygon = self.calculateSquare(self.capturedPoint)
@@ -189,7 +189,7 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
     def getCapturedPoint(self):
         point = self.capturedPoint
 
-        if point == None:
+        if point is None:
             return None
         else:
             return point
@@ -197,7 +197,7 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
     def getDerivedPolygon(self):
         polygon = self.derivedPolygon
 
-        if polygon == None:
+        if polygon is None:
             return None
         else:
             return polygon
@@ -250,7 +250,7 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
                 self.clearScene()
 
     def canvasMoveEvent(self, event):
-        if self.tempRubberBand != None and self.capturing:
+        if self.tempRubberBand is not None and self.capturing:
             mapPt = self.transformCoordinates(event.pos())
             self.tempRubberBand.movePoint(mapPt)
 
@@ -265,10 +265,10 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
             point = self.getDerivedPoint()
             polygon = self.getCapturedPolygon()
             self.stopCapturing()
-            if point != None and polygon != None:
+            if point is not None and polygon is not None:
                 pointGeom = self.getPointGeometry(point)
                 polygonGeom = self.getPolygonGeometry(polygon)
-                if pointGeom != None and polygonGeom != None:
+                if pointGeom is not None and polygonGeom is not None:
                     self.mappingFinished.emit(pointGeom, polygonGeom, self.canvas.mapSettings().destinationCrs())
                 else:
                     self.clearScene()
@@ -345,8 +345,6 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
             self.derivedPoint = cpGeom.asPoint()
             self.vertexMarker.show()
 
-
-
         self.tempRubberBand.reset(QgsWkbTypes.PolygonGeometry)
         firstPoint = self.rubberBand.getPoint(0, 0)
         self.tempRubberBand.addPoint(firstPoint)
@@ -386,7 +384,6 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
             self.derivedPoint = cpGeom.asPoint()
             self.vertexMarker.show()
 
-
         del self.capturedPoints[-1]
 
     def getCapturedPolygon(self):
@@ -400,7 +397,7 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
     def getDerivedPoint(self):
         point = self.derivedPoint
 
-        if point == None:
+        if point is None:
             return None
         else:
             return point

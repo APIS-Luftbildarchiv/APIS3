@@ -121,7 +121,7 @@ class ApisDbManager:
                 # QMessageBox.information(None, "trigger", f"{table}.{keys} -> {deps[i]}.{[deps[i+j] for j in range(1, len(keys) + 1)]}")
 
                 # Delete Trigger
-                whereClauseList = [] 
+                whereClauseList = []
                 for j in range(0, len(keys)):
                     whereClauseList.append(f'({deps[i+j+1]} = OLD.{keys[j]} OR {deps[i+j+1]} LIKE "%;"||OLD.{keys[j]}||";%" OR {deps[i+j+1]} LIKE "%;"||OLD.{keys[j]} OR {deps[i+j+1]} LIKE OLD.{keys[j]}||";%")')
                     # whereClauseList.append(f'{deps[i+j+1]} LIKE "%"||OLD.{keys[j]}||"%"')

@@ -26,19 +26,29 @@ import os
 from osgeo import ogr
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QTableWidgetItem, QHeaderView, QCheckBox, QMenu, QMessageBox,
-                             QPushButton)
-from PyQt5.QtCore import QSettings, Qt, QVariant, QDateTime
+from PyQt5.QtWidgets import (QDialog,
+                             QTableWidgetItem,
+                             QHeaderView,
+                             QCheckBox,
+                             QMenu, )  # QDialogButtonBox, QPushButton, QMessageBox
+from PyQt5.QtCore import QSettings, QVariant, QDateTime  # Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlQuery
 
-from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsField, QgsFields, QgsFeature, QgsGeometry,
-                       QgsCoordinateReferenceSystem, QgsPoint, QgsMessageLog, Qgis, QgsPointXY, QgsWkbTypes,
-                       QgsCoordinateTransform)
+from qgis.core import (QgsProject,
+                       QgsDataSourceUri,
+                       QgsVectorLayer,
+                       QgsField,
+                       QgsFeature,
+                       QgsGeometry,
+                       QgsCoordinateReferenceSystem,
+                       QgsWkbTypes,
+                       QgsCoordinateTransform, )  # QgsFields, QgsPoint, QgsMessageLog, Qgis, QgsPointXY,
 
-from APIS.src.apis_points2path import Points2Path
-from APIS.src.apis_utils import (TransformGeometry, SetWindowSizeAndPos, GetWindowSize, GetWindowPos, OpenFileOrFolder,
-                                 FileOrFolder)
+from APIS.src.apis_utils import (TransformGeometry,
+                                 SetWindowSizeAndPos,
+                                 GetWindowSize,
+                                 GetWindowPos, )  # OpenFileOrFolder, FileOrFolder
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_flight_path.ui'), resource_suffix='')
@@ -73,7 +83,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
         mSelect = QMenu()
         mSelect.addSection("Linien")
         aSelectBestAvailableLine = mSelect.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'flightpath.png')), "Beste Verfügbarkeit")
-        aSelectBestAvailableLine.triggered.connect(lambda: self.selectBestAvailable([2,4,6]))
+        aSelectBestAvailableLine.triggered.connect(lambda: self.selectBestAvailable([2, 4, 6]))
         aSelectFlightGpsPoint = mSelect.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'flightpath.png')), "GPS Flug")
         aSelectFlightGpsPoint.triggered.connect(lambda: self.selectColumns([2]))
         aSelectCameraGpsPoint = mSelect.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'flightpath.png')), "GPS Kamera")
@@ -82,7 +92,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
         aSelectImageMappingPoint.triggered.connect(lambda: self.selectColumns([6]))
         mSelect.addSection("Punkte")
         aSelectBestAvailablePoint = mSelect.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'flightpath.png')), "Beste Verfügbarkeit")
-        aSelectBestAvailablePoint.triggered.connect(lambda: self.selectBestAvailable([1,3,5]))
+        aSelectBestAvailablePoint.triggered.connect(lambda: self.selectBestAvailable([1, 3, 5]))
         aSelectFlightGpsPoint = mSelect.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'flightpath.png')), "GPS Flug")
         aSelectFlightGpsPoint.triggered.connect(lambda: self.selectColumns([1]))
         aSelectCameraGpsPoint = mSelect.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'flightpath.png')), "GPS Kamera")
@@ -142,14 +152,13 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
             if os.path.isdir(flightPathDirectory):
 
-                if os.path.isfile(flightPathDirectory + "\\" + film + ".shp"): #AND MORE THAN ONE FEATURE
+                if os.path.isfile(flightPathDirectory + "\\" + film + ".shp"):  # AND MORE THAN ONE FEATURE
                     chkBoxFlightGpsPoint.setText("verfügbar")
                     chkBoxFlightGpsPoint.setEnabled(True)
 
                 if os.path.isfile(flightPathDirectory + "\\" + film + "_lin.shp"):
                     chkBoxFlightGpsLine.setText("verfügbar")
                     chkBoxFlightGpsLine.setEnabled(True)
-
 
                 shpFile = flightPathDirectory + "\\" + film + "_gps.shp"
                 dataSource = self.shpDriver.Open(shpFile, 0)  # 0 means read-only. 1 means writeable.
@@ -246,14 +255,14 @@ class APISFlightPath(QDialog, FORM_CLASS):
             self.uiLayerTBtn.setEnabled(False)
 
     def getSelection(self):
-        filmsBySourceType = [[],[],[],[],[],[]]
+        filmsBySourceType = [[], [], [], [], [], []]
         table = self.uiFlightPathAvailabilityTable
         for row in range(0, table.rowCount()):
             film = table.item(row, 0).text()
             for column in range(1, table.columnCount()):
                 chkBox = table.cellWidget(row, column)
                 if chkBox.isEnabled() and chkBox.isChecked():
-                    filmsBySourceType[column-1].append(film)
+                    filmsBySourceType[column - 1].append(film)
         return filmsBySourceType
 
     def exportLayerAsShp(self):
@@ -417,7 +426,7 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
     def multiPointToLineString(self, feature):
         geom = feature.geometry()
-        pointList =[]
+        pointList = []
         for g in geom.asGeometryCollection():
             pointList.append(g.asPoint())
 
@@ -442,6 +451,3 @@ class APISFlightPath(QDialog, FORM_CLASS):
 
     def yearFromFilm(self, film):
         return film[2:6]
-
-
-

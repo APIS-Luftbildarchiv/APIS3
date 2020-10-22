@@ -26,9 +26,8 @@ import os
 
 from PyQt5.uic import loadUiType
 from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView
-from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtCore import QSettings  # Qt
 from PyQt5.QtSql import QSqlQuery
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
 from APIS.src.apis_utils import GetWindowSize, SetWindowSize
 from APIS.src.apis_sharding import APISSharding
@@ -95,10 +94,10 @@ class APISShardingSelectionList(QDialog, FORM_CLASS):
         shardingDlg.openSharding(self.siteNumber, shardingNumber)
         # Run the dialog event loop
         res = shardingDlg.exec_()
-        #if res:
-            # reload the table after closing
-            #self.loadShardingListBySiteNumber(self.siteNumber)
-        #MessageBox.warning(None, "test", u"{0}".format(res))
+        # if res:
+        #     # reload the table after closing
+        #     self.loadShardingListBySiteNumber(self.siteNumber)
+        # QMessageBox.warning(None, "test", u"{0}".format(res))
 
     def addNewSharding(self):
         shardingDlg = APISSharding(self.iface, self.dbm, parent=self)
@@ -107,10 +106,10 @@ class APISShardingSelectionList(QDialog, FORM_CLASS):
         shardingDlg.addNewSharding(self.siteNumber)
 
         res = shardingDlg.exec_()
-        #if res:
-            # reload the table after closing
-            #self.loadShardingListBySiteNumber(self.siteNumber)
-        #QMessageBox.warning(None, "test", u"{0}".format(res))
+        # if res:
+        #     # reload the table after closing
+        #     self.loadShardingListBySiteNumber(self.siteNumber)
+        # QMessageBox.warning(None, "test", u"{0}".format(res))
 
     def reloadShardingList(self):
         self.loadShardingListBySiteNumber(self.siteNumber)

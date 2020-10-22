@@ -52,7 +52,6 @@ class APISChronology(QDialog, FORM_CLASS):
 
         self.settings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
-
         self.currentChronology = None
         self.chronologiesDir = None
         self.isSetup = False
@@ -61,8 +60,6 @@ class APISChronology(QDialog, FORM_CLASS):
         self.rejected.connect(self.onRejected)
 
         self.loadAvailableChronologies()
-
-
 
     def loadAvailableChronologies(self):
         self.chronologiesDir = QDir(self.settings.value("APIS/chronology_dir"))

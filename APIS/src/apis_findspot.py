@@ -617,8 +617,6 @@ class APISFindspot(QDialog, FORM_CLASS):
             sender.setStyleSheet("{0} {{background-color: rgb(153, 204, 255);}}".format(sender.metaObject().className()))
             self.editorsEdited.append(sender)
 
-
-
     def openTextEditor(self, title, editor):
         textEditorDlg = APISTextEditor(self)
         textEditorDlg.setWindowTitle(title)

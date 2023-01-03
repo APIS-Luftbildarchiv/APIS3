@@ -41,7 +41,13 @@ from APIS.src.apis_film_selection_list import APISFilmSelectionList
 from APIS.src.apis_flight_path import APISFlightPath
 from APIS.src.apis_image_selection_list import APISImageSelectionList
 from APIS.src.apis_site_selection_list import APISSiteSelectionList
-from APIS.src.apis_utils import SetWindowSizeAndPos, GetWindowSize, GetWindowPos
+from APIS.src.apis_utils import (
+    SetWindowSizeAndPos,
+    GetWindowSize,
+    GetWindowPos,
+    FilmHasImageCenterpoints,
+    FilmHasImageFootprints
+)
 from APIS.src.apis_weather import APISWeather
 from APIS.src.apis_printer import APISPrinterQueue, APISTemplatePrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
@@ -459,7 +465,7 @@ class APISFilm(QDialog, FORM_CLASS):
             editor.setDisabled(isOblique)
 
     def onFilmModeChanged(self):
-        if self.uiFilmModeCombo.currentText() == u'schräg':
+        if self.uiFilmModeCombo.currentIndex() == APISFilm.OBLIQUE:
             self.disableIfOblique(True)
         else:
             self.disableIfOblique(False)
@@ -837,6 +843,28 @@ class APISFilm(QDialog, FORM_CLASS):
         if not res:
             sqlError = self.mapper.model().lastError()
             QMessageBox.information(self, "Submit", u"Error: {0}, {1}".format(res, sqlError.text()))
+        else:
+            # check if kammerkonstante was changed
+            filmNumber = self.uiCurrentFilmNumberEdit.text()
+            if self.uiFilmModeCombo.currentIndex() == APISFilm.VERTICAL and self.uiCalibratedFocalLengthEdit in self.editorsEdited and FilmHasImageCenterpoints(self.dbm.db, filmNumber, False):
+                message = ""
+                # update fokus and massstab in lufbild_senk_cp!
+                focus = float(self.uiCalibratedFocalLengthEdit.text())
+                query = QSqlQuery(self.dbm.db)
+                qStr = f"""UPDATE luftbild_senk_cp
+                    SET fokus = {focus},
+                        massstab = hoehe / {focus} * 1000
+                    WHERE
+                        filmnummer={filmNumber}"""
+                query.prepare(qStr)
+                query.exec_()
+                fpCount = int(FilmHasImageFootprints(self.dbm.db, filmNumber, False))
+                if fpCount:
+                    message = f"Achtung: Für den Film {filmNumber} {'ist' if fpCount == 1 else 'sind'} {fpCount} Footprint{'s' if fpCount != 1 else ''} vorhanden. Durch die Änderung der Kammerkonstante dürften diese nicht mehr korrekt sein. Bitte erstellen Sie die Footprints neu. Dazu müssen Sie die Footprints manuell löschen und mit der Bild Kartierung neu erzeugen. Vorsicht: Eventuell sind die bestehenden Foodprints bereits aus digitaler Quelle und sind weiterhin korrekt."
+                # focus = self.uiCalibratedFocalLengthEdit.text()
+                # FilmHasImageCenterpoints,
+                # FilmHasImageFootprints
+                QMessageBox.warning(self, "Warning", f"Die Kammerkonstante wurde verändert. Der Fokus (Kammerkonstante) und der Bildmassstab wurde in der Bild Centerpoints Tabelle aktualisiert. {message}")
 
         while (self.model.canFetchMore()):
             self.model.fetchMore()

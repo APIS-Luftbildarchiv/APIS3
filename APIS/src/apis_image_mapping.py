@@ -478,11 +478,12 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
             # From Input (Radius, Höhe, Schlüsslewort, Beschreibung)
             if self.isOblique:
                 feat.setAttribute('radius', float(self.uiImageDiameterSpn.value() / 2))
-                feat.setAttribute('beschreibung', self.uiImageDescriptionEdit.text())
+                imageDescription = self.uiImageDescriptionObliqueEdit.text()
                 h = self.uiFlightHeightObliqueSpn.value()
                 for j in range(self.uiProjectObliqueList.count()):
                     items.append(self.uiProjectObliqueList.item(j))
             else:
+                imageDescription = self.uiImageDescriptionVerticalEdit.text()
                 h = self.uiFlightHeightVerticalSpn.value()
                 feat.setAttribute('fokus', self.currentFilmInfoDict["kammerkonstante"])
                 if not self.currentFilmInfoDict["kammerkonstante"] or not self.currentFilmInfoDict["kammerkonstante"] > 0:
@@ -494,6 +495,7 @@ class APISImageMapping(QDockWidget, FORM_CLASS):
 
             feat.setAttribute('projekt', ";".join([i.text() for i in items]))
             feat.setAttribute('hoehe', h)
+            feat.setAttribute('beschreibung', imageDescription)
 
             # Calculated/Derived
             feat.setAttribute('longitude', self.imageCenterPoint.x())

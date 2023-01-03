@@ -368,7 +368,7 @@
              <widget class="QListWidget" name="uiProjectObliqueList"/>
             </item>
             <item row="2" column="1" colspan="3">
-             <widget class="QLineEdit" name="uiImageDescriptionEdit"/>
+             <widget class="QLineEdit" name="uiImageDescriptionObliqueEdit"/>
             </item>
             <item row="3" column="4">
              <widget class="QPushButton" name="uiEditProjectTableObliqueBtn">
@@ -396,8 +396,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>310</width>
-           <height>292</height>
+           <width>358</width>
+           <height>317</height>
           </rect>
          </property>
          <attribute name="icon">
@@ -410,38 +410,7 @@
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <layout class="QGridLayout" name="gridLayout">
-            <item row="4" column="2">
-             <widget class="QPushButton" name="uiRemoveProjectVerticalBtn">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="resource.qrc">
-                <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_16">
-              <property name="text">
-               <string>Projekt(e):</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_6">
-              <property name="text">
-               <string>Bildnummer:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="2">
+            <item row="3" column="2">
              <widget class="QPushButton" name="uiEditProjectTableVerticalBtn">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -458,10 +427,44 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QComboBox" name="uiProjectVerticalCombo">
+            <item row="5" column="2">
+             <widget class="QPushButton" name="uiRemoveProjectVerticalBtn">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="uiImageNumberSpn">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>999</number>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_16">
+              <property name="text">
+               <string>Projekt(e):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0" rowspan="3" colspan="2">
+             <widget class="QListWidget" name="uiProjectVerticalList">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -481,7 +484,14 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="2">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>Bildnummer:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2">
              <widget class="QPushButton" name="uiAddProjectVerticalBtn">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -505,25 +515,25 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QSpinBox" name="uiImageNumberSpn">
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>999</number>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0" rowspan="3" colspan="2">
-             <widget class="QListWidget" name="uiProjectVerticalList">
+            <item row="3" column="1">
+             <widget class="QComboBox" name="uiProjectVerticalCombo">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
              </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>Beschreibung:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="uiImageDescriptionVerticalEdit"/>
             </item>
            </layout>
           </item>

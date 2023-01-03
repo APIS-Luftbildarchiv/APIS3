@@ -26,7 +26,7 @@ import os
 import json
 
 from PyQt5.QtCore import QSettings, QDir, QFile, QFileInfo
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog, QMessageBox, QTreeWidgetItem
 from PyQt5.uic import loadUiType
 
 from APIS.src.apis_utils import (SetWindowSizeAndPos, GetWindowSize, GetWindowPos)
@@ -92,20 +92,45 @@ class APISChronology(QDialog, FORM_CLASS):
             else:
                 yield key, value
 
+    def new_item(self, parent, text, val=None):
+        child = QTreeWidgetItem([text])
+        self.fill_item(child, val)
+        parent.addChild(child)
+        child.setExpanded(True)
+
+    def fill_item(self, item, value):
+        if value is None:
+            return
+        elif isinstance(value, dict):
+            for key, val in value.items():
+                if key == "name":
+                    self.new_item(item, val, val)
+        elif isinstance(value, (list, tuple)):
+            for val in value:
+                text = (str(val) if not isinstance(val, (dict, list, tuple)) else f'[{type(val).__name__}]')
+                self.new_item(item, text, val)
+        else:
+            self.new_item(item, str(value))
+
     def updateChronology(self):
-        # QMessageBox.information(self, "Info", "{0}".format(self.sender()))
+        # QMessageBox.information(self, "Info", f"{self.sender()}")
         chronology = self.sender().currentText()
-        fileName = os.path.join(self.chronologiesDir.absolutePath(), "{}.json".format(chronology))
+        fileName = os.path.normpath(os.path.join(self.chronologiesDir.absolutePath(), f"{chronology}.json"))
+        self.uiChronologyFilePathLbl.setText(fileName)
         with open(fileName) as jsonFile:
             data = json.load(jsonFile)
-            del data
             # blub = JsonJ(data)
-            # QMessageBox.information(self, "Info", json.dumps(blub))
-            # if "name" in data and data["name"] == chronology and "children" in data:
-            #     for item in data["children"]:
-            #         continue
-            # else:
-            #     QMessageBox.warning(self, "Chronologie JSON Datei fehlerhaft", "Die Chronologie JSON Datei ({0}) ist fehlerhaft!".format(fileName))
+            # QMessageBox.information(self, "Info", json.dumps(data))
+            if "name" in data and data["name"] == chronology and "chronology" in data:
+                self.uiChronologyTree.clear()
+                self.fill_item(self.uiChronologyTree.invisibleRootItem(), data["chronology"])
+                # while nested_dict_iter(data["chronology"]).next():
+
+                # for item in data["chronology"]:
+                #     continue
+            else:
+                QMessageBox.warning(self, "Chronologie JSON Datei fehlerhaft", f"Die Chronologie JSON Datei ({fileName}) ist fehlerhaft!")
+            del data
 
     def onAccepted(self):
         SetWindowSizeAndPos("chronology", self.size(), self.pos())

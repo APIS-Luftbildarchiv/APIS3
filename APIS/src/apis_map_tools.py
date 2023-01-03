@@ -2,8 +2,14 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
 
-from qgis.core import (QgsGeometry, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsWkbTypes,
-                       QgsProject)
+from qgis.core import (
+    QgsGeometry,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsPointXY,
+    QgsWkbTypes,
+    QgsProject
+)
 from qgis.gui import QgsMapTool, QgsRubberBand, QgsVertexMarker
 
 import math
@@ -13,7 +19,6 @@ class APISMapToolMixin():
 
     def setDiagonal(self, diagonal):
         self.diagonal = diagonal
-
     # def setLayer(self, pointLayer, polygonLayer):
     #     self.pointLayer = pointLayer
     #     self.polygonLayer = polygonLayer
@@ -121,7 +126,7 @@ class APISMapToolEmitPointAndSquare(QgsMapTool, APISMapToolMixin):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Backspace or event.key() == Qt.Key_Delete:
-            #self.removeLastVertex()
+            # self.removeLastVertex()
             event.ignore()
         if event.key() == Qt.Key_Escape:
             self.stopCapturing()
@@ -340,7 +345,7 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
             cpGeom = rubGeom.centroid()
             if not rubGeom.contains(cpGeom):
                 cpGeom = rubGeom.pointOnSurface()
-            #nearestCp = rubGeom.nearestPoint(cpGeom)
+            # nearestCp = rubGeom.nearestPoint(cpGeom)
             self.vertexMarker.setCenter(cpGeom.asPoint())
             self.derivedPoint = cpGeom.asPoint()
             self.vertexMarker.show()
@@ -379,7 +384,7 @@ class APISMapToolEmitPolygonAndPoint(QgsMapTool, APISMapToolMixin):
             cpGeom = rubGeom.centroid()
             if not rubGeom.contains(cpGeom):
                 cpGeom = rubGeom.pointOnSurface()
-            #nearestCp = rubGeom.nearestPoint(cpGeom)
+            # nearestCp = rubGeom.nearestPoint(cpGeom)
             self.vertexMarker.setCenter(cpGeom.asPoint())
             self.derivedPoint = cpGeom.asPoint()
             self.vertexMarker.show()

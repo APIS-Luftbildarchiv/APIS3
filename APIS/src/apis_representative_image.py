@@ -25,7 +25,17 @@
 import os
 
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QGraphicsScene, QFileDialog, QTableView, QAbstractItemView, QComboBox, QHeaderView, QGraphicsTextItem
+from PyQt5.QtWidgets import (
+    QDialog,
+    QGraphicsScene,
+    QFileDialog,
+    QTableView,
+    QAbstractItemView,
+    QComboBox,
+    QHeaderView,
+    QGraphicsTextItem,
+    QDialogButtonBox
+)
 from PyQt5.QtCore import QSettings, Qt, QRectF
 from PyQt5.QtSql import QSqlQueryModel
 from PyQt5.QtGui import QImage, QPixmap
@@ -37,7 +47,7 @@ FORM_CLASS, _ = loadUiType(os.path.join(
 
 
 class APISRepresentativeImage(QDialog, FORM_CLASS):
-    def __init__(self, dbm, imageRegistry, currentPath, filmNumber, parent=None):
+    def __init__(self, dbm, imageRegistry, currentPath, filmNumber, mode="add", parent=None):
         """Constructor."""
         super(APISRepresentativeImage, self).__init__(parent)
 
@@ -46,6 +56,8 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.currentPath = currentPath
         self.filmNumber = filmNumber
         self.newPath = currentPath
+        self.mode = mode
+        self.initalRepImageState = None
 
         self.setupUi(self)
         if GetWindowSize("representative_image"):
@@ -59,7 +71,11 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.buttonBox.accepted.connect(self.onAccept)
         self.uiSelectImageFromSystem.clicked.connect(self.selectImageFromSystem)
 
+        self.buttonBox.button(QDialogButtonBox.Save).setAutoDefault(False)
+        self.buttonBox.button(QDialogButtonBox.Cancel).setAutoDefault(False)
+
         self.graphicLoaded = False
+        self.graphicIsImage = False
 
         self.scene = QGraphicsScene()
         self.uiRepresentativeImageView.setScene(self.scene)
@@ -71,7 +87,12 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
             self.populateFilmCombo()
         # wenn nein self.populateFilmCombo()
 
-        self.uiAvailableImagesCombo.currentIndexChanged.connect(self.loadNewImageByFilm)
+        self.uiAvailableImagesCombo.currentIndexChanged.connect(self.loadNewImageByFilm)  
+        if self.mode == "edit":
+            self.uiMainRepresentativeImageChk.stateChanged.connect(self.setSaveButton)
+
+    def setSaveButton(self, state):
+        self.buttonBox.button(QDialogButtonBox.Save).setEnabled(self.initalRepImageState != state and self.graphicIsImage)
 
     def populateFilmCombo(self, filmNumber=None):
         editor = self.uiFilmNumberCombo
@@ -110,14 +131,23 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         editor.currentIndexChanged.connect(self.populateAvailableImagesCombo)
 
     def populateAvailableImagesCombo(self, idx=None):
+        self.uiImagePathLbl.setText("--")
+        self.loadText()
+        self.buttonBox.button(QDialogButtonBox.Save).setEnabled(False)
         self.filmNumber = self.uiFilmNumberCombo.currentText()
         # query image registry
         availableImages = self.imageRegistry.getImageRegistryForFilm(self.filmNumber)
-        self.uiAvailableImagesCombo.clear()
-        self.uiAvailableImagesCombo.addItems(availableImages)
-        self.uiAvailableImagesCombo.setCurrentIndex(-1)
+        if availableImages:
+            self.uiAvailableImagesCombo.setEnabled(True)
+            self.uiAvailableImagesCombo.clear()
+            self.uiAvailableImagesCombo.addItems(availableImages)
+            self.uiAvailableImagesCombo.setCurrentIndex(0)
+        else:
+            self.uiAvailableImagesCombo.clear()
+            self.uiAvailableImagesCombo.setEnabled(False)
 
     def showEvent(self, event):
+        self.buttonBox.button(QDialogButtonBox.Save).setEnabled(False)
         if self.currentPath:
             self.uiImagePathLbl.setText(self.currentPath)
             self.loadImage(self.currentPath)
@@ -135,6 +165,7 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.scene.addItem(noImageTxt)
         self.scene.setSceneRect(self.rect)
         self.uiRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+        self.graphicIsImage = False
 
     def loadImage(self, path):
         self.scene.clear()
@@ -144,6 +175,7 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.scene.addPixmap(QPixmap.fromImage(image))
         self.scene.setSceneRect(self.rect)
         self.uiRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+        self.graphicIsImage = True
 
     def loadNewImageByFilm(self):
         # generatePath
@@ -152,10 +184,8 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
         self.newPath = os.path.normpath(imgDir + "\\" + filmDir + "\\" + self.uiAvailableImagesCombo.currentText().replace('.', '_') + ".jpg")
         self.uiImagePathLbl.setText(self.newPath)
         self.loadImage(self.newPath)
-
-    def resizeEvent(self, event):
-        if self.graphicLoaded:
-            self.uiRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+        self.buttonBox.button(QDialogButtonBox.Save).setEnabled(True)
+        self.buttonBox.button(QDialogButtonBox.Save).setAutoDefault(False)
 
     def selectImageFromSystem(self):
         dir = self.settings.value("APIS/image_dir")
@@ -165,6 +195,14 @@ class APISRepresentativeImage(QDialog, FORM_CLASS):
             self.newPath = fileName
             self.uiImagePathLbl.setText(self.newPath)
             self.loadImage(self.newPath)
+            self.buttonBox.button(QDialogButtonBox.Save).setEnabled(True)
+            self.buttonBox.button(QDialogButtonBox.Save).setAutoDefault(False)
+        else:
+            self.buttonBox.button(QDialogButtonBox.Save).setEnabled(False)
+
+    def resizeEvent(self, event):
+        if self.graphicLoaded:
+            self.uiRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
 
     def onAccept(self):
         '''

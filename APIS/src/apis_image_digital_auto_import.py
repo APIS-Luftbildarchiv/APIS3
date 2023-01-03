@@ -40,8 +40,17 @@ from qgis.core import (QgsVectorDataProvider, QgsFeature, QgsGeometry, QgsExpres
                        Qgis, QgsMessageLog)
 
 # APIS
-from APIS.src.apis_utils import (TransformGeometry, GetMeridianAndEpsgGK, SetWindowSize, GetWindowSize, GetExifForImage,
-                                 CopyFiles, OpenFileOrFolder, GetExportPath, SetExportPath, GetCountryCode, CalculateImageRadius)
+from APIS.src.apis_utils import (TransformGeometry,
+                                 GetMeridianAndEpsgGK,
+                                 SetWindowSize,
+                                 GetWindowSize,
+                                 GetExifForImage,
+                                 CopyFiles,
+                                 OpenFileOrFolder,
+                                 GetExportPath,
+                                 SetExportPath,
+                                 GetCountryCode,
+                                 CalculateImageRadius)
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_digital_auto_import.ui'), resource_suffix='')
@@ -198,7 +207,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
             sourceFileName = QFileDialog.getOpenFileName(self, caption, GetExportPath(), options)
         else:
             sourceFileName = QFileDialog.getOpenFileName(self, caption, GetExportPath())
-        #QMessageBox.information(None, "SourceInfo", f"type: {type(sourceFileName[0])}, leng: {len(sourceFileName)}, data: {sourceFileName[0]}")
+        # QMessageBox.information(None, "SourceInfo", f"type: {type(sourceFileName[0])}, leng: {len(sourceFileName)}, data: {sourceFileName[0]}")
         if sourceFileName and sourceFileName[0]:
             editor.setText(os.path.normpath(sourceFileName[0]))
             SetExportPath(os.path.dirname(os.path.normpath(sourceFileName[0])))
@@ -242,7 +251,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         filmNumber = list(filmNumberCP)[0]
         if len(filmNumber) == 8:
-            #old Id
+            # old Id
             mil = u""
             if filmNumber[:2] == u"01":
                 mil = u"19"
@@ -252,7 +261,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 return False, u"Die Filmnummer im Centerpoint Layer entspricht weder dem alten (8-stellig) noch dem neuen (10-stellig) Filmnummernschema ({0}).".format(filmNumber)
             filmNumber = u"01{0}{1}".format(mil, filmNumber[2:])
         elif len(filmNumber) == 10:
-            #new Id
+            # new Id
             pass
         else:
             return False, u"Die Filmnummer im Centerpoint Layer entspricht weder dem alten (8-stellig) noch dem neuen (10-stellig) Filmnummernschema ({0}).".format(filmNumber)
@@ -266,7 +275,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
 
         filmNumber = list(filmNumberFP)[0]
         if len(filmNumber) == 8:
-            #old Id
+            # old Id
             mil = u""
             if filmNumber[:2] == u"01":
                 mil = u"19"
@@ -276,7 +285,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 return False, u"Die Filmnummer im Footprint Layer entspricht weder dem alten (8-stellig) noch dem neuen (10-stellig) Filmnummernschema ({0}).".format(filmNumber)
             filmNumber = u"01{0}{1}".format(mil, filmNumber[2:])
         elif len(filmNumber) == 10:
-            #new Id
+            # new Id
             pass
         else:
             return False, u"Die Filmnummer im Footprint Layer entspricht weder dem alten (8-stellig) noch dem neuen (10-stellig) Filmnummernschema ({0}).".format(filmNumber)
@@ -433,7 +442,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     if filmImageNumber in existingFeaturesCP or filmImageNumber in existingFeaturesFP:
                         if mode == 2:
                             # überschreiben
-                            #QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
+                            # QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
                             self.writeMsg(u"UPDATE: {0}: wird überschrieben.".format(filmImageNumber))
                             imagesToDelete.append(filmImageNumber)
 
@@ -503,7 +512,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                         if os.path.isfile(image):
                             self.writeMsg(f"EXIF from default directory: {image}")
                         else:
-                            self.writeMsg(f"EXIF from default directory: Image not found!")
+                            self.writeMsg("EXIF from default directory: Image not found!")
                     # image = os.path.normpath(self.settings.value("APIS/image_dir") + '\\' + self.filmId + '\\' + filmImageNumber.replace('.', '_') + '.jpg')
 
                     exif = GetExifForImage(image, altitude=True, longitude=True, latitude=True, exposure_time=True, focal_length=True, fnumber=True)
@@ -519,7 +528,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                     # FOOTPRINT
                     targetFeatFP = QgsFeature(self.targetLayerFP.fields())
 
-                    #self.writeMsg('source FP: ' + sourceFeatFP.geometry().asWkt())
+                    # self.writeMsg('source FP: ' + sourceFeatFP.geometry().asWkt())
                     sourceGeometryFP = QgsGeometry(sourceFeatFP.geometry())
                     if sourceGeometryFP.isMultipart():
                         sourceGeometryFP.convertToSingleType()
@@ -774,7 +783,7 @@ class APISDigitalImageAutoImport(QDialog, FORM_CLASS):
                 if filmImageNumber in existingFeaturesCP or filmImageNumber in existingFeaturesFP:
                     if mode == 2:
                         # überschreiben
-                        #QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
+                        # QMessageBox.warning(None, u"Bild Nummern", u"Ein Bild mit der Nummer {0} wurde bereits kartiert".format(imageNumber))
                         self.writeMsg(f"UPDATE: {filmImageNumber}: wird überschrieben.")
                         imagesToDelete.append(filmImageNumber)
                     elif mode == 3:

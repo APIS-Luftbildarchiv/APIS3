@@ -298,7 +298,7 @@ class ApisImageRegistry(QObject):
         self.worker = None
 
     def workerError(self, e, exception_string):
-        QgsMessageLog.logMessage('APIS UpdateRegistryWorker thread raised an exception:\n'.format(exception_string), tag='APIS', level=Qgis.Critical)
+        QgsMessageLog.logMessage(f'APIS UpdateRegistryWorker thread raised an exception:\n{exception_string}', tag='APIS', level=Qgis.Critical)
 
 
 class UpdateRegistryWorker(QObject):

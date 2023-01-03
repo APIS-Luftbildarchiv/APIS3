@@ -18,7 +18,10 @@ from qgis.core import (Qgis, QgsMessageLog, QgsLayout, QgsProject, QgsLayoutExpo
 from APIS.src.apis_utils import (GenerateWeatherDescription, OpenFileOrFolder, OpenFolderAndSelect, TransformGeometry,
                                  SetExportPath, GetExportPath)
 
-import os, errno, shutil, math  # traceback, sys, random
+import os
+import errno
+import shutil
+import math  # traceback, sys, random
 
 from PyPDF2 import PdfFileMerger, PdfFileReader
 from osgeo import ogr
@@ -363,7 +366,7 @@ class APISTemplatePrinter:
 
         # Remove MapLayers
         if layerSet:
-            QgsProject.instance().removeMapLayers([l.id() for l in layerSet])
+            QgsProject.instance().removeMapLayers([lS.id() for lS in layerSet])
 
         return wasPrinted
 
@@ -554,25 +557,25 @@ class APISTemplatePrinter:
 
                 i += 1
 
-    def cloneLabel(self, layout, l, currentPage):
+    def cloneLabel(self, layout, sourceLabel, currentPage):
         label = QgsLayoutItemLabel(layout)
-        label.attemptSetSceneRect(QRectF(l.pos().x(), l.pos().y(), l.rectWithFrame().width(), l.rectWithFrame().height()))
+        label.attemptSetSceneRect(QRectF(sourceLabel.pos().x(), sourceLabel.pos().y(), sourceLabel.rectWithFrame().width(), sourceLabel.rectWithFrame().height()))
         label.attemptMove(QgsLayoutPoint(label.positionAtReferencePoint(QgsLayoutItem.UpperLeft)), useReferencePoint=False, page=currentPage)
         label.setBackgroundEnabled(True)
-        label.setBackgroundColor(l.backgroundColor())
-        label.setText(l.text())
-        label.setVAlign(l.vAlign())
-        label.setHAlign(l.hAlign())
-        label.setMarginX(l.marginX())
-        label.setMarginY(l.marginY())
-        label.setFont(l.font())
+        label.setBackgroundColor(sourceLabel.backgroundColor())
+        label.setText(sourceLabel.text())
+        label.setVAlign(sourceLabel.vAlign())
+        label.setHAlign(sourceLabel.hAlign())
+        label.setMarginX(sourceLabel.marginX())
+        label.setMarginY(sourceLabel.marginY())
+        label.setFont(sourceLabel.font())
         layout.addItem(label)
 
     def cloneShape(self, layout, s, currentPage):
         shape = QgsLayoutItemShape(layout)
         shape.setShapeType(s.shapeType())
         shape.setSymbol(s.symbol())
-        shape.attemptSetSceneRect(QRectF(s.pos().x(), s.pos().y(), s.rectWithFrame().width() - s.estimatedFrameBleed() * 2.0, s.rectWithFrame().height() - s.estimatedFrameBleed()*2.0), includesFrame=False)
+        shape.attemptSetSceneRect(QRectF(s.pos().x(), s.pos().y(), s.rectWithFrame().width() - s.estimatedFrameBleed() * 2.0, s.rectWithFrame().height() - s.estimatedFrameBleed() * 2.0), includesFrame=False)
         shape.attemptMove(QgsLayoutPoint(shape.positionAtReferencePoint(QgsLayoutItem.UpperLeft)), useReferencePoint=False, page=currentPage)
         layout.addItem(shape)
 
@@ -797,7 +800,7 @@ class APISSiteTemplatePrinter(APISTemplatePrinter):
     def getRepresentativeImage(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         query.prepare(u"SELECT CASE WHEN repraesentatives_luftbild IS NULL THEN 0 WHEN repraesentatives_luftbild ='_1' THEN 0 ELSE repraesentatives_luftbild END as repImage FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
-        res = query.exec_()
+        query.exec_()
         query.first()
         if query.value(0) == 0:
             return False
@@ -1056,11 +1059,11 @@ class APISImageListPrinter(APISListPrinter):
     def __init__(self, fileName, idList, dbm, imageRegistry):
         self.dbm = dbm
         self.imageRegistry = imageRegistry
-        #define Info
+        # define Info
 
-        #define orientation
-
-        #define query
+        # define orientation
+        # FIXME: Some error here sometimes ...
+        # define query
         qryStr = "SELECT * FROM (SELECT bildnummer AS Bildnummer, weise AS Weise, radius AS 'Radius/Maßstab', art_ausarbeitung AS Art, '' AS Gescannt, '' AS Ortho, '' AS HiRes FROM luftbild_schraeg_cp oI, film f WHERE oI.filmnummer = f.filmnummer AND bildnummer IN ({0}) UNION ALL SELECT bildnummer AS Bildnummer, weise AS Weise, CAST(massstab AS INT) AS 'Radius/Maßstab', art_ausarbeitung AS Art, '' AS Gescannt, '' AS Ortho, '' AS HiRes FROM luftbild_senk_cp vI, film f WHERE vI.filmnummer = f.filmnummer AND bildnummer IN ({0})) ORDER BY {1}".format(",".join("'{0}'".format(image) for image in idList), ", ".join("Bildnummer='{0}' DESC".format(image) for image in idList))
 
         APISListPrinter.__init__(self, fileName, qryStr)

@@ -223,7 +223,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
         self.worker = None
 
     def workerError(self, e, exception_string):
-        QgsMessageLog.logMessage('APIS Search Worker thread raised an exception:\n'.format(exception_string), tag='APIS', level=Qgis.Critical)
+        QgsMessageLog.logMessage('APIS Search Worker thread raised an exception:\n{0}'.format(exception_string), tag='APIS', level=Qgis.Critical)
 
 
 class Worker(QObject):

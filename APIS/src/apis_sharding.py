@@ -94,7 +94,7 @@ class APISSharding(QDialog, FORM_CLASS):
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
         self.model.setTable("begehung")
         self.model.setFilter("fundortnummer='{0}' AND begehung='{1}'".format(self.siteNumber, self.shardingNumber))
-        res = self.model.select()
+        self.model.select()
         self.setupMapper()
         self.mapper.toFirst()
         self.setKgNameAndCode()
@@ -250,7 +250,7 @@ class APISSharding(QDialog, FORM_CLASS):
         self.model = QSqlRelationalTableModel(self, self.dbm.db)
         self.model.setTable("begehung")
         self.model.setFilter("fundortnummer='{0}'".format(self.siteNumber))
-        res = self.model.select()
+        self.model.select()
         #self.model.submitAll()
         while (self.model.canFetchMore()):
             self.model.fetchMore()

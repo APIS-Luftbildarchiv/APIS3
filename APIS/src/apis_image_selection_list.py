@@ -29,12 +29,44 @@ import glob
 
 # PyQt
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QMessageBox, QAbstractItemView, QHeaderView, QPushButton, QFileDialog, QProgressDialog, QMenu, QGraphicsTextItem, QGraphicsScene
-from PyQt5.QtCore import QSettings, Qt, QFileInfo, QDateTime, QDir, QFile, QDate, QRectF, QThread, pyqtSignal
-from PyQt5.QtGui import QDoubleValidator, QStandardItemModel, QStandardItem, QIcon, QImage, QPixmap
+from PyQt5.QtWidgets import (
+    QDialog,
+    QMessageBox,
+    QAbstractItemView,
+    QHeaderView,
+    QPushButton,
+    QFileDialog,
+    QProgressDialog,
+    QMenu,
+    QGraphicsTextItem,
+    QGraphicsScene,
+    QDialogButtonBox
+)
+from PyQt5.QtCore import (
+    QSettings,
+    Qt,
+    QFileInfo,
+    QDateTime,
+    QDir,
+    QFile,
+    QDate,
+    QRectF,
+    QThread,
+    pyqtSignal,
+    QItemSelection,
+    QItemSelectionModel
+)
+from PyQt5.QtGui import (
+    QDoubleValidator,
+    QStandardItemModel,
+    QStandardItem,
+    QIcon,
+    QImage,
+    QPixmap
+)
 from PyQt5.QtSql import QSqlQuery, QSqlRelationalTableModel
 
-#PyQIS
+# PyQIS
 from qgis.core import (
     QgsRasterLayer,
     QgsGeometry,
@@ -45,12 +77,22 @@ from qgis.core import (
 )
 
 # APIS
-from APIS.src.apis_utils import (OpenFileOrFolder, SetExportPath, GetExportPath, SetWindowSizeAndPos,
-                                 GetWindowSize, GetWindowPos, SelectionOrAll, PolygonOrPoint, CopyFiles)
+from APIS.src.apis_utils import (
+    OpenFileOrFolder,
+    SetExportPath,
+    GetExportPath,
+    SetWindowSizeAndPos,
+    GetWindowSize,
+    GetWindowPos,
+    SelectionOrAll,
+    PolygonOrPoint,
+    CopyFiles,
+)
 from APIS.src.apis_thumb_viewer import APISThumbViewer
 from APIS.src.apis_printer import APISPrinterQueue, APISListPrinter, APISLabelPrinter, OutputMode
 from APIS.src.apis_printing_options import APISPrintingOptions
 from APIS.src.apis_image2xmp import Image2Xmp
+from APIS.src.apis_system_table_editor import APISAdvancedInputDialog
 
 FORM_CLASS, _ = loadUiType(os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'ui', 'apis_image_selection_list_advanced_properties.ui'), resource_suffix='')
@@ -60,11 +102,17 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
     def __init__(self, iface, dbm, imageRegistry, apisLayer, parent=None):
         """Constructor."""
         super(APISImageSelectionList, self).__init__(parent)
+        self.parent = parent
         self.iface = iface
         self.dbm = dbm
         self.imageRegistry = imageRegistry
         self.apisLayer = apisLayer
         self.setupUi(self)
+        self.currentTargets = []
+        self.editorsEdited = []
+
+        self.editMode = False
+        self.isLoading = True
 
         # Initial window size/pos last saved. Use default values for first time
         if GetWindowSize("image_selection_list"):
@@ -78,6 +126,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiTogglePropertyPanelBtn.toggled.connect(self.togglePropertyPanel)
         self.uiTogglePropertyPanelBtn.setChecked(False)
         self.loadTargetsForPropertyPanel()
+        # self.uiResetTargetSelectionBtn.clicked.connect(lambda: self.setSelectionForTargetsList(self.selectedTargets))
+        # self.uiDropTargetSelectionBtn.clicked.connect(lambda: self.setSelectionForTargetsList([]))
         self.uiTablePropertiesSplitter.setCollapsible(0, False)
         self.uiTablePropertiesSplitter.setCollapsible(1, True)
         self.uiTablePropertiesSplitter.setRubberBand(-1)
@@ -92,6 +142,14 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiImageView.setScene(self.imageScene)
         self.imageRect = None
 
+        self.uiEditProjectTableBtn.clicked.connect(lambda: self.openSystemTableEditorDialog("projekt", self.uiProjectCombo))
+        self.uiAddProjectBtn.clicked.connect(self.addProject)
+        self.uiRemoveProjectBtn.clicked.connect(self.removeProject)
+
+        self.uiImageDescriptionEdit.textChanged.connect(self.onLineEditChanged)
+        self.uiEditModeBtnBox.button(QDialogButtonBox.Save).clicked.connect(self.saveEdits)
+        self.uiEditModeBtnBox.button(QDialogButtonBox.Discard).clicked.connect(self.discardEdits)
+
         mImage = QMenu()
         aImageThumbs = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'images.png')), "Vorschau")
         aImageThumbs.triggered.connect(self.viewAsThumbs)
@@ -101,7 +159,6 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         aImageCopy.triggered.connect(self.copyImages)
         aImageExif = mImage.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'exif_export.png')), "EXIF Export")
         aImageExif.triggered.connect(self.image2Xmp)
-        #aImageExif.triggered.connect(lambda: VersionToCome("3.0.1"))
         self.uiImageTBtn.setMenu(mImage)
         self.uiImageTBtn.clicked.connect(self.uiImageTBtn.showMenu)
 
@@ -159,6 +216,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
         self.printingOptionsDlg = None
 
+        self.isLoading = False
+
     def loadImageListBySqlQuery(self, query=None):
         self.model = QStandardItemModel()
 
@@ -170,20 +229,20 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                 newCol = QStandardItem(str(rec.value(col)))
                 newRow.append(newCol)
 
-            #scan
+            # scan
             imageNumber = rec.value("bildnummer")
             if self.imageRegistry.hasImage(imageNumber):
                 newRow.append(QStandardItem("ja"))
             else:
                 newRow.append(QStandardItem("nein"))
 
-            #ortho and mosaic
+            # ortho and mosaic
             if self.imageRegistry.hasOrthoOrMosaic(imageNumber):  # hasOrtho(imageNumber):
                 newRow.append(QStandardItem("ja"))
             else:
                 newRow.append(QStandardItem("nein"))
 
-            #hires
+            # hires
             if self.imageRegistry.hasHiRes(imageNumber):
                 newRow.append(QStandardItem("ja"))
             else:
@@ -392,11 +451,11 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             QMessageBox.warning(self, "Bildvorschau", u"Es sind keine Bilder vorhanden!")
             return
 
-        #imageString = ""
-        #for image in imageList:
+        # imageString = ""
+        # for image in imageList:
         #    imageString += "'" + image + "',"
         # use: imageString[:-1]
-        #QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
+        # QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
 
         imagePathList = []
         imageList.sort()
@@ -405,8 +464,8 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         for image in imageList:
             imagePathList.append(os.path.normpath(imageDir + "\\{0}\\{1}.jpg".format(image.split('.')[0], image.replace('.', '_'))))
 
-        #QMessageBox.warning(None, "BildNumber", "{0}".format(', '.join(imagePathList)))
-        #app = QtGui.QApplication([])
+        # QMessageBox.warning(None, "BildNumber", "{0}".format(', '.join(imagePathList)))
+        # app = QtGui.QApplication([])
         widget = APISThumbViewer()
         widget.load(imagePathList)
         widget.show()
@@ -577,7 +636,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
     def exportImagesAsShape(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
-            #Abfrage Footprints der selektierten Bilder Exportieren oder alle
+            # Abfrage Footprints der selektierten Bilder Exportieren oder alle
             ret = SelectionOrAll(parent=self)
             if ret == 0:
                 imageList = self.getImageList(False)
@@ -594,7 +653,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             # for image in imageList:
             #     imageString += "'" + image + "',"
             # use: imageString[:-1]
-            #QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
+            # QMessageBox.warning(None, "BildNumber", "{0}".format(imageString))
 
             subsetString = '"bildnummer" IN (' + ','.join(['\'{0}\''.format(imageNumber) for imageNumber in imageList]) + ')'
             now = QDateTime.currentDateTime()
@@ -634,7 +693,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
     def copyImagesOLD(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
-            #Abfrage Footprints der selektierten Bilder Exportieren oder alle
+            # Abfrage Footprints der selektierten Bilder Exportieren oder alle
             ret = SelectionOrAll(parent=self)
 
             if ret == 0:
@@ -660,7 +719,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             loRes = True
             hiRes = False
             if len(hiResImageList) > 0:
-                #ask if normal, hires, oder beides?
+                # ask if normal, hires, oder beides?
                 msgBox = QMessageBox(self)
                 msgBox.setWindowTitle(u'Bilder Kopieren')
                 msgBox.setText(u'Neben Bildern mit normaler Auflösung stehen Bilder mit hoher Auflösung zur Verfügung. Welche wollen Sie kopieren?')
@@ -734,7 +793,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
     def copyImages(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
-            #Abfrage Footprints der selektierten Bilder Exportieren oder alle
+            # Abfrage Footprints der selektierten Bilder Exportieren oder alle
             ret = SelectionOrAll(parent=self)
 
             if ret == 0:
@@ -760,7 +819,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             loRes = True
             hiRes = False
             if len(hiResImageList) > 0:
-                #ask if normal, hires, oder beides?
+                # ask if normal, hires, oder beides?
                 msgBox = QMessageBox(self)
                 msgBox.setWindowTitle(u'Bilder Kopieren')
                 msgBox.setText(u'Neben Bildern mit normaler Auflösung stehen Bilder mit hoher Auflösung zur Verfügung. Welche wollen Sie kopieren?')
@@ -836,7 +895,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             return
 
         if self.uiImageListTableV.selectionModel().hasSelection():
-            #Abfrage Footprints der selektierten Bilder Exportieren oder alle
+            # Abfrage Footprints der selektierten Bilder Exportieren oder alle
             ret = SelectionOrAll(parent=self)
 
             if ret == 0:
@@ -871,7 +930,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             return
 
         imageString = "'" + "','".join(finalImageList) + "'"
-        #QMessageBox.information(None, "Image", u"{0}".format(imageString))
+        # QMessageBox.information(None, "Image", u"{0}".format(imageString))
 
         query = QSqlQuery(self.dbm.db)
         qryStr = u"SELECT * FROM (SELECT bildnummer, hoehe, longitude, latitude,  (SELECT group_concat(fundortnummer, ';' ) FROM fundort, luftbild_senk_fp WHERE luftbild_senk_fp.bildnummer = lb.bildnummer AND Intersects(fundort.geometry, luftbild_senk_fp.geometry) AND fundort.rowid IN (SELECT rowid FROM spatialindex WHERE f_table_name='fundort' AND search_frame=luftbild_senk_fp.geometry) ORDER BY fundortnummer_nn) AS fundorte, NULL AS keyword, NULL AS description, lb.projekt, lb.copyright, land, militaernummer, militaernummer_alt, archiv, kamera, kalibrierungsnummer, kammerkonstante, fokus, fotograf, flugdatum, flugzeug FROM luftbild_senk_cp AS lb, film AS f WHERE lb.filmnummer = f.filmnummer AND lb.bildnummer IN ({0}) UNION ALL SELECT bildnummer, hoehe, longitude, latitude, (SELECT group_concat(fundortnummer, ';' ) FROM fundort, luftbild_schraeg_fp WHERE luftbild_schraeg_fp.bildnummer = lb.bildnummer AND Intersects(fundort.geometry, luftbild_schraeg_fp.geometry) AND fundort.rowid IN (SELECT rowid FROM spatialindex WHERE f_table_name='fundort' AND search_frame=luftbild_schraeg_fp.geometry) ORDER BY fundortnummer_nn) as fundorte, keyword, description, lb.projekt, lb.copyright, land, militaernummer, militaernummer_alt, archiv, kamera, kalibrierungsnummer, kammerkonstante, fokus, fotograf, flugdatum, flugzeug FROM luftbild_schraeg_cp AS lb, film AS f WHERE lb.filmnummer = f.filmnummer AND lb.bildnummer IN ({0})) ORDER BY bildnummer".format(imageString)
@@ -919,7 +978,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                     QMessageBox.information(self, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (FileSystem: {1}).".format(metadataDict["APIS_bildnummer"], imagePath))
             else:
                 QMessageBox.information(self, "Image", u"Die Bilddatei für {0} wurde nicht gefunden (ImageRegistry).".format(metadataDict["APIS_bildnummer"]))
-            #imagePath = self.settings.value("APIS/image_dir") + "\\02140301\\02140301_003.jpg"
+            # imagePath = self.settings.value("APIS/image_dir") + "\\02140301\\02140301_003.jpg"
         progressDlg.setValue(count)
 
     def exportListAsPdf(self):
@@ -958,7 +1017,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
     def askForImageList(self):
         if self.uiImageListTableV.selectionModel().hasSelection():
-            #Abfrage ob Fundorte der selektierten Bilder Exportieren oder alle
+            # Abfrage ob Fundorte der selektierten Bilder Exportieren oder alle
             ret = SelectionOrAll(parent=self)
             if ret == 0:
                 imageList = self.getImageList(False)
@@ -1073,10 +1132,10 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             self.uiHiResFilterCountLbl.setText('(-)')
             self.uiOrthoFilterCountLbl.setText('(-)')
 
-            #self.uiImageThumbsBtn.setEnabled(True)
-            #self.uiExportFootprintsBtn.setEnabled(True)
-            #self.uiCopyImagesBtn.setEnabled(True)
-            #self.uiPdfExportTBtn.setEnabled(True)
+            # self.uiImageThumbsBtn.setEnabled(True)
+            # self.uiExportFootprintsBtn.setEnabled(True)
+            # self.uiCopyImagesBtn.setEnabled(True)
+            # self.uiPdfExportTBtn.setEnabled(True)
 
             self.uiFilterScanChk.setChecked(False)
             self.uiFilterHiResChk.setChecked(False)
@@ -1094,6 +1153,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.isPropertyPanelActive = checked
         if checked:
             self.updatePropertyPanelVisibility()
+            self.updatePropertyPanelContent()
             self.uiTargetsTableV.resizeRowsToContents()
             if self.splitterState:
                 self.uiTablePropertiesSplitter.restoreState(self.splitterState)
@@ -1118,13 +1178,211 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.currentImageList = imageList
         if self.currentImageList:
             QgsMessageLog.logMessage(f"{imageList}", tag="APIS", level=Qgis.Info)
-            self.updateImagePreview()
+            self.updateContentForImage()
 
-    def updateImagePreview(self):
+    def updateImagePropertiesAndTargetsList(self):
+        # load 'beschreibung' for self.currentImage into uiImageDescriptionEdit
+        # load 'projekte' from corresponding film into uiProjectCombo
+        # load 'projects' from ... into uiProjectList
+        # propertyModel = QSqlQueryModel()
+        # propertyModel.setQuery()
+        self.currentFilmNumber = self.currentImage.split('.', 1)[0]
+        self.currentFilmInfoDict = self.getFilmInfo(self.currentFilmNumber)
+        if self.currentFilmInfoDict:
+            QgsMessageLog.logMessage(f"load props for: {self.currentImage} filmInfo: {self.currentFilmInfoDict}", tag="APIS", level=Qgis.Info)
+            
+            # Update project combo
+            self.uiProjectCombo.clear()
+            if self.currentFilmInfoDict["projekt"]:
+                self.uiProjectCombo.addItems(str.split(self.currentFilmInfoDict["projekt"], ";"))
+
+            # load Description, Project List, Targets from senk or schraeg image!
+            query = QSqlQuery(self.dbm.db)
+            if self.currentFilmInfoDict["isOblique"]:
+                # TODO load from schräeg
+                query.prepare(f"SELECT beschreibung, projekt, target FROM luftbild_schraeg_cp WHERE bildnummer = '{self.currentImage}'")
+            else:
+                # TODO load from senk
+                query.prepare(f"SELECT beschreibung, projekt, target FROM luftbild_senk_cp WHERE bildnummer = '{self.currentImage}'")
+
+            query.exec_()
+            query.first()
+            record = query.record()
+
+            # Description
+            descirptionColumn = record.indexOf("beschreibung")
+            self.uiImageDescriptionEdit.setText(f"{query.value(descirptionColumn)}")
+
+            # Project List
+            self.uiProjectList.clear()
+            projectColumn = record.indexOf("projekt")
+            project = f"{query.value(projectColumn)}"
+            if project != '' and project != "NULL":
+                projectList = filter(None, str.split(project, ";"))
+                self.uiProjectList.addItems(projectList)
+
+            # Target List
+            targetColumn = record.indexOf("target")
+            target = f"{query.value(targetColumn)}"
+            if target != '' and target != "NULL":
+                targetsList = filter(None, str.split(target, ";"))
+                self.currentTargets = targetsList
+                self.setSelectionForTargetsList(targetsList)
+            else:
+                self.setSelectionForTargetsList([])
+
+            QgsMessageLog.logMessage(f"load targets for: {self.currentImage}", tag="APIS", level=Qgis.Info)
+
+        else:
+            QgsMessageLog.logMessage(f"load props for: {self.currentImage} filmInfo Error", tag="APIS", level=Qgis.Warning)
+
+    def setSelectionForTargetsList(self, targetList):
+        editor = self.uiTargetsTableV
+        selectionModel = editor.selectionModel()
+        selectionModel.clearSelection()
+
+        if targetList:
+            model = editor.model()
+            rowCount = model.rowCount()
+            selection = QItemSelection()
+
+            notFound = []
+            for target in targetList:
+                found = False
+                for r in range(rowCount):
+                    modelIdx = model.createIndex(r, model.fieldIndex("category"))
+                    # QMessageBox.warning(None, "WeatherCode", "{0}={1}".format(m.data(mIdx), weatherCode[i]))
+                    if model.data(modelIdx).lower() == target.lower():
+                        lIdx = model.createIndex(r, 0)
+                        rIdx = model.createIndex(r, model.columnCount() - 1)
+                        rowSelection = QItemSelection(lIdx, rIdx)
+                        selection.merge(rowSelection, QItemSelectionModel.Select)
+                        found = True
+                        break
+                if not found:
+                    notFound.append(target)
+                selectionModel.select(selection, QItemSelectionModel.Select)
+            #QMessageBox.warning(None, "not found", u"{0}".format(len(notFound)))
+            if notFound:
+                QgsMessageLog.logMessage(f"TargetList: Die folgenden Einträge wurden nicht gefunden. Bitte wählen Sie von den verfügbaren Einträgen aus oder fügen Sie diese manuell zur Tabelle 'targets' hinzu. [{', '.join(notFound)}]", tag="APIS", level=Qgis.Warning)
+
+    def saveEdits(self):
+        setList = []
+        for editor in self.editorsEdited:
+            cName = editor.metaObject().className()
+            if cName == "QLineEdit":
+                setList.append(f"beschreibung = '{editor.text()}'")
+            elif cName == "QListWidget":
+                items = []
+                for j in range(editor.count()):
+                    if editor.item(j).text != '':
+                        items.append(editor.item(j).text())
+                itemsStr = ";".join([i for i in items])
+                setList.append(f"projekt = '{itemsStr}'")
+            elif cName == "QItemSelectionModel":
+                selectionModel = editor
+                model = selectionModel.model()
+                targetCategories = []
+                for row in selectionModel.selectedRows():
+                    targetCategories.append(model.data(model.createIndex(row.row(), model.fieldIndex("category"))))
+                itemsStr = ";".join(targetCategories)
+                setList.append(f"target = '{itemsStr}'")
+                QgsMessageLog.logMessage(f"NewTargets: {';'.join(targetCategories)}", tag="APIS", level=Qgis.Info)
+            else:
+                QgsMessageLog.logMessage(f"EditedEditor: {cName}", tag="APIS", level=Qgis.Info)
+
+        if setList:
+            now = QDate.currentDate()
+            nowStr = now.toString('yyyy-MM-dd')
+            setList.append(f"datum_aenderung = '{nowStr}'")
+            qStr = f"""UPDATE {'luftbild_schraeg_cp' if self.currentFilmInfoDict["isOblique"] else 'luftbild_senk_cp'}
+                SET {','.join(setList)}
+                WHERE
+                    bildnummer = '{self.currentImage}'"""
+
+            QgsMessageLog.logMessage(f"Update Image: {qStr}", tag="APIS", level=Qgis.Info)
+
+            query = QSqlQuery(self.dbm.db)
+            query.prepare(qStr)
+            query.exec_()
+
+        self.editModeOff()
+        self.currentImageChanged(None)
+
+    def discardEdits(self):
+        self.editModeOff()
+        self.currentImageChanged(None)
+
+    def editModeOn(self):
+        self.editMode = True
+        self.enableItemsInLayout(self.uiMainGridLayout, False)
+        self.enableItemsInLayout(self.uiToolsHorizontalLayout, False)
+        self.enableItemsInLayout(self.uiImageNumberSelectorHorizontalLayout, False)
+        self.uiEditModeBtnBox.setEnabled(True)
+        self.editorsEdited = []
+
+    def editModeOff(self):
+        self.editMode = False
+        self.enableItemsInLayout(self.uiMainGridLayout, True)
+        self.enableItemsInLayout(self.uiToolsHorizontalLayout, True)
+        self.enableItemsInLayout(self.uiImageNumberSelectorHorizontalLayout, True)
+        self.uiEditModeBtnBox.setEnabled(False)
+        for editor in self.editorsEdited:
+            cName = editor.metaObject().className()
+            if cName == "QLineEdit" or cName == "QListWidget":
+                editor.setStyleSheet("")
+
+        self.editorsEdited = []
+
+    def onLineEditChanged(self):
+        sender = self.sender()
+        if not self.editMode and not self.isLoading:
+            self.editModeOn()
+        if not self.isLoading:
+            sender.setStyleSheet("{0} {{background-color: rgb(153, 204, 255);}}".format(sender.metaObject().className()))
+            if sender not in self.editorsEdited:
+                self.editorsEdited.append(sender)
+
+    def onTargetListChange(self):
+        sender = self.sender()
+        if not self.editMode and not self.isLoading:
+            self.editModeOn()
+        if not self.isLoading:
+            if sender not in self.editorsEdited:
+                self.editorsEdited.append(sender)
+
+    # TODO move to utils (including all others)
+    def enableItemsInLayout(self, layout, enable):
+        for i in range(layout.count()):
+            if layout.itemAt(i).widget():
+                layout.itemAt(i).widget().setEnabled(enable)
+
+    def getFilmInfo(self, filmNumber):
+        filmFields = ["weise", "projekt"]
+        filmInfoDict = {}
+        query = QSqlQuery(self.dbm.db)
+        qryStr = "SELECT {0} FROM film WHERE filmnummer = '{1}'".format(", ".join(filmFields), filmNumber)
+        query.exec_(qryStr)
+        query.first()
+        if query.value(0) is not None:
+            for key in filmFields:
+                value = query.value(query.record().indexOf(key))
+                filmInfoDict[key] = value
+
+            if filmInfoDict["weise"] == u"schräg":
+                filmInfoDict["isOblique"] = True
+            else:
+                filmInfoDict["isOblique"] = False
+
+            return filmInfoDict
+        else:
+            QMessageBox.warning(None, u"Film Nummer", u"Der Film mit der Nummer {0} existiert nicht!".format(filmNumber))
+            return False
+
+    def updateContentForImage(self):
         if self.currentImage not in self.currentImageList:
             self.currentImage = self.currentImageList[0]
-        if self.currentImage != self.uiImageNumberEdit.text():
-            self.uiImageNumberEdit.setText(self.currentImage)
+        self.uiImageNumberEdit.setText(self.currentImage)
         self.evaluateClicker()
 
     def nextPrevImagePreview(self, direction):
@@ -1135,7 +1393,25 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             self.uiImageNumberEdit.setText(self.currentImage)
 
     def currentImageChanged(self, imageNumber):
+        self.isLoading = True
         self.evaluateClicker()
+
+        self.updatePreviewImage()
+        self.updateImagePropertiesAndTargetsList()
+        self.isLoading = False
+
+    def evaluateClicker(self):
+        if self.currentImage == self.currentImageList[0]:
+            self.uiPrevImageBtn.setEnabled(False)
+        else:
+            self.uiPrevImageBtn.setEnabled(True)
+
+        if self.currentImage == self.currentImageList[len(self.currentImageList) - 1]:
+            self.uiNextImageBtn.setEnabled(False)
+        else:
+            self.uiNextImageBtn.setEnabled(True)
+
+    def updatePreviewImage(self):
         imageDir = self.settings.value("APIS/image_dir")
         path = imageDir + "\\{0}\\{1}.jpg".format(self.currentImage[:10], self.currentImage.replace('.', '_'))
         thread = LoadImageThread(file=path)
@@ -1155,17 +1431,6 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
             self.imageScene.addItem(noImageTxt)
             self.imageScene.setSceneRect(self.imageRect)
             self.uiImageView.fitInView(self.imageRect, Qt.KeepAspectRatio)
-
-    def evaluateClicker(self):
-        if self.currentImage == self.currentImageList[0]:
-            self.uiPrevImageBtn.setEnabled(False)
-        else:
-            self.uiPrevImageBtn.setEnabled(True)
-
-        if self.currentImage == self.currentImageList[len(self.currentImageList) - 1]:
-            self.uiNextImageBtn.setEnabled(False)
-        else:
-            self.uiNextImageBtn.setEnabled(True)
 
     def loadCurrentImageIntoPreviewTask(self, result):
         # self.imageScene.clear()
@@ -1219,8 +1484,7 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
         self.uiTargetsTableV.resizeRowsToContents()
         # self.uiTargetsTableV.resizeColumnsToContents()
         self.uiTargetsTableV.horizontalHeader().setStretchLastSection(True)
-
-        # self.uiTargetsTableV.selectionModel().selectionChanged.connect(self.generateWeatherCode)
+        self.uiTargetsTableV.selectionModel().selectionChanged.connect(self.onTargetListChange)
 
     def imagePropertiesTabChanged(self, index):
         if index == 1:
@@ -1242,6 +1506,76 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
                 self.uiImageView.fitInView(self.imageRect, Qt.KeepAspectRatio)
         self.uiTogglePropertyPanelBtn.toggled.connect(self.togglePropertyPanel)
 
+    def openSystemTableEditorDialog(self, table, editor):
+        if self.dbm:
+            self.systemTableEditorDlg = APISAdvancedInputDialog(self.dbm, table, True, modelColumnName="bezeichnung", excludeEntries=[editor.itemText(i) for i in range(editor.count())], parent=self)
+
+            if self.systemTableEditorDlg.tableExists:
+                if self.systemTableEditorDlg.exec_():
+                    # QMessageBox.information(self, "info", "{}".format(self.systemTableEditorDlg.getValueToBeAdded()))
+                    self.updateProjectListOfFilm(self.systemTableEditorDlg.getValueToBeAdded(), editor)
+            else:
+                QMessageBox.warning(self, "Tabelle nicht vorhanden", "Die Tabelle {0} ist in der APIS Datenbank nicht vorhanden".format(table))
+
+        else:
+            QMessageBox.warning(self, "Warning Database", "Die APIS Datenbank konnte nicht gefunden werden.")
+
+    def updateProjectListOfFilm(self, newValue, editor):
+        # QMessageBox.information(self, "Info", "'{0};{1}'".format(self.currentFilmInfoDict["projekt"], newValue))
+        if self.currentFilmInfoDict["projekt"]:
+            qryStr = "UPDATE film SET projekt = '{0}' WHERE filmnummer = '{1}'".format("{0};{1}".format(self.currentFilmInfoDict["projekt"], newValue), self.currentFilmNumber)
+        else:
+            qryStr = "UPDATE film SET projekt = '{0}' WHERE filmnummer = '{1}'".format(newValue, self.currentFilmNumber)
+
+        query = QSqlQuery(self.dbm.db)
+        res = query.exec_(qryStr)
+
+        if res:
+            # update Film info and comboBox
+            if self.currentFilmInfoDict["projekt"]:
+                self.currentFilmInfoDict["projekt"] = "{0};{1}".format(self.currentFilmInfoDict["projekt"], newValue)
+            else:
+                self.currentFilmInfoDict["projekt"] = "{0}".format(newValue)
+
+            editor.clear()
+            if self.currentFilmInfoDict["projekt"]:
+                editor.addItems(str.split(self.currentFilmInfoDict["projekt"], ";"))
+                editor.setCurrentIndex(editor.count() - 1)
+
+            self.dbm.dbRequiresUpdate = True
+            # if APISFilm is parent trigger showEvent of parent to reload data
+            from APIS.src.apis_film import APISFilm
+            if isinstance(self.parent, APISFilm):
+                self.parent.showEvent(None)
+
+        else:
+            QMessageBox.warning(self, "DB Fehler", "Der folgende Feheler ist aufgetreten: {}".format(query.lastError().text()))
+
+    def addProject(self):
+        notInList = True
+        for row in range(self.uiProjectList.count()):
+            if self.uiProjectCombo.currentText() == self.uiProjectList.item(row).data(0):
+                notInList = False
+                break
+        if notInList:
+            self.uiProjectList.addItem(self.uiProjectCombo.currentText())
+            self.uiProjectList.sortItems()
+            if not self.editMode and not self.isLoading:
+                self.editModeOn()
+            if not self.isLoading:
+                self.uiProjectList.setStyleSheet("{0} {{background-color: rgb(153, 204, 255);}}".format(self.uiProjectList.metaObject().className()))
+                if self.uiProjectList not in self.editorsEdited:
+                    self.editorsEdited.append(self.uiProjectList)
+
+    def removeProject(self, editor):
+        self.uiProjectList.takeItem(self.uiProjectList.currentRow())
+        if not self.editMode and not self.isLoading:
+            self.editModeOn()
+        if not self.isLoading:
+            self.uiProjectList.setStyleSheet("{0} {{background-color: rgb(153, 204, 255);}}".format(self.uiProjectList.metaObject().className()))
+            if self.uiProjectList not in self.editorsEdited:
+                self.editorsEdited.append(self.uiProjectList)
+
     # Window show/close/resize
     def showEvent(self, event):
         self.uiTogglePropertyPanelBtn.setChecked(False)
@@ -1254,23 +1588,25 @@ class APISImageSelectionList(QDialog, FORM_CLASS):
 
     def onClose(self):
         SetWindowSizeAndPos("image_selection_list", self.size(), self.pos())
+        if self.editMode:
+            self.discardEdits()
 
 
-def doSomething(task, myFile):
-    """
-    Raises an exception to abort the task.
-    Returns a result if success.
-    The result will be passed, together with the exception (None in
-    the case of success), to the on_finished method.
-    If there is an exception, there will be no result.
-    """
-    QgsMessageLog.logMessage('Started task {}'.format(task.description()), tag="APIS", level=Qgis.Info)
-    image = QImage(myFile)
-    size = image.size()
-    rect = QRectF(0, 0, size.width(), size.height())
-    pixmap = QPixmap.fromImage(image)
+# def doSomething(task, myFile):
+#     """
+#     Raises an exception to abort the task.
+#     Returns a result if success.
+#     The result will be passed, together with the exception (None in
+#     the case of success), to the on_finished method.
+#     If there is an exception, there will be no result.
+#     """
+#     QgsMessageLog.logMessage('Started task {}'.format(task.description()), tag="APIS", level=Qgis.Info)
+#     image = QImage(myFile)
+#     size = image.size()
+#     rect = QRectF(0, 0, size.width(), size.height())
+#     pixmap = QPixmap.fromImage(image)
 
-    return {'pixmap': pixmap, 'rect': rect}
+#     return {'pixmap': pixmap, 'rect': rect}
 
 
 def finished(result):

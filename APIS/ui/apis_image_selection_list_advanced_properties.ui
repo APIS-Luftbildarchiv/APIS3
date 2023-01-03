@@ -30,9 +30,9 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <widget class="QWidget" name="gridLayoutWidget">
-      <layout class="QGridLayout" name="gridLayout">
+      <layout class="QGridLayout" name="uiMainGridLayout">
        <item row="0" column="0">
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <layout class="QHBoxLayout" name="uiToolsHorizontalLayout">
          <property name="spacing">
           <number>6</number>
          </property>
@@ -652,9 +652,28 @@
       </layout>
      </widget>
      <widget class="QWidget" name="gridLayoutWidget_2">
-      <layout class="QGridLayout" name="gridLayout_2">
+      <layout class="QGridLayout" name="uiPanelGridLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="uiPropertyPlaceholderLbl">
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="text">
+          <string>Selektieren Sie eines oder mehrere Bilder.</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QGraphicsView" name="uiImageView"/>
+       </item>
        <item row="1" column="0">
-        <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <layout class="QHBoxLayout" name="uiImageNumberSelectorHorizontalLayout">
          <item>
           <widget class="QLineEdit" name="uiImageNumberEdit">
            <property name="readOnly">
@@ -713,29 +732,10 @@
          </item>
         </layout>
        </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="uiPropertyPlaceholderLbl">
-         <property name="autoFillBackground">
-          <bool>false</bool>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="text">
-          <string>Selektieren Sie eines oder mehrere Bilder.</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QGraphicsView" name="uiImageView"/>
-       </item>
        <item row="3" column="0">
         <widget class="QTabWidget" name="uiImagePropertiesTab">
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tabProperties">
           <attribute name="title">
@@ -744,91 +744,11 @@
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
             <layout class="QGridLayout" name="gridLayout_4">
-             <item row="3" column="3">
-              <widget class="QPushButton" name="uiRemoveProjectObliqueBtn">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="icon">
-                <iconset resource="resource.qrc">
-                 <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
-               </property>
-               <property name="autoDefault">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="0" colspan="4">
-              <layout class="QHBoxLayout" name="horizontalLayout_4">
-               <property name="sizeConstraint">
-                <enum>QLayout::SetDefaultConstraint</enum>
-               </property>
-               <item>
-                <spacer name="horizontalSpacer_10">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeType">
-                  <enum>QSizePolicy::Expanding</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QPushButton" name="uiSavePropertiesBtn">
-                 <property name="text">
-                  <string>Speichern</string>
-                 </property>
-                 <property name="autoDefault">
-                  <bool>false</bool>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item row="2" column="3">
-              <widget class="QPushButton" name="uiAddProjectObliqueBtn">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="icon">
-                <iconset resource="resource.qrc">
-                 <normaloff>:/plugins/APIS/icons/add.png</normaloff>:/plugins/APIS/icons/add.png</iconset>
-               </property>
-               <property name="autoDefault">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1" colspan="2">
-              <widget class="QComboBox" name="uiProjectObliqueCombo"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_17">
-               <property name="text">
-                <string>Projekt(e):</string>
-               </property>
-              </widget>
+             <item row="0" column="1" colspan="2">
+              <widget class="QLineEdit" name="uiImageDescriptionEdit"/>
              </item>
              <item row="1" column="3">
-              <widget class="QPushButton" name="uiEditProjectTableObliqueBtn">
+              <widget class="QPushButton" name="uiEditProjectTableBtn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -847,6 +767,29 @@
                </property>
               </widget>
              </item>
+             <item row="2" column="0" rowspan="3" colspan="3">
+              <widget class="QListWidget" name="uiProjectList"/>
+             </item>
+             <item row="2" column="3">
+              <widget class="QPushButton" name="uiAddProjectBtn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="resource.qrc">
+                 <normaloff>:/plugins/APIS/icons/add.png</normaloff>:/plugins/APIS/icons/add.png</iconset>
+               </property>
+               <property name="autoDefault">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
              <item row="0" column="0">
               <widget class="QLabel" name="label_15">
                <property name="text">
@@ -854,11 +797,35 @@
                </property>
               </widget>
              </item>
-             <item row="2" column="0" rowspan="3" colspan="3">
-              <widget class="QListWidget" name="uiProjectObliqueList"/>
+             <item row="1" column="1" colspan="2">
+              <widget class="QComboBox" name="uiProjectCombo"/>
              </item>
-             <item row="0" column="1" colspan="2">
-              <widget class="QLineEdit" name="uiImageDescriptionEdit"/>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_17">
+               <property name="text">
+                <string>Projekt(e):</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="3">
+              <widget class="QPushButton" name="uiRemoveProjectBtn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="resource.qrc">
+                 <normaloff>:/plugins/APIS/icons/remove.png</normaloff>:/plugins/APIS/icons/remove.png</iconset>
+               </property>
+               <property name="autoDefault">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
             </layout>
            </item>
@@ -870,11 +837,15 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
-            <widget class="QLabel" name="label_9">
-             <property name="text">
-              <string>Warnung</string>
-             </property>
-            </widget>
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>Warnung</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
             <widget class="QTableView" name="uiTargetsTableV">
@@ -893,53 +864,39 @@ selection-color: rgb(0, 0, 0);</string>
              </property>
             </widget>
            </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_6">
-             <item>
-              <spacer name="horizontalSpacer_11">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QPushButton" name="uiSaveTargetsBtn">
-               <property name="text">
-                <string>Speichern</string>
-               </property>
-               <property name="autoDefault">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QWidget" name="tabImagesAndLocation">
-          <attribute name="title">
-           <string>Lage</string>
-          </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_5">
-           <item>
-            <widget class="QgsMapCanvas" name="uiImageMapCanvas" native="true">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
           </layout>
          </widget>
         </widget>
+       </item>
+       <item row="4" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_8">
+         <item>
+          <spacer name="horizontalSpacer_10">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QDialogButtonBox" name="uiEditModeBtnBox">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="standardButtons">
+            <set>QDialogButtonBox::Discard|QDialogButtonBox::Save</set>
+           </property>
+           <property name="centerButtons">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
@@ -947,14 +904,6 @@ selection-color: rgb(0, 0, 0);</string>
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QgsMapCanvas</class>
-   <extends>QWidget</extends>
-   <header>qgis.gui</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources>
   <include location="resource.qrc"/>
  </resources>

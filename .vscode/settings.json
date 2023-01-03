@@ -1,11 +1,12 @@
 {  
     // from: https://github.com/isogeo/isogeo-plugin-qgis/blob/master/.vscode/settings.json (14.04.2020)
-    "editor.rulers": [88],
-    "editor.wordWrapColumn": 88,
+    // https://gis.stackexchange.com/questions/396298/visual-studio-code-upgrading-to-1-56-0-issues-with-environment-windows# (29.05.2021)
+    "editor.rulers": [100],
+    "editor.wordWrapColumn": 100,
     // PyQt Integration
-    "pyqt-integration.qtdesigner.path": "C:/OSGeo4W64/bin/qgis-designer.bat",
-    "pyqt-integration.pyuic.cmd": "C:\\OSGEO4~1\\apps\\Python37\\Scripts\\pyuic5.bat",
-    "pyqt-integration.pyrcc.cmd": "C:\\OSGEO4~1\\apps\\Python37\\Scripts\\pyrcc5.bat",
+    "pyqt-integration.qtdesigner.path": "C:/OSGeo4W/bin/qgis-designer.bat",
+    "pyqt-integration.pyuic.cmd": "C:\\OSGEO4W\\apps\\Python39\\Scripts\\pyuic5.exe",
+    "pyqt-integration.pyrcc.cmd": "C:\\OSGEO4W\\apps\\Python39\\Scripts\\pyrcc5.exe",
     "pyqt-integration.pyrcc.compile.filepath": "${workspace}/${qrc_name}.py",
 
     // Linter
@@ -19,9 +20,10 @@
     // Not working yet 
     //"python.envFile": "${workspaceFolder}/dev.env",
 
-    // Set Python interpreter
+    // Set Python interpreter (for editor (debugging, libs, linting, etc.); not for terminal!)
     // "python.pythonPath": "${workspaceFolder}/.venv_tests/Scripts/python.exe",
-    "python.pythonPath": "C:/OSGeo4W64/bin/python-qgis.bat",
+    "python.pythonPath": "C:/OSGeo4W/bin/python-qgis.bat",
+    "python.terminal.activateEnvironment": true,
 
     // Formatting with black
     // "python.formatting.provider": "black",
@@ -29,32 +31,42 @@
     // "python.formatting.blackArgs": ["--target-version=py37",],
 
     // Replicate the QGIS environment
+    "terminal.integrated.allowWorkspaceConfiguration": true,
     "terminal.integrated.env.windows": {
         // Path
-        "PATH": "C:\\OSGEO4~1\\apps\\qgis\\bin;C:\\OSGEO4~1\\apps\\Python37;C:\\OSGEO4~1\\apps\\Python37\\Scripts;C:\\OSGEO4~1\\apps\\qt5\\bin;C:\\OSGEO4~1\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\system32\\WBem;C:\\OSGEO4~1\\apps\\Python37\\lib\\site-packages\\pywin32_system32;C:\\OSGEO4~1\\apps\\Python37\\lib\\site-packages\\numpy\\.libs;C:\\Program Files\\7-Zip",
+        "PATH": "C:\\OSGEO4W\\apps\\qgis\\bin;C:\\OSGEO4W\\apps\\Python39;C:\\OSGEO4W\\apps\\Python39\\Scripts;C:\\OSGEO4W\\apps\\Qt5\\bin;C:\\OSGEO4W\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\system32\\WBem;C:\\OSGEO4W\\apps\\Python39\\lib\\site-packages\\pywin32_system32;C:\\OSGEO4W\\apps\\Python39\\lib\\site-packages\\numpy\\.libs;C:\\Program Files\\7-Zip",
         // Python
-        "PYTHONHOME": "C:\\OSGEO4~1\\apps\\Python37",
-        "PYTHONPATH": "C:\\OSGEO4~1\\apps\\qgis\\python;%PYTHONPATH%",
+        "PYTHONHOME": "C:\\OSGEO4W\\apps\\Python39",
+        "PYTHONPATH": "C:\\OSGEO4W\\apps\\qgis\\python;%PYTHONPATH%",
+        "PYTHONUTF8": "1",
         // GDAL
-        "GDAL_DATA": "C:\\OSGEO4~1\\share\\gdal",
-        "GDAL_DRIVER_PATH": "C:\\OSGEO4~1\\bin\\gdalplugins",
+        "GDAL_DATA": "C:\\OSGEO4W\\apps\\gdal\\share\\gdal",
+        "GDAL_DRIVER_PATH": "C:\\OSGEO4W\\apps\\gdal\\lib\\gdalplugins",
         "GDAL_FILENAME_IS_UTF8": "YES",
+        //GS Lib
+        "GS_LIB": "C:\\OSGEO4W\\apps\\apps\\gs\\lib",
+        //OPENSSL
+        "OPENSSL_ENGINES": "C:\\OSGEO4W\\lib\\engines-1_1",
+        "SSL_CERT_FILE": "C:\\OSGEO4W\\bin\\curl-ca-bundle.crt",
+        "SSL_CERT_DIR": "C:\\OSGEO4W\\apps\\openssl\\certs",
+        //PROJ
+        "PROJ_LIB": "C:\\OSGEO4W\\share\\proj",
         // GeoTIFF
-        "GEOTIFF_CSV": "C:\\OSGEO4~1\\share\\epsg_csv",
+        "GEOTIFF_CSV": "C:\\OSGEO4W\\share\\epsg_csv",
         // Qt
-        "O4W_QT_BINARIES": "C:/OSGEO4~1/apps/Qt5/bin",
-        "O4W_QT_DOC": "C:/OSGEO4~1/apps/Qt5/doc",
-        "O4W_QT_HEADERS": "C:/OSGEO4~1/apps/Qt5/include",
-        "O4W_QT_LIBRARIES": "C:/OSGEO4~1/apps/Qt5/lib",
-        "O4W_QT_PLUGINS": "C:/OSGEO4~1/apps/Qt5/plugins",
-        "O4W_QT_PREFIX": "C:/OSGEO4~1/apps/Qt5",
-        "O4W_QT_TRANSLATIONS": "C:/OSGEO4~1/apps/Qt5/translations",
-        "QT_PLUGIN_PATH": "C:\\OSGEO4~1\\apps\\qgis\\qtplugins;C:\\OSGEO4~1\\apps\\qt5\\plugins",
+        "O4W_QT_BINARIES": "C:/OSGEO4W/apps/Qt5/bin",
+        "O4W_QT_DOC": "C:/OSGEO4W/apps/Qt5/doc",
+        "O4W_QT_HEADERS": "C:/OSGEO4W/apps/Qt5/include",
+        "O4W_QT_LIBRARIES": "C:/OSGEO4W/apps/Qt5/lib",
+        "O4W_QT_PLUGINS": "C:/OSGEO4W/apps/Qt5/plugins",
+        "O4W_QT_PREFIX": "C:/OSGEO4W/apps/Qt5",
+        "O4W_QT_TRANSLATIONS": "C:/OSGEO4W/apps/Qt5/translations",
+        "QT_PLUGIN_PATH": "C:\\OSGEO4W\\apps\\qgis\\qtplugins;C:\\OSGEO4W\\apps\\Qt5\\plugins",
         // QGIS
-        "QGIS_PREFIX_PATH": "C:/OSGEO4~1/apps/qgis",
+        "QGIS_PREFIX_PATH": "C:/OSGEO4W/apps/qgis",
         // Cache
         "VSI_CACHE": "TRUE",
         "VSI_CACHE_SIZE": "1000000"
     },
-    "python.linting.pylintEnabled": false,
+
 }

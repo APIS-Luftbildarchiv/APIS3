@@ -56,6 +56,22 @@
        </property>
       </spacer>
      </item>
+     <item>
+      <widget class="QCheckBox" name="uiMainRepresentativeImageChk">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Repräsentatives Hauptluftbild</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+       <property name="tristate">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -113,6 +129,9 @@
        <property name="editable">
         <bool>true</bool>
        </property>
+       <property name="placeholderText">
+        <string>keine Bilder verfügbar</string>
+       </property>
       </widget>
      </item>
      <item row="7" column="0" colspan="2">
@@ -121,7 +140,10 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="standardButtons">
-        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+       </property>
+       <property name="centerButtons">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

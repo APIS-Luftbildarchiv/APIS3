@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
+    <width>1096</width>
     <height>700</height>
    </rect>
   </property>
@@ -33,13 +33,13 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QPushButton" name="uiLoadFindspotInQGisBtn">
+         <widget class="QPushButton" name="uiResetSelectionBtn">
           <property name="text">
-           <string>Funstelle in QGIS laden</string>
+           <string/>
           </property>
           <property name="icon">
            <iconset resource="resource.qrc">
-            <normaloff>:/plugins/APIS/icons/layer.png</normaloff>:/plugins/APIS/icons/layer.png</iconset>
+            <normaloff>:/plugins/APIS/icons/deselection.png</normaloff>:/plugins/APIS/icons/deselection.png</iconset>
           </property>
           <property name="autoDefault">
            <bool>false</bool>
@@ -457,13 +457,50 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="uiSelectRepresentativeImageBtn">
+        <widget class="QPushButton" name="uiEditRepresentativeImageBtn">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string/>
          </property>
          <property name="icon">
           <iconset resource="resource.qrc">
-           <normaloff>:/plugins/APIS/icons/image.png</normaloff>:/plugins/APIS/icons/image.png</iconset>
+           <normaloff>:/plugins/APIS/icons/sketch.png</normaloff>:/plugins/APIS/icons/sketch.png</iconset>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uiAddRepresentativeImageBtn">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/plugins/APIS/icons/add.png</normaloff>:/plugins/APIS/icons/add.png</iconset>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uiRemoveRepresentativeImageBtn">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/plugins/APIS/icons/cancel.png</normaloff>:/plugins/APIS/icons/cancel.png</iconset>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -481,7 +518,14 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="uiPrevRepImageBtn">
+        <widget class="QLabel" name="uiRepresentativeImageNameLbl">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uiPrevRepresentativeImageBtn">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -498,14 +542,24 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="uiRepImageNameLbl">
+        <widget class="QPushButton" name="uiGoToMainRepresentativeImageBtn">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/plugins/APIS/icons/update.png</normaloff>:/plugins/APIS/icons/update.png</iconset>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="uiNextRepImageBtn">
+        <widget class="QPushButton" name="uiNextRepresentativeImageBtn">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -524,7 +578,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QGraphicsView" name="uiSiteImageView"/>
+      <widget class="QGraphicsView" name="uiSiteRepresentativeImageView"/>
      </item>
     </layout>
    </item>
@@ -919,7 +973,7 @@
   <tabstop>uiLiteraturePTxt</tabstop>
   <tabstop>uiAddNewFindspotBtn</tabstop>
   <tabstop>uiFindspotListTableV</tabstop>
-  <tabstop>uiSiteImageView</tabstop>
+  <tabstop>uiSiteRepresentativeImageView</tabstop>
   <tabstop>uiLoadSiteInterpretationInQGisBtn</tabstop>
   <tabstop>uiListImagesOfSiteBtn</tabstop>
   <tabstop>uiDeleteSiteBtn</tabstop>

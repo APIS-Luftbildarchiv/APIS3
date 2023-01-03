@@ -74,9 +74,13 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         mLayer.addSection("In QGIS laden")
         aLayerLoadFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundstelle(n)")
         aLayerLoadFindspot.triggered.connect(self.loadFindspotInQgis)
+        aLayerLoadFindspotAndSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundstelle(n) und Fundort(e)")
+        aLayerLoadFindspotAndSite.triggered.connect(lambda: self.loadFindspotInQgis(loadSites=True))
         mLayer.addSection("SHP Export")
         aLayerExportFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "Fundstelle(n)")
         aLayerExportFindspot.triggered.connect(self.exportFindspotAsShp)
+        aLayerExportFindspotAndSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'shp_export.png')), "Fundstelle(n) und Fundort(e)")
+        aLayerExportFindspotAndSite.triggered.connect(lambda: self.exportFindspotAsShp(exportSites=True))
         mLayer.addSection("In QGIS anzeigen")
         aLayerShowFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundstelle(n) zoomen")
         aLayerShowFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=False))
@@ -84,6 +88,13 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         aLayerSelectFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=False, select=True))
         aLayerShowAndSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundstelle(n) zoomen und selektieren")
         aLayerShowAndSelectFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=True))
+        mLayer.addSeparator()
+        aLayerShowFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen")
+        aLayerShowFindspot.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=False))
+        aLayerSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundort(e) selektieren")
+        aLayerSelectFindspot.triggered.connect(lambda: self.showSiteInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort(e) zoomen und selektieren")
+        aLayerShowAndSelectFindspot.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=True))
         self.uiLayerTBtn.setMenu(mLayer)
         self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
 
@@ -169,7 +180,20 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
         if not select:
             layer.removeSelection()
 
-    def loadFindspotInQgis(self):
+    def showSiteInQgis(self, zoomTo=True, select=False):
+        layer = self.apisLayer.requestSiteLayer()
+        expression = "\"fundortnummer\" IN ({})".format(','.join(["'{}'".format(sN) for sN in self.getSiteList(False)]))
+        self.apisLayer.selectFeaturesByExpression(layer, expression)
+        if zoomTo:
+            self.apisLayer.zoomToSelection(layer)
+        if not select:
+            layer.removeSelection()
+
+    def getSiteNumberFromFindspotNumber(self, fsNumber):
+        fsNumberElements = fsNumber.split(".")
+        return f'{fsNumberElements[0]}.{fsNumberElements[1]}'
+
+    def loadFindspotInQgis(self, loadSites=False):
         findspotList = self.askForFindspotList()
         if findspotList:
             # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}".format(u", ".join(siteList)))
@@ -178,11 +202,23 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                 # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}, {1}".format(polygon, point))
                 subsetString = '"fundortnummer"  || \'.\' || "fundstellenummer" IN (' + ','.join(['\'{0}\''.format(findspotNumber) for findspotNumber in findspotList]) + ')'
                 findspotLayer = self.apisLayer.getSpatialiteLayer('fundstelle', subsetString)
+
+                if loadSites:
+                    subsetString = '"fundortnummer" IN (' + ','.join(['\'{0}\''.format(siteNumber) for siteNumber in list(set([self.getSiteNumberFromFindspotNumber(findspotNumber) for findspotNumber in findspotList]))]) + ')'
+                    siteLayer = self.apisLayer.getSpatialiteLayer('fundort', subsetString)
+
                 if polygon and findspotLayer:
                     findspotLayerMemory = self.apisLayer.createMemoryLayer(findspotLayer, "fundstelle polygon")
                     findspotLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("find_spots_fp"))
                     # load PolygonLayer
                     self.apisLayer.addLayerToCanvas(findspotLayerMemory, "Temp")
+
+                    if loadSites and siteLayer:
+                        siteLayerMemory = self.apisLayer.createMemoryLayer(siteLayer, "fundort polygon")
+                        siteLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("sites_fp"))
+                        # load PolygonLayer
+                        self.apisLayer.addLayerToCanvas(siteLayerMemory, "Temp")
+
                 if point and findspotLayer:
                     # generate PointLayer
                     centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(findspotLayer, "fundstelle punkt")
@@ -190,9 +226,15 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                     # load PointLayer
                     self.apisLayer.addLayerToCanvas(centerPointLayer, "Temp")
 
+                    if loadSites and siteLayer:
+                        siteCenterPointLayerMemory = self.apisLayer.generateCenterPointMemoryLayer(siteLayer, "fundort punkt")
+                        siteCenterPointLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("sites_cp"))
+                        # load PolygonLayer
+                        self.apisLayer.addLayerToCanvas(siteCenterPointLayerMemory, "Temp")
+
                 self.close()
 
-    def exportFindspotAsShp(self):
+    def exportFindspotAsShp(self, exportSites=False):
         findspotList = self.askForFindspotList()
         if findspotList:
             # QMessageBox.warning(None, self.tr(u"SiteList"), u"{0}".format(u", ".join(siteList)))
@@ -202,16 +244,26 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
                 subsetString = '"fundortnummer"  || \'.\' || "fundstellenummer" IN (' + ','.join(['\'{0}\''.format(findspotNumber) for findspotNumber in findspotList]) + ')'
                 findspotLayer = self.apisLayer.getSpatialiteLayer('fundstelle', subsetString)
 
+                if exportSites:
+                    subsetString = '"fundortnummer" IN (' + ','.join(['\'{0}\''.format(siteNumber) for siteNumber in list(set([self.getSiteNumberFromFindspotNumber(findspotNumber) for findspotNumber in findspotList]))]) + ')'
+                    siteLayer = self.apisLayer.getSpatialiteLayer('fundort', subsetString)
+
                 now = QDateTime.currentDateTime()
                 time = now.toString("yyyyMMdd_hhmmss")
                 if polygon and findspotLayer:
                     # save PolygonLayer
                     self.apisLayer.exportLayerAsShp(findspotLayer, time, name="Fundstelle_Polygon", groupName="Temp", styleName="find_spots_fp", parent=self)
+                    if exportSites and siteLayer:
+                        self.apisLayer.exportLayerAsShp(siteLayer, time, name="Fundort_Polygon", groupName="Temp", styleName="sites_fp", parent=self)
+
                 if point and findspotLayer:
                     # generate PointLayer
                     centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(findspotLayer)
                     # save PointLayer
                     self.apisLayer.exportLayerAsShp(centerPointLayer, time, name="Fundstelle_Punkt", groupName="Temp", styleName="find_spots_cp", parent=self)
+                    if exportSites and siteLayer:
+                        siteCenterPointLayer = self.apisLayer.generateCenterPointMemoryLayer(siteLayer)
+                        self.apisLayer.exportLayerAsShp(siteCenterPointLayer, time, name="Fundort_Punkt", groupName="Temp", styleName="sites_cp", parent=self)
 
     def exportAsPdf(self, tab_list=False, detail=False, parentDetail=False):
         if self.printingOptionsDlg is None:
@@ -294,13 +346,27 @@ class APISFindspotSelectionList(QDialog, FORM_CLASS):
             rows = self.uiFindspotListTableV.selectionModel().selectedRows()
             for row in rows:
                 if not self.uiFindspotListTableV.isRowHidden(row.row()):
-                    findspotList.append(u"{0}.{1}".format(self.model.item(row.row(), 0).text(), self.model.item(row.row(), 1).text()))
+                    findspotList.append(f"{self.model.item(row.row(), 0).text()}.{self.model.item(row.row(), 1).text()}")
         else:
             for row in range(self.model.rowCount()):
                 if not self.uiFindspotListTableV.isRowHidden(row):
-                    findspotList.append(u"{0}.{1}".format(self.model.item(row, 0).text(), self.model.item(row, 1).text()))
+                    findspotList.append(f"{self.model.item(row, 0).text()}.{self.model.item(row, 1).text()}")
 
         return findspotList
+
+    def getSiteList(self, getAll):
+        siteList = []
+        if self.uiFindspotListTableV.selectionModel().hasSelection() and not getAll:
+            rows = self.uiFindspotListTableV.selectionModel().selectedRows()
+            for row in rows:
+                if not self.uiFindspotListTableV.isRowHidden(row.row()):
+                    siteList.append(f"{self.model.item(row.row(), 0).text()}")
+        else:
+            for row in range(self.model.rowCount()):
+                if not self.uiFindspotListTableV.isRowHidden(row):
+                    siteList.append(f"{self.model.item(row, 0).text()}")
+
+        return list(set(siteList))
 
     def onClose(self):
         SetWindowSizeAndPos("findspot_selection_list", self.size(), self.pos())

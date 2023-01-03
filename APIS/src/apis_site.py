@@ -30,23 +30,67 @@ from functools import partial
 
 # PyQt
 from PyQt5.uic import loadUiType
-from PyQt5.QtWidgets import QDialog, QDataWidgetMapper, QTableView, QAbstractItemView, QComboBox, QHeaderView, QMessageBox, QPushButton, QGraphicsScene, QGraphicsTextItem, QMenu
+from PyQt5.QtWidgets import (
+    QDialog,
+    QDataWidgetMapper,
+    QTableView,
+    QAbstractItemView,
+    QComboBox,
+    QHeaderView,
+    QMessageBox,
+    QPushButton,
+    QGraphicsScene,
+    QGraphicsTextItem,
+    QMenu
+)
 from PyQt5.QtSql import QSqlRelationalTableModel, QSqlQuery, QSqlRelationalDelegate
 from PyQt5.QtCore import pyqtSignal, QSettings, Qt, QTime, QDate, QFile, QDir, QRectF
-from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator, QColor, QImage, QPixmap, QIcon
+from PyQt5.QtGui import (
+    QValidator,
+    QIntValidator,
+    QDoubleValidator,
+    QColor,
+    QImage,
+    QPixmap,
+    QIcon,
+    QTextCursor,
+)
 
 # PyQGIS
-from qgis.core import (QgsGeometry, QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer,
-                       QgsRasterLayer, QgsDataSourceUri, QgsFeature, QgsWkbTypes,
-                       QgsFeatureRequest, QgsExpression)
+from qgis.core import (
+    QgsGeometry,
+    QgsCoordinateReferenceSystem,
+    QgsProject,
+    QgsVectorLayer,
+    QgsRasterLayer,
+    QgsDataSourceUri,
+    QgsFeature,
+    QgsWkbTypes,
+    QgsFeatureRequest,
+    QgsExpression,
+    QgsMessageLog,
+    Qgis,
+)
 from qgis.gui import QgsRubberBand, QgsHighlight
 
 # APIS
 from APIS.src.apis_text_editor import APISTextEditor
 from APIS.src.apis_representative_image import APISRepresentativeImage
 from APIS.src.apis_overpass_request import APISOverpassRequest
-from APIS.src.apis_utils import (SiteHasFindspot, OpenFileOrFolder, ApisLogger, GetFindspotNumbers, VersionToCome,
-                                 GetWindowSize, GetWindowPos, SetWindowSizeAndPos, FileOrFolder, PolygonOrPoint)
+from APIS.src.apis_utils import (
+    SiteHasFindspot,
+    OpenFileOrFolder,
+    ApisLogger,
+    GetFindspotNumbers,
+    GetWindowSize,
+    GetWindowPos,
+    SetWindowSizeAndPos,
+    FileOrFolder,
+    PolygonOrPoint,
+    SelectionOrAll,
+    AskQuestion,
+    GetNextAvailableFilename,
+)
 from APIS.src.apis_findspot import APISFindspot
 from APIS.src.apis_findspot_selection_list import APISFindspotSelectionList
 from APIS.src.apis_sharding_selection_list import APISShardingSelectionList
@@ -66,7 +110,7 @@ class APISSite(QDialog, FORM_CLASS):
     siteDeleted = pyqtSignal(bool)
     siteAndGeometryEditsSaved = pyqtSignal(QDialog, str, QgsGeometry, QgsGeometry, str, dict)
     siteAndGeometryEditsCanceled = pyqtSignal(QDialog)
-    copyImageFinished = pyqtSignal(bool)
+    copyImageFinished = pyqtSignal(bool, str)
 
     def __init__(self, iface, dbm, imageRegistry, apisLayer, parent=None):
         """Constructor."""
@@ -109,6 +153,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiOverpassBtn.clicked.connect(self.openOverpassRequest)
 
         self.uiFindspotListTableV.doubleClicked.connect(self.openFindspotDialog)
+        self.uiResetSelectionBtn.clicked.connect(self.uiFindspotListTableV.clearSelection)
 
         self.findspotDlg = None
         self.shardingDlg = None
@@ -117,12 +162,14 @@ class APISSite(QDialog, FORM_CLASS):
 
         self.uiLoadSiteInterpretationInQGisBtn.clicked.connect(self.loadSiteInterpretationInQGis)
         self.uiListImagesOfSiteBtn.clicked.connect(self.openImageSelectionListDialog)
-        self.uiSelectRepresentativeImageBtn.clicked.connect(self.openRepresentativeImageDialog)
-        self.uiPrevRepImageBtn.clicked.connect(self.loadNextRepImage)
-        self.uiNextRepImageBtn.clicked.connect(self.loadPrevRepImage)
-        self.uiDeleteSiteBtn.clicked.connect(self.deleteSite)
+        self.uiAddRepresentativeImageBtn.clicked.connect(lambda: self.openRepresentativeImageDialog(mode="add"))
+        self.uiEditRepresentativeImageBtn.clicked.connect(lambda: self.openRepresentativeImageDialog(mode="edit"))
+        self.uiRemoveRepresentativeImageBtn.clicked.connect(self.removeRepresentativeImage)
+        self.uiPrevRepresentativeImageBtn.clicked.connect(self.loadPrevRepImage)
+        self.uiNextRepresentativeImageBtn.clicked.connect(self.loadNextRepImage)
+        self.uiGoToMainRepresentativeImageBtn.clicked.connect(self.goToMainRepImage)
 
-        self.uiLoadFindspotInQGisBtn.clicked.connect(lambda: VersionToCome())
+        self.uiDeleteSiteBtn.clicked.connect(self.deleteSite)
 
         mLayer = QMenu()
         mLayer.addSection("Fundort")
@@ -134,7 +181,18 @@ class APISSite(QDialog, FORM_CLASS):
         aLayerSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=False, select=True))
         aLayerShowAndSelectSite = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundort zoomen und selektieren")
         aLayerShowAndSelectSite.triggered.connect(lambda: self.showSiteInQgis(zoomTo=True, select=True))
+
         mLayer.addSection("Fundstellen")
+        aLayerLoadFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "In QGIS laden")
+        aLayerLoadFindspot.triggered.connect(self.loadFindspotInQgis)
+        aLayerShowFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundstelle zoomen")
+        aLayerShowFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=False))
+        aLayerSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Fundstelle selektieren")
+        aLayerSelectFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=False, select=True))
+        aLayerShowAndSelectFindspot = mLayer.addAction(QIcon(os.path.join(QSettings().value("APIS/plugin_dir"), 'ui', 'icons', 'layer.png')), "Zu Fundstelle zoomen und selektieren")
+        aLayerShowAndSelectFindspot.triggered.connect(lambda: self.showFindspotInQgis(zoomTo=True, select=True))
+        self.loadFindspotLayerOptions = [aLayerLoadFindspot, aLayerShowFindspot, aLayerSelectFindspot, aLayerShowAndSelectFindspot]
+
         mLayer.addSection("Interpretation")
         self.uiLayerTBtn.setMenu(mLayer)
         self.uiLayerTBtn.clicked.connect(self.uiLayerTBtn.showMenu)
@@ -163,8 +221,7 @@ class APISSite(QDialog, FORM_CLASS):
 
         self.uiSiteMapCanvas.setCanvasColor(Qt.white)
         #self.uiSiteMapCanvas.setCrsTransformEnabled(True)
-        self.uiSiteMapCanvas.setDestinationCrs(
-            QgsCoordinateReferenceSystem(3857, QgsCoordinateReferenceSystem.EpsgCrsId))
+        self.uiSiteMapCanvas.setDestinationCrs(QgsCoordinateReferenceSystem.fromEpsgId(3857))
 
         self.rubberBand = None
         self.siteLayerId = None
@@ -191,7 +248,6 @@ class APISSite(QDialog, FORM_CLASS):
 
         self.loadSiteInSiteMapCanvas()
 
-        #self.loadRepresentativeImageForSite()
         self.initalLoad = False
 
     def openInEditMode(self, siteNumber, newPolygon, oldPolygon, country, kgCode, kgName, siteArea):
@@ -410,6 +466,12 @@ class APISSite(QDialog, FORM_CLASS):
         self.uiFindspotListTableV.resizeRowsToContents()
         self.uiFindspotListTableV.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.uiFindspotListTableV.selectionModel().selectionChanged.connect(self.findspotListSelectionChanged)
+        # QgsMessageLog.logMessage(f'FindspotCount: {model.rowCount()}', tag="APIS", level=Qgis.Info)
+        showFindspotOptions = True
+        if not model:
+            showFindspotOptions = False
+        for option in self.loadFindspotLayerOptions:
+            option.setEnabled(showFindspotOptions)
 
         query.finish()
 
@@ -873,7 +935,8 @@ class APISSite(QDialog, FORM_CLASS):
                 # get path from settings
                 path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
                 # get filename from SQL
-                repImageName = self.getRepresentativeImage(self.siteNumber)
+                # TODO: UPDATE regarding Multiple Rep Images
+                repImageName = self.getMainRepresentativeImageFromDb(self.siteNumber)
                 if repImageName:
                     path += u"\\" + repImageName + u".jpg"
                     # Check if exists
@@ -977,6 +1040,73 @@ class APISSite(QDialog, FORM_CLASS):
             self.apisLayer.zoomToSelection(layer)
         if not select:
             layer.removeSelection()
+
+    def askForFindspotList(self):
+        if self.uiFindspotListTableV.selectionModel().hasSelection() and not self.uiFindspotListTableV.model().rowCount() == 1:
+            #Abfrage ob selektierte Fundstelle oder alle Fundstellen
+            ret = SelectionOrAll(parent=self)
+
+            if ret == 0:
+                # get selected FS Number
+                findspotList = self.getFindspotList(False)
+            elif ret == 1:
+                # get all FS Numbers
+                findspotList = self.getFindspotList(True)
+            else:
+                return None
+        else:
+            # get all FS Numbers
+            findspotList = self.getFindspotList(True)
+        return findspotList
+
+    def loadFindspotInQgis(self):
+        findspotList = self.askForFindspotList()
+        QgsMessageLog.logMessage(f'Findspots: {findspotList}', tag="APIS", level=Qgis.Info)
+        if findspotList:
+            polygon, point = PolygonOrPoint(parent=self)
+            if polygon or point:
+                # get PolygonLayer
+                subsetString = '"fundortnummer"  || \'.\' || "fundstellenummer" IN (' + ','.join(['\'{0}\''.format(findspotNumber) for findspotNumber in findspotList]) + ')'
+                findspotLayer = self.apisLayer.getSpatialiteLayer("fundstelle", subsetString, f"fundstelle polygon {self.siteNumber if len(findspotList) > 1 else findspotList[0]}")
+
+                if polygon and findspotLayer:
+                    findspotLayerMemory = self.apisLayer.createMemoryLayer(findspotLayer)
+                    findspotLayerMemory.loadNamedStyle(self.apisLayer.getStylePath("find_spots_fp"))
+                    # load PolygonLayer
+                    self.apisLayer.addLayerToCanvas(findspotLayerMemory, "Temp")
+
+                if point and findspotLayer:
+                    # generate PointLayer
+                    centerPointLayer = self.apisLayer.generateCenterPointMemoryLayer(findspotLayer, f"fundstelle punkt {self.siteNumber if len(findspotList) > 1 else findspotList[0]}")
+                    centerPointLayer.loadNamedStyle(self.apisLayer.getStylePath("find_spots_cp"))
+                    # load PointLayer
+                    self.apisLayer.addLayerToCanvas(centerPointLayer, "Temp")
+
+    def showFindspotInQgis(self, zoomTo=True, select=False):
+        findspotList = self.askForFindspotList()
+        QgsMessageLog.logMessage(f'Findspots: {findspotList}', tag="APIS", level=Qgis.Info)
+        if findspotList:
+            layer = self.apisLayer.requestFindspotLayer()
+            expression = '"fundortnummer"  || \'.\' || "fundstellenummer" IN (' + ','.join(['\'{0}\''.format(findspotNumber) for findspotNumber in findspotList]) + ')'
+            self.apisLayer.selectFeaturesByExpression(layer, expression)
+            if zoomTo:
+                self.apisLayer.zoomToSelection(layer)
+            if not select:
+                layer.removeSelection()
+
+    def getFindspotList(self, getAll):
+        findspotList = []
+        if self.uiFindspotListTableV.selectionModel().hasSelection() and not getAll:
+            rows = self.uiFindspotListTableV.selectionModel().selectedRows()
+            for row in rows:
+                if not self.uiFindspotListTableV.isRowHidden(row.row()):
+                    findspotList.append(f"{self.siteNumber}.{self.uiFindspotListTableV.model().item(row.row(), 0).text()}")
+        else:
+            for row in range(self.uiFindspotListTableV.model().rowCount()):
+                if not self.uiFindspotListTableV.isRowHidden(row):
+                    findspotList.append(f"{self.siteNumber}.{self.uiFindspotListTableV.model().item(row, 0).text()}")
+
+        return findspotList
 
     def loadSiteInterpretationInQGis(self):
         siteNumber = self.uiSiteNumberEdit.text()
@@ -1143,10 +1273,10 @@ class APISSite(QDialog, FORM_CLASS):
         for layer in layers:
             QgsProject.instance().removeMapLayer(layer.id())
 
-    def getRepresentativeImage(self, siteNumber):
+    def getMainRepresentativeImageFromDb(self, siteNumber):
         query = QSqlQuery(self.dbm.db)
         #query.prepare(u"SELECT CASE WHEN repraesentatives_luftbild IS NULL THEN replace(fundortnummer_legacy, '.','_') WHEN repraesentatives_luftbild ='_1' THEN replace(fundortnummer_legacy, '.','_') || '_1' ELSE repraesentatives_luftbild END as repImage FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
-        query.prepare(u"SELECT CASE WHEN repraesentatives_luftbild IS NULL THEN 0 WHEN repraesentatives_luftbild ='_1' THEN 0 ELSE repraesentatives_luftbild END as repImage FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
+        query.prepare(f"SELECT CASE WHEN repraesentatives_luftbild IS NULL THEN 0 WHEN repraesentatives_luftbild ='_1' THEN 0 ELSE repraesentatives_luftbild END as repImage FROM fundort WHERE fundortnummer = '{siteNumber}'")
         query.exec_()
         query.first()
         if query.value(0) == 0:
@@ -1154,29 +1284,61 @@ class APISSite(QDialog, FORM_CLASS):
         else:
             return str(query.value(0))
 
-    def getSiteNumberLegacy(self, siteNumber):
+    def setMainRepresentativeImageInDb(self, repImage, siteNumber):
         query = QSqlQuery(self.dbm.db)
-        query.prepare(u"SELECT fundortnummer_legacy FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
-        query.exec_()
-        query.first()
-        return str(query.value(0))
+        query.prepare(f"UPDATE fundort SET repraesentatives_luftbild = '{repImage}' WHERE fundortnummer = '{siteNumber}'")
+        return query.exec_()
 
-    def loadRepresentativeImagesForSite(self):
+    # DEPRECATED
+    # def getSiteNumberLegacy(self, siteNumber):
+    #     query = QSqlQuery(self.dbm.db)
+    #     query.prepare(u"SELECT fundortnummer_legacy FROM fundort WHERE fundortnummer = '{0}'".format(siteNumber))
+    #     query.exec_()
+    #     query.first()
+    #     return str(query.value(0))
+
+    def loadRepresentativeImagesForSite(self, setCurrentPath=None):
         # get path from settings
         path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
-        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, '{0}*.*'.format(self.siteNumber.replace('.', '_')))))
-        self.scene = QGraphicsScene()
-        self.uiSiteImageView.setScene(self.scene)
+        self.repImagesPathList = glob.glob(os.path.normpath(os.path.join(path, f"{self.siteNumber.replace('.', '_')}*.*")))
+
+        repImagesFileNamesList = [os.path.splitext(os.path.basename(i))[0] for i in self.repImagesPathList]
+        # repImagesFileNamesList = [os.path.split(os.path.basename(i))[0] for i in self.repImagesPathList]
+        # QMessageBox.information(None, "RepImages", "{0}".format(', '.join(repImagesFileNamesList)))
+
+        # get main image from db
+        self.mainRepImage = self.getMainRepresentativeImageFromDb(self.siteNumber)
+
+        # if no image set and images available set sitenumber if in repImagesFileNamesList or otherwise first item of repImagesFileNamesList
+        if not self.mainRepImage and len(self.repImagesPathList) > 0:
+            if self.siteNumber.replace('.', '_') in repImagesFileNamesList:
+                fileName = self.siteNumber.replace('.', '_')
+            else:
+                fileName = repImagesFileNamesList[0]
+            self.setMainRepresentativeImageInDb(fileName, self.siteNumber)
+            self.mainRepImage = self.getMainRepresentativeImageFromDb(self.siteNumber)
+
+        if not self.repImageLoaded:
+            self.scene = QGraphicsScene()
+            self.uiSiteRepresentativeImageView.setScene(self.scene)
+
         if self.repImagesPathList:
+            # check if setCurrentPath is set and exists in list, if so set as current otherwise first in list
             self.currentRepImage = 0
+            if setCurrentPath and setCurrentPath in self.repImagesPathList:
+                self.currentRepImage = self.repImagesPathList.index(setCurrentPath)
+
             self.loadImage(self.repImagesPathList[self.currentRepImage])
-            self.uiRepImageNameLbl.setText(os.path.basename(self.repImagesPathList[self.currentRepImage]))
-            if len(self.repImagesPathList) > 1:
-                self.uiPrevRepImageBtn.setEnabled(True)
-                self.uiNextRepImageBtn.setEnabled(True)
+            self.uiRepresentativeImageNameLbl.setText(f"{os.path.basename(self.repImagesPathList[self.currentRepImage])}{'*' if os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage else ''}")
+            self.uiRemoveRepresentativeImageBtn.setEnabled(not os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage and len(self.repImagesPathList) > 1)
         else:
             self.loadText(u"Kein repräsentatives Luftbild vorhanden ...")
-            self.uiRepImageNameLbl.setText("")
+            self.uiRepresentativeImageNameLbl.setText("")
+
+        self.uiPrevRepresentativeImageBtn.setEnabled(len(self.repImagesPathList) > 1)
+        self.uiNextRepresentativeImageBtn.setEnabled(len(self.repImagesPathList) > 1)
+        self.uiGoToMainRepresentativeImageBtn.setEnabled(len(self.repImagesPathList) > 1)
+        self.uiEditRepresentativeImageBtn.setEnabled(len(self.repImagesPathList) > 0)
 
         self.repImageLoaded = True
 
@@ -1189,7 +1351,8 @@ class APISSite(QDialog, FORM_CLASS):
         else:
             self.currentRepImage += 1
         self.loadImage(self.repImagesPathList[self.currentRepImage])
-        self.uiRepImageNameLbl.setText(os.path.basename(self.repImagesPathList[self.currentRepImage]))
+        self.uiRepresentativeImageNameLbl.setText(f"{os.path.basename(self.repImagesPathList[self.currentRepImage])}{'*' if os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage else ''}")
+        self.uiRemoveRepresentativeImageBtn.setEnabled(not os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage and len(self.repImagesPathList) > 1)
 
     def loadPrevRepImage(self):
         if self.currentRepImage - 1 < 0:
@@ -1197,44 +1360,67 @@ class APISSite(QDialog, FORM_CLASS):
         else:
             self.currentRepImage -= 1
         self.loadImage(self.repImagesPathList[self.currentRepImage])
-        self.uiRepImageNameLbl.setText(os.path.basename(self.repImagesPathList[self.currentRepImage]))
+        self.uiRepresentativeImageNameLbl.setText(f"{os.path.basename(self.repImagesPathList[self.currentRepImage])}{'*' if os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage else ''}")
+        self.uiRemoveRepresentativeImageBtn.setEnabled(not os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage and len(self.repImagesPathList) > 1)
 
-    def loadRepresentativeImageForSite(self):
-        # get path from settings
-        path = self.settings.value("APIS/repr_image_dir", QDir.home().dirName())
-        # get filename from SQL
-        self.scene = QGraphicsScene()
-        self.uiSiteImageView.setScene(self.scene)
-        repImageName = self.getRepresentativeImage(self.siteNumber)
-        if repImageName:
-            path += u"\\" + repImageName + u".jpg"
-            # Check if exists
-            repImageFile = QFile(path)
+    def goToMainRepImage(self):
+        # QMessageBox.information(None, "RepImages", "{0}; {1}".format(self.mainRepImage, ', '.join([os.path.splitext(os.path.basename(i))[0] for i in self.repImagesPathList])))
+        self.currentRepImage = [os.path.splitext(os.path.basename(i))[0] for i in self.repImagesPathList].index(self.mainRepImage)
+        if not self.currentRepImage:
+            self.currentRepImage = 0
+        self.loadImage(self.repImagesPathList[self.currentRepImage])
+        self.uiRepresentativeImageNameLbl.setText(f"{os.path.basename(self.repImagesPathList[self.currentRepImage])}{'*' if os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage else ''}")
+        self.uiRemoveRepresentativeImageBtn.setEnabled(not os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage and len(self.repImagesPathList) > 1)
 
-            if repImageFile.exists():
-                self.loadImage(repImageFile.fileName())
-                #QMessageBox.information(None, "FileInfo", u"True, {0}".format(repImageFile.fileName()))
-            else:
-                self.loadText(u"Kein repräsentatives Luftbild vorhanden ...")
-        else:
-            self.loadText(u"Kein repräsentatives Luftbild vorhanden ...")
+    def openRepresentativeImageDialog(self, mode="add"):
+        if mode == "add":
+            imageToShow = None
+        elif mode == "edit":
+            imageToShow = self.repImagePath
 
-        self.repImageLoaded = True
+        repImageDlg = APISRepresentativeImage(self.dbm, self.imageRegistry, imageToShow, self.uiProjectOrFilmEdit.text(), mode, parent=self)
 
-    def openRepresentativeImageDialog(self):
-        repImageDlg = APISRepresentativeImage(self.dbm, self.imageRegistry, self.repImagePath, self.uiProjectOrFilmEdit.text(), parent=self)
+        if mode == "add":
+            repImageDlg.uiMainRepresentativeImageChk.setEnabled(len(self.repImagesPathList) > 0)
+            repImageDlg.uiMainRepresentativeImageChk.setChecked(len(self.repImagesPathList) < 1 or not self.mainRepImage)
+            repImageDlg.initalRepImageState = repImageDlg.uiMainRepresentativeImageChk.checkState()
+
+        elif mode == "edit":
+            repImageDlg.uiMainRepresentativeImageChk.setEnabled(len(self.repImagesPathList) > 1 and not os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage)
+            repImageDlg.uiMainRepresentativeImageChk.setChecked(len(self.repImagesPathList) <= 1 or os.path.splitext(os.path.basename(self.repImagesPathList[self.currentRepImage]))[0] == self.mainRepImage)
+            repImageDlg.initalRepImageState = repImageDlg.uiMainRepresentativeImageChk.checkState()
+
         repImageDlg.show()
         if repImageDlg.exec_():
             # if new Image saved Reload Image
-            #update SQL
-            self.copyNewImageToDestination(repImageDlg.newPath)
+            #update SQL > self.siteNumber
+            # if add and edit > write "filename.source -> filename.target"
+            destinationDir = QDir(self.settings.value("APIS/repr_image_dir"))
 
-    def copyNewImageToDestination(self, sourceFileName):
-        destinationDir = QDir(self.settings.value("APIS/repr_image_dir"))
-        destinationFileName = self.siteNumber.replace('.', '_')
-        destinationFilePath = os.path.normpath(os.path.normpath(destinationDir.absolutePath() + "\\{0}.jpg".format(destinationFileName)))
+            if mode == "add":
+                destinationPath = GetNextAvailableFilename(os.path.normpath(os.path.join(destinationDir.absolutePath(), f"{self.siteNumber.replace('.', '_')}{{0}}.jpg")))
+                # QMessageBox.information(None, "info", destinationPath)
+                # import random
+                # destinationFileName = f"{self.siteNumber.replace('.', '_')}_{random.randint(1000,9999)}.jpg"
+                destinationFileName = os.path.basename(destinationPath)
+            elif mode == "edit":
+                destinationFileName = self.repImagePath
 
-        sourceFile = QFile(os.path.normpath(sourceFileName))
+            # QMessageBox.information(None, "info", destinationFileName)
+
+            if repImageDlg.uiMainRepresentativeImageChk.isChecked():
+                self.setMainRepresentativeImageInDb(os.path.splitext(os.path.basename(destinationFileName))[0], self.siteNumber)
+
+            identicalFiles = self.copyNewImageToDestination(repImageDlg.newPath, os.path.normpath(os.path.join(destinationDir.absolutePath(), destinationFileName)))
+            if identicalFiles:
+                self.loadRepresentativeImagesForSite(setCurrentPath=destinationFileName)
+            else:
+                self.uiFindingsPTxt.moveCursor(QTextCursor.End)
+                self.uiFindingsPTxt.insertPlainText(f"\nRepLuftbild: {os.path.splitext(os.path.basename(repImageDlg.newPath))[0]} -> {os.path.splitext(os.path.basename(destinationFileName))[0]}")
+                self.uiFindingsPTxt.moveCursor(QTextCursor.End)
+
+    def copyNewImageToDestination(self, sourceFilePath, destinationFilePath):
+        sourceFile = QFile(os.path.normpath(sourceFilePath))
         destinationFile = QFile(os.path.normpath(destinationFilePath))
 
         #QMessageBox.information(None, "info", sourceFile.fileName() +"\n"+ destinationFile.fileName())
@@ -1244,31 +1430,15 @@ class APISSite(QDialog, FORM_CLASS):
             if destinationFile.exists():
                 destinationFile.remove()
             copyResult = sourceFile.copy(destinationFilePath)
-            self.saveNewFileNameInDb(destinationFileName)  # sqlResult
-            self.copyImageFinished.emit(copyResult)
-
-    def saveNewFileNameInDb(self, repImage):
-        query = QSqlQuery(self.dbm.db)
-        query.prepare(u"UPDATE fundort SET repraesentatives_luftbild = '{0}' WHERE fundortnummer = '{1}'".format(repImage, self.siteNumber))
-        return query.exec_()
-
-    def onCopyImageFinished(self, result):
-        #if result:
-        path = self.settings.value("APIS/repr_image_dir")
-        # get filename from SQL
-        repImageName = self.getRepresentativeImage(self.siteNumber)
-        if repImageName:
-            path += u"\\" + repImageName + u".jpg"
-            # Check if exists
-            repImageFile = QFile(path)
-
-            if repImageFile.exists():
-                self.loadImage(repImageFile.fileName())
-                # QMessageBox.information(None, "FileInfo", u"True, {0}".format(repImageFile.fileName()))
-            else:
-                self.loadText(u"Kein repräsentatives Luftbild vorhanden ...")
+            self.copyImageFinished.emit(copyResult, destinationFilePath)
+            return False
         else:
-            self.loadText(u"Kein repräsentatives Luftbild vorhanden ...")
+            return True
+
+    def onCopyImageFinished(self, result, path):
+        # QMessageBox.information(None, "info", f"{result}, {path}")
+        if result and path:
+            self.loadRepresentativeImagesForSite(setCurrentPath=path)
 
     def loadImage(self, path):
         self.repImagePath = path
@@ -1278,7 +1448,7 @@ class APISSite(QDialog, FORM_CLASS):
         self.rect = QRectF(0, 0, size.width(), size.height())
         self.scene.addPixmap(QPixmap.fromImage(image))
         self.scene.setSceneRect(self.rect)
-        self.uiSiteImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+        self.uiSiteRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
 
     def loadText(self, text):
         self.repImagePath = None
@@ -1289,7 +1459,16 @@ class APISSite(QDialog, FORM_CLASS):
         self.rect = noImageTxt.boundingRect()
         self.scene.addItem(noImageTxt)
         self.scene.setSceneRect(self.rect)
-        self.uiSiteImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+        self.uiSiteRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+
+    def removeRepresentativeImage(self):
+        answer = AskQuestion(parent=self, title="Repräsentative Bild Löschen", text="Wollen Sie das repräsentative Bild tatsächlich löschen?", options=["ja", "nein"], cancel=False)
+        if answer == 0:
+            # delete image and reload
+            repImageFile = QFile(self.repImagesPathList[self.currentRepImage])
+            if repImageFile.exists():
+                repImageFile.remove()
+            self.loadRepresentativeImagesForSite()
 
     def openSiteEditFindspotHandlingDialog(self):
         if self.findspotHandlingDlg is None:
@@ -1306,7 +1485,6 @@ class APISSite(QDialog, FORM_CLASS):
             return None
 
     def showEvent(self, event):
-        # self.loadRepresentativeImageForSite()
         self.loadRepresentativeImagesForSite()
         #self.isActive = True
         if self.addMode and self.isFilmBased:
@@ -1314,7 +1492,7 @@ class APISSite(QDialog, FORM_CLASS):
 
     def resizeEvent(self, event):
         if self.repImageLoaded:
-            self.uiSiteImageView.fitInView(self.rect, Qt.KeepAspectRatio)
+            self.uiSiteRepresentativeImageView.fitInView(self.rect, Qt.KeepAspectRatio)
 
 
 class SiteDelegate(QSqlRelationalDelegate):

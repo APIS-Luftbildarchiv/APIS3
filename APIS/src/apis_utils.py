@@ -56,10 +56,10 @@ def ApisPluginSettings():
         if os.path.isfile(s.value("APIS/config_ini")):
             return IsApisIni(s.value("APIS/config_ini"))
         else:
-            #Settings INI as stored does not exist
+            # Settings INI as stored does not exist
             return False, tr(u"Ausgewählte APIS INI Datei ({0}) ist nicht vorhanden!").format(s.value("APIS/config_ini"))
     else:
-        #Settings INI is not stored
+        # Settings INI is not stored
         return False, tr(u"Keine APIS INI Datei ausgewählt!")
 
 
@@ -117,6 +117,17 @@ def OpenFolderAndSelect(file):
 # Recurring Tasks
 # ---------------------------------------------------------------------------
 
+def AskQuestion(parent=None, title="Frage", text="Ja oder Nein?", options=["ja", "nein"], cancel=False):
+    msgBox = QMessageBox(parent)
+    msgBox.setWindowTitle(title)
+    msgBox.setText(text)
+    for option in options:
+        msgBox.addButton(QPushButton(option), QMessageBox.ActionRole)
+    if cancel:
+        msgBox.addButton(QPushButton('Abbrechen'), QMessageBox.RejectRole)
+    return msgBox.exec_()
+
+
 def SelectionOrAll(parent=None):
     msgBox = QMessageBox(parent)
     msgBox.setWindowTitle(u'Auswahl oder alle Einträge?')
@@ -150,7 +161,7 @@ def FileOrFolder(parent=None, title="APIS", text="Bitte wählen Sie eine Option"
     msgBox = QMessageBox(parent)
     msgBox.setWindowTitle(title)
     msgBox.setText(text)
-    #msgBox.setText(u"Die ausgewählten Daten wurden in eine SHP Datei exportiert.")
+    # msgBox.setText(u"Die ausgewählten Daten wurden in eine SHP Datei exportiert.")
     msgBox.addButton(QPushButton(u'In QGIS laden'), QMessageBox.ActionRole)
     msgBox.addButton(QPushButton(u'Verzeichnis öffnen'), QMessageBox.ActionRole)
     msgBox.addButton(QPushButton(u'Laden und öffnen'), QMessageBox.ActionRole)
@@ -191,7 +202,7 @@ def SetExportPath(path):
 
 
 def GetExportPath():
-    return QSettings().value("APIS/latest_export_dir",  QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat).value("APIS/working_dir", QDir.home().dirName()))
+    return QSettings().value("APIS/latest_export_dir", QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat).value("APIS/working_dir", QDir.home().dirName()))
 
 
 def SetWindowSizeAndPos(window, size, pos):
@@ -213,6 +224,19 @@ def GetWindowSize(window):
 
 def GetWindowPos(window):
     return QSettings().value("APIS/{0}_pos".format(window), None)
+
+
+def GetNextAvailableFilename(pathTemplate, pattern='_{0}', start=1, allowNonDigit=True):
+    '''
+    pathTemlate absolute path e.g. 'C:/dirname/filename{0}.ext' or 'C:/dirname/filename{0}-FS.ext'
+    '''
+    if allowNonDigit and not os.path.exists(pathTemplate.format('')):
+        return pathTemplate.format('')
+
+    i = start
+    while os.path.exists(pathTemplate.format(pattern.format(i))):
+        i += 1
+    return pathTemplate.format(pattern.format(i))
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +317,7 @@ def DbHasTable(db, table):
     query.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='{0}'".format(table))
     query.exec_()
     query.first()
-    #QMessageBox.information(None, "info", "{}".format(query.value(0) == table))
+    # QMessageBox.information(None, "info", "{}".format(query.value(0) == table))
     if query.value(0) == table:
         return True
     else:
@@ -342,6 +366,36 @@ def IsFilm(db, filmNumber):
     query.exec_()
     query.first()
     return query.value(0)
+
+
+def FilmHasImageCenterpoints(db, filmNumber, isOblique):
+    query = QSqlQuery(db)
+    if isOblique:
+        query.prepare(f"SELECT COUNT(*) FROM luftbild_schraeg_cp WHERE filmnummer = '{filmNumber}'")
+    else:
+        query.prepare(f"SELECT COUNT(*) FROM luftbild_senk_cp WHERE filmnummer = '{filmNumber}'")
+    query.exec_()
+    query.first()
+    return query.value(0)
+
+
+def FilmHasImageFootprints(db, filmNumber, isOblique):
+    query = QSqlQuery(db)
+    if isOblique:
+        query.prepare(f"SELECT COUNT(*) FROM luftbild_schraeg_fp WHERE filmnummer = '{filmNumber}'")
+    else:
+        query.prepare(f"SELECT COUNT(*) FROM luftbild_senk_fp WHERE filmnummer = '{filmNumber}'")
+    query.exec_()
+    query.first()
+    return query.value(0)
+
+# ---------------------------------------------------------------------------
+# Common DB Queries
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
 
 
 def ApisLogger(db, action, fromTable, primaryKeysWhere):

@@ -10,7 +10,7 @@ from qgis.core import (QgsProject, QgsDataSourceUri, QgsVectorLayer, QgsRasterLa
 from APIS.src.apis_utils import FileOrFolder, OpenFileOrFolder
 
 from osgeo import ogr, osr, gdal
-from gdalconst import GA_Update
+from osgeo.gdalconst import GA_Update
 
 
 class ApisLayerManager:
@@ -109,6 +109,9 @@ class ApisLayerManager:
     def requestImageLayers(self):
         return [self.requestImageVerticalCpLayer(), self.requestImageVerticalFpLayer(), self.requestImageObliqueCpLayer(), self.requestImageObliqueFpLayer()]
 
+    def requestSiteLayers(self):
+        return [self.requestSiteLayer(), self.requestFindspotLayer()]
+
     def requestImageVerticalCpLayer(self):
         groupName = self.__groups[self.__layers["images_vertical_cp"]["group"]]["display_name"]
         self._addGroupIfMissing(groupName)
@@ -156,6 +159,15 @@ class ApisLayerManager:
         layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers["find_spots"]["name"],
                                             self.__layers["find_spots"]["display_name"], groupName, None, True, True, stylePath)
         return layer
+
+    def requestSpatialiteLayer(self, layerName):
+        if layerName in self.__layers:
+            groupName = self.__groups[self.__layers[layerName]["group"]]["display_name"]
+            self._addGroupIfMissing(groupName)
+            stylePath = self.stylesDir + self.__layers[layerName]["style"]
+            layer = self.requestSpatialiteTable(self.dbm.db.databaseName(), self.__layers[layerName]["name"],
+                                                self.__layers[layerName]["display_name"], groupName, None, True, True, stylePath)
+            return layer
 
     def _getPosOfPrevGroup(self, groupName):
         topLevelGroups = [child.name() for child in self.tocRoot.children() if QgsLayerTree.isGroup(child)]
@@ -242,7 +254,7 @@ class ApisLayerManager:
                 # foundPrevLayer = False
                 # while not foundPrevLayer:
                 prevLayerName = self.__layers[posAfterId]["display_name"]
-                availableLayersInGroup = [l.name() for l in group.findLayers()]
+                availableLayersInGroup = [lyr.name() for lyr in group.findLayers()]
                 if prevLayerName in availableLayersInGroup:
                     return availableLayersInGroup.index(prevLayerName) + 1
                 else:
@@ -509,7 +521,7 @@ class ApisLayerManager:
                         # Ordner öffnen
                         OpenFileOrFolder(os.path.split(layerName)[0])
                 else:
-                    QMessageBox.warning(self, "SHP Datei Export", u"Beim erstellen der SHP Datei ist ein Fehler aufgetreten: {0}".format(error))
+                    QMessageBox.warning(parent, "SHP Datei Export", u"Beim erstellen der SHP Datei ist ein Fehler aufgetreten: {0}".format(error))
         else:
             QMessageBox.warning(parent, "SHP Datei Export", u"Der zu exportierende Layer ({0}) hat keine Features.".format(layer.name()))
             return

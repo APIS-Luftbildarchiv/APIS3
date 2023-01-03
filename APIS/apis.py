@@ -28,13 +28,13 @@ from PyQt5.QtWidgets import QAction, QMessageBox, QActionGroup, QToolButton, QMe
 # Initialize Qt resources from file resources.py
 
 # Import the code for the src #APIS.src
-from .src.apis_settings import APISSettings
+from APIS.src.apis_settings import APISSettings
 from APIS.src.apis_film import APISFilm
 from APIS.src.apis_image_mapping import APISImageMapping
 from APIS.src.apis_site_mapping import APISSiteMapping
 from APIS.src.apis_search import APISSearch
 
-from APIS.src.apis_utils import tr, ApisPluginSettings, VersionToCome
+from APIS.src.apis_utils import tr, ApisPluginSettings
 from APIS.src.apis_image_registry import ApisImageRegistry
 from APIS.src.apis_db_manager import ApisDbManager
 from APIS.src.apis_layer_manager import ApisLayerManager
@@ -107,7 +107,7 @@ class APIS:
         self.settingsDlg = APISSettings(self.iface, self.imageRegistry, self.iface.mainWindow())
 
     def enableApis(self):
-        #QMessageBox.warning(None, self.tr(u"ApisEnabled"), u"ImageRegistry is now loaded!")
+        # QMessageBox.warning(None, self.tr(u"ApisEnabled"), u"ImageRegistry is now loaded!")
         if(self.configStatus and self.imageRegistry.registryIsLoaded()):
             self.dbm = ApisDbManager(self.settings.value("APIS/database_file"))
             self.apisLayer = ApisLayerManager(self.plugin_dir, self.iface, self.dbm)
@@ -311,15 +311,15 @@ class APIS:
         self.apisLayerActionsGroup.addAction(self.openDialogButtons[5])
         m.addAction(self.openDialogButtons[5])
 
-        #dbM = self.iface.databaseMenu()
+        # dbM = self.iface.databaseMenu()
 
-        #QMessageBox.information(None,"menu", "{}".format(",".join(dbM.children())))
+        # QMessageBox.information(None,"menu", "{}".format(",".join(dbM.children())))
 
-        #self.iface.addPluginToDatabaseMenu(
+        # self.iface.addPluginToDatabaseMenu(
         #    self.menu,
         #    m)
 
-        #self.toolbar.addActions(self.apisLayerActionsGroup.actions())
+        # self.toolbar.addActions(self.apisLayerActionsGroup.actions())
 
         # Film Dialog
         icon_path = os.path.join(self.plugin_dir, 'ui', 'icons', 'film.png')
@@ -429,14 +429,20 @@ class APIS:
             pass
 
     def loadApisLayerTree(self, layerGroup):
-        #QMessageBox.information(None, "Apis Layer", layerGroup)
+        # QMessageBox.information(None, "Apis Layer", layerGroup)
         if self.apisLayer and self.apisLayer.isLoaded:
             if layerGroup == "all":
                 self.apisLayer.loadDefaultLayerTree()
+            elif layerGroup == "site":
+                self.apisLayer.requestSiteLayers()
+            elif layerGroup == "image":
+                self.apisLayer.requestImageLayers()
+            elif layerGroup == "municipalborders":
+                self.apisLayer.requestSpatialiteLayer("kgs_pol")
+            elif layerGroup == "nationalborders":
+                self.apisLayer.requestSpatialiteLayer("osm_pol")
             elif layerGroup == "oek50":
                 self.apisLayer.loadOEK50Layers()
-        else:
-            VersionToCome()
 
     def openFilmDialog(self):
         """Run method that performs all the real work"""
@@ -456,12 +462,12 @@ class APIS:
             self.imageMappingDlg.visibilityChanged.connect(self.imageMappingActionBtn.setChecked)
             self.imageMappingDlg.visibilityChanged.connect(self.checkEnableForSettingsDialog)
 
-        #if self.imageMappingDlg.isVisible():
+        # if self.imageMappingDlg.isVisible():
         if self.imageMappingActionBtn and self.imageMappingActionBtn.isChecked():
             self.imageMappingDlg.show()
             self.imageMappingMode = True
         else:
-            #TODO Check Mapping State !!!
+            # TODO Check Mapping State !!!
             self.imageMappingDlg.hide()
             self.imageMappingMode = False
 
@@ -479,7 +485,6 @@ class APIS:
     def toggleSearchDialg(self):
         if not self.searchDlg:
             self.searchDlg = APISSearch(self.iface, self.dbm, self.imageRegistry, self.apisLayer, self.iface.mainWindow())
-            #self.searchDlg = APISSearch(self.iface)
             self.searchDlg.visibilityChanged.connect(self.searchActionBtn.setChecked)
             self.searchDlg.visibilityChanged.connect(self.checkEnableForSettingsDialog)
 

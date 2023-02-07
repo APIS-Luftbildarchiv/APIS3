@@ -15,9 +15,10 @@ All notable changes to APIS4QGIS3 project will be documented in this file.
 - RepresenativeImagesFile
 - MultipleRepresentativeImagesFOs
 - RepresentativeImageFS
-### [3.2.0] Bundesheer
+## [3.2.0-alpha.0] Bundesheer
 - Bundesheer Add-On.
 - ImageEditVertical
+- Missing for 3.2.0: Procedure for data exchange & integration (+ finalizing integration of existing BH data)
 ## [3.1.4] - 2021-08-19
 #### Fixed
 - ident zu 3.1.3 (bug fix Installationsproblem)

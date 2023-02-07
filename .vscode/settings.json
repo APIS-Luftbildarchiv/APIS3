@@ -68,5 +68,6 @@
         "VSI_CACHE": "TRUE",
         "VSI_CACHE_SIZE": "1000000"
     },
+    "liveServer.settings.port": 5501,
 
 }

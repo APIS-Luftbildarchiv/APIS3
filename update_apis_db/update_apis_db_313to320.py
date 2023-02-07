@@ -47,7 +47,7 @@ apisAppId = 116919  # 1=A 16=P 9=I 19=S
 apisSettings = QSettings(QSettings().value("APIS/config_ini"), QSettings.IniFormat)
 
 # sourceDbPath = pathlib.Path(apisSettings.value("APIS/repr_image_fs_dir"))
-sourceDbPath = pathlib.Path('C:\\data\\development\\apis\\daten\\datenbank\\APISv3.sqlite')
+sourceDbPath = pathlib.Path('C:\\data\\development\\apis\\daten\\datenbank\\APISv3_20220901.sqlite')
 targetDbPath = pathlib.Path(f'C:\\data\\development\\apis\\APIS3\\playground\\APISv{targetVersion}_{QDateTime.currentDateTime().toString("yyyyMMdd_hhmmss")}.sqlite')
 
 # CHECK source DB
